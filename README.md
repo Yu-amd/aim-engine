@@ -11,6 +11,24 @@ AIM (AMD Inference Microservice) Engine automatically deploys AI models with opt
 - **⚡ Smart Loading**: Only loads recipes for the target model
 - **🐳 Single Container**: Everything in one container with vLLM ROCm for AMD
 - **🔧 Production Ready**: Health checks, monitoring, and error handling
+- **✅ Smart Validation**: Validates vLLM arguments and GPU availability automatically
+
+## 🔧 **Recent Improvements**
+
+### **vLLM Argument Validation**
+- **Automatic Filtering**: Removes invalid arguments like `--max-batch-size` and `--max-context-len` for vLLM
+- **Boolean Flag Handling**: Properly formats boolean flags like `--trust-remote-code` (without `true` value)
+- **Argument Conversion**: Converts `--max-context-len` to `--max-model-len` for vLLM compatibility
+
+### **GPU Count Validation**
+- **Container GPU Detection**: Automatically detects available GPUs in the container
+- **Smart Adjustment**: Adjusts requested GPU count to match available resources
+- **Fallback Handling**: Gracefully handles GPU detection failures
+
+### **AMD ROCm Optimization**
+- **ROCm-First Detection**: Prioritizes AMD GPU detection over NVIDIA
+- **Proper Device Passthrough**: Optimized for AMD GPU containers
+- **Memory Management**: Efficient memory utilization for large models
 
 ## 🚀 **Quick Start**
 

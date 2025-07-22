@@ -31,6 +31,13 @@ class AIMConfigGenerator:
             Deployment configuration dictionary
         """
         try:
+            # Validate GPU count against available GPUs in container
+            available_gpus = self._detect_available_gpus_in_container()
+            if gpu_count > available_gpus:
+                self.logger.warning(f"Requested {gpu_count} GPUs but container only has {available_gpus} available")
+                self.logger.info(f"Adjusting GPU count to {available_gpus}")
+                gpu_count = available_gpus
+            
             # Get the specific configuration for this GPU count and backend
             backend_key = f"{backend}_serve"
             gpu_key = f"{gpu_count}_gpu"
@@ -76,6 +83,39 @@ class AIMConfigGenerator:
         except Exception as e:
             self.logger.error(f"Failed to generate configuration: {str(e)}")
             raise
+    
+    def _detect_available_gpus_in_container(self) -> int:
+        """
+        Detect the number of available GPUs in the current container
+        
+        Returns:
+            Number of available GPUs
+        """
+        try:
+            import subprocess
+            # Try AMD ROCm first
+            result = subprocess.run(['rocm-smi', '--showproductname'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                # Count GPU entries (lines starting with "GPU[")
+                gpu_lines = [line for line in result.stdout.strip().split('\n') 
+                           if line.strip().startswith('GPU[')]
+                gpu_count = len(gpu_lines)
+                self.logger.info(f"Detected {gpu_count} AMD GPUs in container using rocm-smi")
+                return gpu_count
+            
+            # Fallback to NVIDIA if ROCm not available
+            result = subprocess.run(['nvidia-smi', '--list-gpus'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                gpu_count = len(result.stdout.strip().split('\n'))
+                self.logger.info(f"Detected {gpu_count} NVIDIA GPUs in container using nvidia-smi")
+                return gpu_count
+        except Exception as e:
+            self.logger.warning(f"Could not detect GPUs in container: {e}")
+        
+        # Default to 1 if detection fails
+        return 1
     
     def _build_command(self, recipe_config: Dict, backend: str, port: int) -> str:
         """
