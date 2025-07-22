@@ -2,7 +2,7 @@
 
 ## 🎯 **Overview**
 
-This guide shows how to use the combined AIM Engine + vLLM ROCm container, which includes both the intelligent recipe selection tools and the vLLM inference runtime in a single container.
+This guide shows how to use the AIM Engine with the vLLM ROCm container, which includes both the intelligent recipe selection tools and the vLLM inference runtime in a single container.
 
 ## 🏗️ **Architecture Benefits**
 

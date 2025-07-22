@@ -22,11 +22,11 @@ AIM (AMD Inference Microservice) Engine automatically deploys AI models with opt
 
 ## 🚀 **Quick Start**
 
-### **Combined AIM Engine + vLLM Container**
+### **AIM Engine + vLLM ROCm Container**
 
 This approach uses a single container that includes both AIM Engine's intelligent recipe selection tools and the vLLM ROCm runtime for maximum efficiency and simplicity.
 
-#### **1. Build the Combined Container**
+#### **1. Build the Combined Container: install AIM Engine tools in the vLLM ROCm Container**
 ```bash
 # Clone the repository
 git clone https://github.com/Yu-amd/aim-engine.git
@@ -36,7 +36,7 @@ cd aim-engine
 ./build-aim-vllm.sh
 ```
 
-#### **2. Generate Optimal Configuration**
+#### **2. Identify Optimal Configuration for a Given Model**
 ```bash
 # Generate optimal vLLM command
 docker run --rm -it \
