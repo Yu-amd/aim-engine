@@ -99,6 +99,22 @@ class AIMConfigGenerator:
         else:
             raise ValueError(f"Unsupported backend: {backend}")
         
+        # Define valid arguments for each backend
+        valid_vllm_args = {
+            "model", "dtype", "tensor-parallel-size", "gpu-memory-utilization", 
+            "trust-remote-code", "port", "host", "max-model-len", "max-num-batched-tokens",
+            "max-num-seqs", "quantization", "enforce-eager", "disable-log-stats",
+            "disable-log-requests", "max-log-len", "disable-fastapi-docs"
+        }
+        
+        valid_sglang_args = {
+            "model", "dtype", "tensor-parallel-size", "gpu-memory-utilization",
+            "trust-remote-code", "port", "host", "max-batch-size", "max-context-len"
+        }
+        
+        # Select valid arguments based on backend
+        valid_args = valid_vllm_args if backend == "vllm" else valid_sglang_args
+        
         # Add arguments
         for key, value in args.items():
             # Remove leading dashes if present
@@ -107,9 +123,20 @@ class AIMConfigGenerator:
             elif key.startswith("-"):
                 key = key[1:]
             
+            # Skip invalid arguments
+            if key not in valid_args:
+                self.logger.warning(f"Skipping invalid argument for {backend}: {key}")
+                continue
+            
             # Handle special cases
             if key == "port":
                 command += f" --{key} {port}"
+            elif key == "max-context-len" and backend == "vllm":
+                # Convert max-context-len to max-model-len for vLLM
+                command += f" --max-model-len {value}"
+            elif value == "true" and key in ["trust-remote-code", "enforce-eager", "disable-log-stats", "disable-log-requests", "disable-fastapi-docs"]:
+                # Handle boolean flags - just add the flag without value
+                command += f" --{key}"
             else:
                 command += f" --{key} {value}"
         
