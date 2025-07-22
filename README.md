@@ -221,7 +221,7 @@ docker exec aim-engine aim-engine cache stats
 #### **GPU Memory Issues**
 ```bash
 # Check available GPU memory
-nvidia-smi
+rocm-smi
 
 # Reduce GPU count
 aim-engine launch Qwen/Qwen3-32B 2  # Use 2 GPUs instead of 4
