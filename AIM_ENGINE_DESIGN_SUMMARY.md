@@ -121,7 +121,6 @@ def get_optimal_configuration(self, model_id, customer_gpu_count=None,
 
 3. **Environment Variables**:
    - `HIP_VISIBLE_DEVICES` (AMD/ROCm)
-   - `CUDA_VISIBLE_DEVICES` (fallback)
 
 ### **Phase 2: Optimal Configuration Selection**
 
@@ -421,7 +420,6 @@ def _build_command(self, recipe_config, backend, port):
 def _build_environment(self, recipe, precision, backend):
     env = {
         'HIP_VISIBLE_DEVICES': '0,1,2,3,4,5,6,7',  # AMD/ROCm primary
-        'CUDA_VISIBLE_DEVICES': '0,1,2,3,4,5,6,7',  # Fallback
         'PYTORCH_ROCM_ARCH': 'gfx90a',  # MI300X architecture
         'VLLM_USE_ROCM': '1'  # Enable ROCm backend
     }

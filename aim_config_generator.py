@@ -196,7 +196,6 @@ class AIMConfigGenerator:
         environment = {
             "PYTHONUNBUFFERED": "1",
             "HIP_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7",  # AMD/ROCm GPU allocation
-            "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7",  # Fallback for compatibility
         }
         
         # Add precision-specific environment variables
@@ -263,7 +262,6 @@ FROM rocm/vllm:latest
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-ENV CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 # Set precision-specific environment variables
 """

@@ -112,8 +112,8 @@ class AIMRecipeSelector:
         
         # Fallback to environment variable or default
         import os
-        # For AMD/ROCm, we use HIP_VISIBLE_DEVICES instead of CUDA_VISIBLE_DEVICES
-        gpu_count = int(os.environ.get('HIP_VISIBLE_DEVICES', os.environ.get('CUDA_VISIBLE_DEVICES', '0')).count(',') + 1)
+        # For AMD/ROCm, we use HIP_VISIBLE_DEVICES
+        gpu_count = int(os.environ.get('HIP_VISIBLE_DEVICES', '0').count(',') + 1)
         self.logger.info(f"Using fallback GPU count: {gpu_count}")
         return gpu_count
     
@@ -159,8 +159,8 @@ class AIMRecipeSelector:
         
         # Fallback to environment variable or default to 1
         import os
-        # For AMD/ROCm, we use HIP_VISIBLE_DEVICES instead of CUDA_VISIBLE_DEVICES
-        gpu_count = int(os.environ.get('HIP_VISIBLE_DEVICES', os.environ.get('CUDA_VISIBLE_DEVICES', '0')).count(',') + 1)
+        # For AMD/ROCm, we use HIP_VISIBLE_DEVICES
+        gpu_count = int(os.environ.get('HIP_VISIBLE_DEVICES', '0').count(',') + 1)
         self.logger.info(f"Using fallback container GPU count: {gpu_count}")
         return gpu_count
     

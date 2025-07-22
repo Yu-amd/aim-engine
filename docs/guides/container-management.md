@@ -83,7 +83,7 @@ docker run \
   -d \
   --gpus all \
   -p 8000:8000 \
-  -e CUDA_VISIBLE_DEVICES=0,1,2,3 \
+  -e HIP_VISIBLE_DEVICES=0,1,2,3 \
   -e NCCL_DEBUG=INFO \
   -v /workspace/models:/workspace/models \
   rocm/vllm:latest \
