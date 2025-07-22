@@ -17,8 +17,8 @@ AIM (AMD Inference Microservice) Engine automatically deploys AI models with opt
 ### **1. Build the Container**
 ```bash
 # Clone and build
-git clone <repository-url>
-cd AIM-implementation
+git clone https://github.com/Yu-amd/aim-engine.git
+cd aim-engine
 ./scripts/build.sh
 ```
 
