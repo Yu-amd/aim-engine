@@ -185,7 +185,6 @@ aim-engine stop aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm
 
 ## 🐳 **Container Deployment Models**
 
-### **Model 1: Unified Container (Recommended)**
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    AIM Engine Unified Container             │
