@@ -32,10 +32,7 @@ aim_recipes:
   hardware: MI300X
   precision: fp8
   recipe_file: configs/llama-4-maverick-17b-mi300x-fp8.yaml
-- name: MI250 FP8
-  hardware: MI250
-  precision: fp8
-  recipe_file: configs/llama-4-maverick-17b-mi250-fp8.yaml
+
 api_examples:
   python: "import requests\n\nheaders = {\n    \"Authorization\": \"Bearer YOUR_API_KEY\"\
     ,\n    \"Content-Type\": \"application/json\"\n}\n\npayload = {\n    \"model\"\

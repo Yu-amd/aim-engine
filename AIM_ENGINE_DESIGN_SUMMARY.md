@@ -436,7 +436,7 @@ def _build_environment(self, recipe, precision, backend):
 
 ### **2. Hardware-Specific Optimization**
 - **MI300X**: Optimized for high memory bandwidth
-- **MI250**: Optimized for compute density
+- **MI325X**: Optimized for next-generation performance
 - **Precision Selection**: Hardware-aware precision choices
 
 ### **3. Dynamic Resource Allocation**

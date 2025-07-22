@@ -35,10 +35,7 @@ aim_recipes:
   hardware: MI300X
   precision: bf16
   recipe_file: configs/qwen3-32b-mi300x-bf16.yaml
-- name: MI250 BF16
-  hardware: MI250
-  precision: bf16
-  recipe_file: configs/qwen3-32b-mi250-bf16.yaml
+
 api_examples:
   python: "import requests\n\nheaders = {\n    \"Authorization\": \"Bearer YOUR_API_KEY\"\
     ,\n    \"Content-Type\": \"application/json\"\n}\n\npayload = {\n    \"model\"\

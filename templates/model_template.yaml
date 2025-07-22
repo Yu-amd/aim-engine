@@ -37,10 +37,7 @@ aim_recipes:
     precision: fp8
     recipe_file: configs/<hash>.yaml
 
-  - name: MI250 INT8
-    hardware: MI250
-    precision: int8
-    recipe_file: configs/<hash>.yaml
+
 
 api_examples:
   python: |

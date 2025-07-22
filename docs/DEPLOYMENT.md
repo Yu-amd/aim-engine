@@ -7,7 +7,7 @@ This guide covers deploying the AIM (AMD Inference Microservice) Engine in vario
 ## Prerequisites
 
 ### Hardware Requirements
-- **AMD Instinct™ GPU**: MI250, MI300X, or MI325X
+- **AMD Instinct™ GPU**: MI300X or MI325X
 - **CPU**: 64+ cores recommended for large models
 - **RAM**: 256GB+ for large models, 128GB+ for medium models
 - **Storage**: NVMe SSD with 1TB+ for model cache

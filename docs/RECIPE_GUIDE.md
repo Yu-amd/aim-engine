@@ -12,7 +12,7 @@ AIM (AMD Inference Microservice) Recipes are YAML configuration files that defin
 recipe_id: model-name-hardware-precision
 huggingface_id: "Model/Name"
 precision: "bf16"  # bf16, fp16, fp8, int8, int4
-hardware: "mi300x"  # mi250, mi300x, mi325x
+hardware: "mi300x"  # mi300x, mi325x
 description: "Brief description of the model and configuration"
 
 vllm_serve:
@@ -47,7 +47,7 @@ vllm_serve:
 Examples:
 ├── qwen3-32b-mi300x-bf16.yaml
 ├── llama-3-1-405b-mi300x-fp8.yaml
-├── deepseek-r1-0528-mi250-fp16.yaml
+
 └── llama-4-maverick-17b-mi300x-fp8.yaml
 ```
 

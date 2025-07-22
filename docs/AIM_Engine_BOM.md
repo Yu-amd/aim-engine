@@ -232,7 +232,7 @@ PATH="/opt/aim-engine:$PATH"                      # Add AIM Engine to PATH
 ## Deployment Considerations
 
 ### Resource Requirements
-- **GPU**: AMD Instinct GPUs (MI250, MI300X, MI325X)
+- **GPU**: AMD Instinct GPUs (MI300X, MI325X)
 - **Memory**: Varies by model size and precision
 - **Storage**: Cache directory for model storage
 - **Network**: Internet access for model downloads
