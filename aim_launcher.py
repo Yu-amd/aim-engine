@@ -49,10 +49,6 @@ class AIMEngine:
             self.logger.info(f"Cache enabled at: {self.cache_dir}")
         else:
             self.logger.warning("Cache manager not available - caching disabled")
-            self.cache_enabled = True
-            self.logger.info(f"Cache enabled at: {self.cache_dir}")
-        else:
-            self.logger.warning("Cache manager not available - caching disabled")
     
     def validate_inputs(self, model_id: str, gpu_count: Optional[int] = None, 
                        precision: Optional[str] = None, backend: str = 'vllm') -> bool:
