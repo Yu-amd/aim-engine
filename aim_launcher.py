@@ -16,33 +16,33 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from aim_docker_manager import AIMDockerManager
+from aim_recipe_selector import AIMRecipeSelector
 from aim_endpoint_manager import AIMEndpointManager
 from aim_config_generator import AIMConfigGenerator
-        self.logger.info(f"Cache enabled at: {self.cache_dir}")
 class AIMEngine:
     """AIM Engine for AI Model Deployment"""
     def __init__(self, config_dir: str = ".", cache_dir: str = "/workspace/model-cache"):
-    self.config_dir = Path(config_dir)
-    self.cache_dir = Path(cache_dir)
-    self.recipe_selector = AIMRecipeSelector(self.config_dir)
-    self.docker_manager = AIMDockerManager()
-    self.endpoint_manager = AIMEndpointManager()
-    self.config_generator = AIMConfigGenerator()
+        self.config_dir = Path(config_dir)
+        self.cache_dir = Path(cache_dir)
+        self.recipe_selector = AIMRecipeSelector(self.config_dir)
+        self.docker_manager = AIMDockerManager()
+        self.endpoint_manager = AIMEndpointManager()
+        self.config_generator = AIMConfigGenerator()
 
-    # Initialize logger first
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    self.logger = logging.getLogger(__name__)
+        # Initialize logger first
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self.logger = logging.getLogger(__name__)
 
-    # Initialize cache manager if available
-    try:
-        from aim_cache_manager import AIMCacheManager
-        self.cache_manager = AIMCacheManager(str(self.cache_dir))
-        self.cache_enabled = True
-        self.logger.info(f"Cache enabled at: {self.cache_dir}")
-    except ImportError:
-        self.cache_manager = None
-        self.cache_enabled = False
-        self.logger.warning("Cache manager not available - caching disabled")
+        # Initialize cache manager if available
+        try:
+            from aim_cache_manager import AIMCacheManager
+            self.cache_manager = AIMCacheManager(str(self.cache_dir))
+            self.cache_enabled = True
+            self.logger.info(f"Cache enabled at: {self.cache_dir}")
+        except ImportError:
+            self.cache_manager = None
+            self.cache_enabled = False
+            self.logger.warning("Cache manager not available - caching disabled")
         
     def validate_inputs(self, model_id: str, gpu_count: Optional[int] = None, 
                        precision: Optional[str] = None, backend: str = 'vllm') -> bool:
@@ -127,9 +127,13 @@ class AIMEngine:
             self.logger.info(f"  Precision: {optimal_config['precision']}")
             self.logger.info(f"  Backend: {optimal_config['backend']}")
             
+            # Step 2: Get the full recipe for configuration generation
+            recipe = self.recipe_selector.get_recipe_info(optimal_config["recipe_id"])
+            if not recipe:
+                return {"success": False, "error": f"Recipe {optimal_config["recipe_id"]} not found"}
             # Step 2: Generate deployment configuration with cache support
             config = self.config_generator.generate_config(
-                optimal_config['config'], 
+                recipe, 
                 optimal_config['gpu_count'], 
                 optimal_config['precision'], 
                 optimal_config['backend'], 
@@ -160,8 +164,8 @@ class AIMEngine:
             if not container_name:
                 container_name = f"aim-engine-{model_id.replace('/', '-').lower()}-{optimal_config['gpu_count']}gpu-{optimal_config['precision']}-{optimal_config['backend']}"
             
-            # Step 4: Launch Docker container
-            container_info = self.docker_manager.launch_container(
+            # Step 4: Run the command directly (no Docker-in-Docker)
+            container_info = self.docker_manager.run_command_directly(
                 config, container_name, optimal_config['gpu_count']
             )
             

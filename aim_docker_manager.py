@@ -398,3 +398,52 @@ class AIMDockerManager:
             "failed": failed,
             "total": len(containers)
         } 
+
+    def run_command_directly(self, config: Dict, container_name: str, gpu_count: int) -> Dict:
+        """
+        Run the command directly instead of launching a Docker container
+        
+        Args:
+            config: Container configuration
+            container_name: Name for the container (used for logging)
+            gpu_count: Number of GPUs to allocate
+            
+        Returns:
+            Dictionary with process information
+        """
+        try:
+            import subprocess
+            import os
+            
+            # Set environment variables
+            env = os.environ.copy()
+            for key, value in config.get("environment", {}).items():
+                env[key] = str(value)
+            
+            # Get the command to run
+            command = config.get("command", "")
+            if not command:
+                return {"success": False, "error": "No command specified in config"}
+            
+            self.logger.info(f"Running command directly: {command}")
+            
+            # Run the command in the background
+            process = subprocess.Popen(
+                command.split(),
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                preexec_fn=os.setsid  # Create new process group
+            )
+            
+            return {
+                "success": True,
+                "container_id": str(process.pid),
+                "container_name": container_name,
+                "process": process,
+                "command": command
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to run command directly: {str(e)}")
+            return {"success": False, "error": str(e)} 
