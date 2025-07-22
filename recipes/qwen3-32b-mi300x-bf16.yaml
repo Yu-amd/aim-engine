@@ -10,8 +10,7 @@ vllm_serve:
     args:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
-      --max-batch-size: "8"
-      --max-context-len: "32768"
+      --max-model-len: "32768"
       --gpu-memory-utilization: "0.9"
       --trust-remote-code: "true"
       --port: "8000"
@@ -22,8 +21,7 @@ vllm_serve:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
       --tensor-parallel-size: "2"
-      --max-batch-size: "16"
-      --max-context-len: "32768"
+      --max-model-len: "32768"
       --gpu-memory-utilization: "0.9"
       --trust-remote-code: "true"
       --port: "8000"
@@ -34,8 +32,7 @@ vllm_serve:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
       --tensor-parallel-size: "4"
-      --max-batch-size: "32"
-      --max-context-len: "32768"
+      --max-model-len: "32768"
       --gpu-memory-utilization: "0.9"
       --trust-remote-code: "true"
       --port: "8000"
@@ -46,8 +43,7 @@ vllm_serve:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
       --tensor-parallel-size: "8"
-      --max-batch-size: "64"
-      --max-context-len: "32768"
+      --max-model-len: "32768"
       --gpu-memory-utilization: "0.9"
       --trust-remote-code: "true"
       --port: "8000"
