@@ -17,34 +17,52 @@ class AIMRecipeSelector:
     """Selects the best performing AIM recipe based on customer inputs"""
     
     def __init__(self, config_dir: Path):
-        self.config_dir = config_dir
-        self.recipes_dir = config_dir / "recipes"
-        self.models_dir = config_dir / "models"
+        self.config_dir = Path(config_dir) if isinstance(config_dir, str) else config_dir
+        self.recipes_dir = self.config_dir / "recipes"
+        self.models_dir = self.config_dir / "models"
         self.logger = logging.getLogger(__name__)
         
         # Don't load all recipes at startup - load on demand
         self.recipes = {}  # Will be populated per model
-        self.models = {}
-        
-        # Load model definitions
-        self._load_models()
+        self.models = {}  # Will be populated on demand (lazy loading)
     
     def _load_models(self):
-        """Load all model definitions from the models directory"""
-        self.models = {}
+        """Load all model definitions from the models directory (deprecated - use _load_model_info instead)"""
+        self.logger.warning("_load_models is deprecated. Use _load_model_info for lazy loading.")
+        return
+    
+    def _load_model_info(self, model_id: str) -> Optional[Dict]:
+        """
+        Load model information for a specific model (lazy loading)
+        
+        Args:
+            model_id: Hugging Face model ID
+            
+        Returns:
+            Model information dictionary or None if not found
+        """
+        # Check if already loaded
+        if model_id in self.models:
+            return self.models[model_id]
         
         if not self.models_dir.exists():
             self.logger.warning(f"Models directory not found: {self.models_dir}")
-            return
+            return None
         
+        # Find and load the specific model file
         for model_file in self.models_dir.glob("*.yaml"):
             try:
                 with open(model_file, 'r') as f:
                     model = yaml.safe_load(f)
-                    self.models[model['huggingface_id']] = model
-                    self.logger.debug(f"Loaded model: {model['huggingface_id']}")
+                    if model.get('huggingface_id') == model_id:
+                        self.models[model_id] = model
+                        self.logger.debug(f"Lazy loaded model: {model_id}")
+                        return model
             except Exception as e:
                 self.logger.error(f"Failed to load model {model_file}: {e}")
+        
+        self.logger.warning(f"Model not found: {model_id}")
+        return None
     
     def _load_model_recipes(self, model_id: str) -> Dict[str, Dict]:
         """
@@ -232,7 +250,7 @@ class AIMRecipeSelector:
             available_gpus = 1
         
         # Auto-select optimal GPU count based on model size and available GPUs
-        model_info = self.models.get(model_id, {})
+        model_info = self._load_model_info(model_id) or {}
         model_size = model_info.get('size', 'unknown')
         
         # Simple heuristic for optimal GPU count
@@ -267,7 +285,7 @@ class AIMRecipeSelector:
             return customer_precision
         
         # Auto-select precision based on model characteristics
-        model_info = self.models.get(model_id, {})
+        model_info = self._load_model_info(model_id) or {}
         model_size = model_info.get('size', 'unknown')
         
         # Simple heuristic for precision selection
@@ -440,8 +458,21 @@ class AIMRecipeSelector:
         return config
     
     def list_available_models(self) -> List[str]:
-        """List all available models"""
-        return list(self.models.keys())
+        """List all available models by scanning the models directory"""
+        if not self.models_dir.exists():
+            return []
+        
+        available_models = []
+        for model_file in self.models_dir.glob("*.yaml"):
+            try:
+                with open(model_file, 'r') as f:
+                    model = yaml.safe_load(f)
+                    if 'huggingface_id' in model:
+                        available_models.append(model['huggingface_id'])
+            except Exception as e:
+                self.logger.error(f"Failed to read model {model_file}: {e}")
+        
+        return available_models
     
     def list_available_recipes(self) -> List[str]:
         """List all available recipes (deprecated - use get_model_recipes instead)"""
@@ -454,8 +485,8 @@ class AIMRecipeSelector:
         return list(model_recipes.keys())
     
     def get_model_info(self, model_id: str) -> Optional[Dict]:
-        """Get information about a specific model"""
-        return self.models.get(model_id)
+        """Get information about a specific model (lazy loading)"""
+        return self._load_model_info(model_id)
     
     def get_recipe_info(self, recipe_id: str) -> Optional[Dict]:
         """Get information about a specific recipe"""
