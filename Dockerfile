@@ -102,7 +102,7 @@ init_cache() {
     
     # Initialize cache index if it doesn't exist
     if [[ ! -f /workspace/model-cache/cache_index.json ]]; then
-        python3 aim_cache_manager.py setup --cache-dir /workspace/model-cache
+        python3 aim_cache_manager.py --cache-dir /workspace/model-cache setup
     fi
     
     print_success "Cache initialized at /workspace/model-cache"
@@ -142,7 +142,7 @@ except Exception as e:
 # Function to show cache status
 show_cache_status() {
     print_info "Cache Status:"
-    python3 aim_cache_manager.py stats --cache-dir /workspace/model-cache
+    python3 aim_cache_manager.py --cache-dir /workspace/model-cache stats
 }
 
 # Main function
