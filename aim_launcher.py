@@ -45,7 +45,6 @@ class AIMEngine:
         self.logger = logging.getLogger(__name__)
         
         if self.cache_manager:
-        if self.cache_manager:
             self.cache_enabled = True
             self.logger.info(f"Cache enabled at: {self.cache_dir}")
         else:
