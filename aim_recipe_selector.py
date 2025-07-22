@@ -98,19 +98,71 @@ class AIMRecipeSelector:
                 self.logger.info(f"Detected {gpu_count} AMD GPUs using rocm-smi")
                 return gpu_count
             
-            # Fallback to NVIDIA if ROCm not available
+            # Try NVIDIA if AMD not available
             result = subprocess.run(['nvidia-smi', '--list-gpus'], 
                                   capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
-                gpu_count = len(result.stdout.strip().split('\n'))
+                gpu_lines = [line for line in result.stdout.strip().split('\n') 
+                           if line.strip()]
+                gpu_count = len(gpu_lines)
                 self.logger.info(f"Detected {gpu_count} NVIDIA GPUs using nvidia-smi")
                 return gpu_count
+                
         except Exception as e:
-            self.logger.warning(f"Could not detect GPUs: {e}")
+            self.logger.warning(f"Failed to detect GPUs: {e}")
         
-        # Fallback: assume 1 GPU
-        self.logger.info("Assuming 1 GPU available")
-        return 1
+        # Fallback to environment variable or default
+        import os
+        gpu_count = int(os.environ.get('CUDA_VISIBLE_DEVICES', '0').count(',') + 1)
+        self.logger.info(f"Using fallback GPU count: {gpu_count}")
+        return gpu_count
+    
+    def _detect_container_gpus(self) -> int:
+        """
+        Detect the number of GPUs available inside the container
+        This is different from host GPUs due to Docker GPU access limitations
+        
+        Returns:
+            Number of GPUs available inside the container
+        """
+        try:
+            import subprocess
+            import torch
+            
+            # Try PyTorch first (most reliable inside containers)
+            if torch.cuda.is_available():
+                gpu_count = torch.cuda.device_count()
+                self.logger.info(f"Detected {gpu_count} GPUs using PyTorch")
+                return gpu_count
+            
+            # Try AMD ROCm
+            result = subprocess.run(['rocm-smi', '--showproductname'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                gpu_lines = [line for line in result.stdout.strip().split('\n') 
+                           if line.strip().startswith('GPU[')]
+                gpu_count = len(gpu_lines)
+                self.logger.info(f"Detected {gpu_count} AMD GPUs in container using rocm-smi")
+                return gpu_count
+            
+            # Try NVIDIA
+            result = subprocess.run(['nvidia-smi', '--list-gpus'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                gpu_lines = [line for line in result.stdout.strip().split('\n') 
+                           if line.strip()]
+                gpu_count = len(gpu_lines)
+                self.logger.info(f"Detected {gpu_count} NVIDIA GPUs in container using nvidia-smi")
+                return gpu_count
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to detect container GPUs: {e}")
+        
+        # Fallback to environment variable or default to 1
+        import os
+        gpu_count = int(os.environ.get('CUDA_VISIBLE_DEVICES', '0').count(',') + 1)
+        self.logger.info(f"Using fallback container GPU count: {gpu_count}")
+        return gpu_count
     
     def _get_optimal_gpu_count(self, model_id: str, available_gpus: int, 
                               customer_gpu_count: Optional[int] = None) -> int:
@@ -441,15 +493,29 @@ class AIMRecipeSelector:
         Returns:
             Optimal configuration or None if not found
         """
-        recipe = self.select_best_recipe(model_id, customer_gpu_count, customer_precision, backend)
+        # Detect GPUs available inside the container (not host)
+        container_gpus = self._detect_container_gpus()
+        host_gpus = self._detect_available_gpus()
+        
+        self.logger.info(f"Container GPUs: {container_gpus}, Host GPUs: {host_gpus}")
+        
+        # Use container GPU count for actual configuration
+        actual_gpu_count = self._get_optimal_gpu_count(model_id, container_gpus, customer_gpu_count)
+        actual_precision = self._select_best_precision(model_id, customer_precision)
+        
+        # Find a recipe that matches the actual GPU count
+        recipe = self.select_best_recipe(model_id, actual_gpu_count, actual_precision, backend)
         
         if not recipe:
-            return None
+            # If no recipe found for the actual GPU count, try with 1 GPU
+            if actual_gpu_count > 1:
+                self.logger.warning(f"No recipe found for {actual_gpu_count} GPUs, trying with 1 GPU")
+                actual_gpu_count = 1
+                recipe = self.select_best_recipe(model_id, actual_gpu_count, actual_precision, backend)
         
-        # Get the actual GPU count and precision that were selected
-        available_gpus = self._detect_available_gpus()
-        actual_gpu_count = self._get_optimal_gpu_count(model_id, available_gpus, customer_gpu_count)
-        actual_precision = self._select_best_precision(model_id, customer_precision)
+        if not recipe:
+            self.logger.error(f"No suitable recipe found for {model_id} with {actual_gpu_count} GPUs")
+            return None
         
         config = self.get_recipe_config(recipe, actual_gpu_count, backend)
         
@@ -463,5 +529,6 @@ class AIMRecipeSelector:
             'precision': actual_precision,
             'backend': backend,
             'config': config,
-            'available_gpus': available_gpus
+            'available_gpus': container_gpus,
+            'host_gpus': host_gpus
         } 

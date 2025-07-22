@@ -401,7 +401,7 @@ class AIMDockerManager:
 
     def run_command_directly(self, config: Dict, container_name: str, gpu_count: int) -> Dict:
         """
-        Run the command directly instead of launching a Docker container
+        Run the command in a Docker container with proper port mapping
         
         Args:
             config: Container configuration
@@ -409,41 +409,80 @@ class AIMDockerManager:
             gpu_count: Number of GPUs to allocate
             
         Returns:
-            Dictionary with process information
+            Dictionary with container information
         """
         try:
             import subprocess
             import os
-            
-            # Set environment variables
-            env = os.environ.copy()
-            for key, value in config.get("environment", {}).items():
-                env[key] = str(value)
             
             # Get the command to run
             command = config.get("command", "")
             if not command:
                 return {"success": False, "error": "No command specified in config"}
             
-            self.logger.info(f"Running command directly: {command}")
+            # Get port from config
+            port = config.get("port", 8000)
             
-            # Run the command in the background
+            # Build Docker run command with proper port mapping
+            docker_cmd = [
+                "docker", "run",
+                "--rm",  # Remove container when it stops
+                "--name", container_name,
+                "-p", f"{port}:{port}",  # Port mapping
+                "--device=/dev/kfd",
+                "--device=/dev/dri", 
+                "--group-add=video",
+                "--cap-add=SYS_RAWIO"
+            ]
+            
+            # Add environment variables
+            for key, value in config.get("environment", {}).items():
+                docker_cmd.extend(["-e", f"{key}={value}"])
+            
+            # Add volume mounts
+            for volume in config.get("volumes", []):
+                docker_cmd.extend(["-v", volume])
+            
+            # Add the base image
+            docker_cmd.append(self.base_image)
+            
+            # Add the command
+            docker_cmd.extend(command.split())
+            
+            self.logger.info(f"Running Docker command: {' '.join(docker_cmd)}")
+            
+            # Run the Docker command in the background
             process = subprocess.Popen(
-                command.split(),
-                env=env,
+                docker_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 preexec_fn=os.setsid  # Create new process group
             )
             
+            # Wait a moment for container to start
+            import time
+            time.sleep(2)
+            
+            # Get container ID
+            result = self._run_docker_command([
+                "docker", "ps", "--filter", f"name={container_name}", 
+                "--format", "{{.ID}}"
+            ])
+            
+            container_id = result.get("stdout", "").strip()
+            if not container_id:
+                # Try to get container ID from process
+                container_id = str(process.pid)
+            
             return {
                 "success": True,
-                "container_id": str(process.pid),
+                "container_id": container_id,
                 "container_name": container_name,
                 "process": process,
-                "command": command
+                "command": command,
+                "port": port
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to run command directly: {str(e)}")
+            self.logger.error(f"Failed to run command in Docker container: {str(e)}")
             return {"success": False, "error": str(e)} 
