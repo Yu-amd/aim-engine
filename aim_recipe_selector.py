@@ -164,6 +164,35 @@ class AIMRecipeSelector:
         self.logger.info(f"Using fallback container GPU count: {gpu_count}")
         return gpu_count
     
+    def _detect_vllm_gpus(self) -> int:
+        """
+        Detect the number of GPUs that vLLM can actually use
+        This is the most important detection for tensor parallelism
+        
+        Returns:
+            Number of GPUs available for vLLM
+        """
+        try:
+            import subprocess
+            
+            # Try to run a simple vLLM command to see how many GPUs it detects
+            test_cmd = [
+                "python", "-c", 
+                "import torch; print(torch.cuda.device_count() if torch.cuda.is_available() else 0)"
+            ]
+            
+            result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                gpu_count = int(result.stdout.strip())
+                self.logger.info(f"vLLM-compatible GPU count: {gpu_count}")
+                return gpu_count
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to detect vLLM GPUs: {e}")
+        
+        # Fallback to container GPU detection
+        return self._detect_container_gpus()
+    
     def _get_optimal_gpu_count(self, model_id: str, available_gpus: int, 
                               customer_gpu_count: Optional[int] = None) -> int:
         """
@@ -493,27 +522,28 @@ class AIMRecipeSelector:
         Returns:
             Optimal configuration or None if not found
         """
-        # Detect GPUs available inside the container (not host)
+        # Detect GPUs that vLLM can actually use (most important for tensor parallelism)
+        vllm_gpus = self._detect_vllm_gpus()
         container_gpus = self._detect_container_gpus()
         host_gpus = self._detect_available_gpus()
         
-        self.logger.info(f"Container GPUs: {container_gpus}, Host GPUs: {host_gpus}")
+        self.logger.info(f"vLLM GPUs: {vllm_gpus}, Container GPUs: {container_gpus}, Host GPUs: {host_gpus}")
         
-        # Use container GPU count for actual configuration
-        actual_gpu_count = self._get_optimal_gpu_count(model_id, container_gpus, customer_gpu_count)
+        # Use vLLM GPU count for actual configuration (this is what vLLM will see)
+        actual_gpu_count = self._get_optimal_gpu_count(model_id, vllm_gpus, customer_gpu_count)
         actual_precision = self._select_best_precision(model_id, customer_precision)
         
         # Try to find a recipe with the optimal configuration
         recipe = None
         
-        # First try with the optimal GPU count
+        # First try with the optimal GPU count (but limited by vLLM GPUs)
         recipe = self.select_best_recipe(model_id, actual_gpu_count, actual_precision, backend)
         
         # If no recipe found, try with supported GPU counts in order of preference
         if not recipe:
             supported_gpu_counts = [8, 4, 2, 1]  # Prefer higher GPU counts first
             for gpu_count in supported_gpu_counts:
-                if gpu_count <= container_gpus:
+                if gpu_count <= vllm_gpus:  # Only use what vLLM can actually see
                     self.logger.info(f"Trying with {gpu_count} GPUs...")
                     recipe = self.select_best_recipe(model_id, gpu_count, actual_precision, backend)
                     if recipe:
@@ -526,7 +556,7 @@ class AIMRecipeSelector:
             for precision in ['bf16', 'fp16', 'fp8']:
                 if precision != actual_precision:
                     for gpu_count in [8, 4, 2, 1]:
-                        if gpu_count <= container_gpus:
+                        if gpu_count <= vllm_gpus:  # Only use what vLLM can actually see
                             self.logger.info(f"Trying with {gpu_count} GPUs and {precision} precision...")
                             recipe = self.select_best_recipe(model_id, gpu_count, precision, backend)
                             if recipe:
@@ -553,6 +583,7 @@ class AIMRecipeSelector:
             'precision': actual_precision,
             'backend': backend,
             'config': config,
-            'available_gpus': container_gpus,
+            'available_gpus': vllm_gpus,
+            'container_gpus': container_gpus,
             'host_gpus': host_gpus
         } 
