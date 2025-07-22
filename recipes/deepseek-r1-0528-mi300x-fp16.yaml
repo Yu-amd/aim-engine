@@ -3,80 +3,72 @@ model_id: deepseek-ai/DeepSeek-R1-0528
 huggingface_id: deepseek-ai/DeepSeek-R1-0528
 hardware: MI300X
 precision: fp16
-
 vllm_serve:
-  "1_gpu":
+  1_gpu:
     enabled: false
-
-  "2_gpu":
+  2_gpu:
     enabled: true
     args:
       --model: deepseek-ai/DeepSeek-R1-0528
       --dtype: float16
-      --tensor-parallel-size: "2"
-      --max-batch-size: "16"
-      --max-context-len: "8192"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8000"
-
-  "4_gpu":
+      --tensor-parallel-size: '2'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8000'
+      --max-num-batched-tokens: '16384'
+      --max-model-len: '8192'
+  4_gpu:
     enabled: true
     args:
       --model: deepseek-ai/DeepSeek-R1-0528
       --dtype: float16
-      --tensor-parallel-size: "4"
-      --max-batch-size: "32"
-      --max-context-len: "8192"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8000"
-
-  "8_gpu":
+      --tensor-parallel-size: '4'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8000'
+      --max-num-batched-tokens: '32768'
+      --max-model-len: '8192'
+  8_gpu:
     enabled: true
     args:
       --model: deepseek-ai/DeepSeek-R1-0528
       --dtype: float16
-      --tensor-parallel-size: "8"
-      --max-batch-size: "64"
-      --max-context-len: "8192"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8000"
-
+      --tensor-parallel-size: '8'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8000'
+      --max-num-batched-tokens: '65536'
+      --max-model-len: '8192'
 sglang_serve:
-  "1_gpu":
+  1_gpu:
     enabled: false
-
-  "2_gpu":
+  2_gpu:
     enabled: true
     args:
       --model: deepseek-ai/DeepSeek-R1-0528
       --dtype: float16
-      --tensor-parallel-size: "2"
-      --max-batch-size: "8"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8001"
-
-  "4_gpu":
+      --tensor-parallel-size: '2'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8001'
+      --max-num-batched-tokens: '8192'
+  4_gpu:
     enabled: true
     args:
       --model: deepseek-ai/DeepSeek-R1-0528
       --dtype: float16
-      --tensor-parallel-size: "4"
-      --max-batch-size: "16"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8001"
-
-  "8_gpu":
+      --tensor-parallel-size: '4'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8001'
+      --max-num-batched-tokens: '16384'
+  8_gpu:
     enabled: true
     args:
       --model: deepseek-ai/DeepSeek-R1-0528
       --dtype: float16
-      --tensor-parallel-size: "8"
-      --max-batch-size: "32"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8001" 
+      --tensor-parallel-size: '8'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8001'
+      --max-num-batched-tokens: '32768'

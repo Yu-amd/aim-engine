@@ -3,99 +3,91 @@ model_id: Qwen/Qwen3-32B
 huggingface_id: Qwen/Qwen3-32B
 hardware: MI250
 precision: bf16
-
 vllm_serve:
-  "1_gpu":
+  1_gpu:
     enabled: true
     args:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
-      --max-batch-size: "6"
-      --max-context-len: "32768"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8000"
-
-  "2_gpu":
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8000'
+      --max-num-batched-tokens: '6144'
+      --max-model-len: '32768'
+  2_gpu:
     enabled: true
     args:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
-      --tensor-parallel-size: "2"
-      --max-batch-size: "12"
-      --max-context-len: "32768"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8000"
-
-  "4_gpu":
+      --tensor-parallel-size: '2'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8000'
+      --max-num-batched-tokens: '12288'
+      --max-model-len: '32768'
+  4_gpu:
     enabled: true
     args:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
-      --tensor-parallel-size: "4"
-      --max-batch-size: "24"
-      --max-context-len: "32768"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8000"
-
-  "8_gpu":
+      --tensor-parallel-size: '4'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8000'
+      --max-num-batched-tokens: '24576'
+      --max-model-len: '32768'
+  8_gpu:
     enabled: true
     args:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
-      --tensor-parallel-size: "8"
-      --max-batch-size: "48"
-      --max-context-len: "32768"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8000"
-
+      --tensor-parallel-size: '8'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8000'
+      --max-num-batched-tokens: '49152'
+      --max-model-len: '32768'
 sglang_serve:
-  "1_gpu":
+  1_gpu:
     enabled: true
     args:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
-      --max-batch-size: "3"
-      --max-context-len: "32768"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8001"
-
-  "2_gpu":
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8001'
+      --max-num-batched-tokens: '3072'
+      --max-model-len: '32768'
+  2_gpu:
     enabled: true
     args:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
-      --tensor-parallel-size: "2"
-      --max-batch-size: "6"
-      --max-context-len: "32768"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8001"
-
-  "4_gpu":
+      --tensor-parallel-size: '2'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8001'
+      --max-num-batched-tokens: '6144'
+      --max-model-len: '32768'
+  4_gpu:
     enabled: true
     args:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
-      --tensor-parallel-size: "4"
-      --max-batch-size: "12"
-      --max-context-len: "32768"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8001"
-
-  "8_gpu":
+      --tensor-parallel-size: '4'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8001'
+      --max-num-batched-tokens: '12288'
+      --max-model-len: '32768'
+  8_gpu:
     enabled: true
     args:
       --model: Qwen/Qwen3-32B
       --dtype: bfloat16
-      --tensor-parallel-size: "8"
-      --max-batch-size: "24"
-      --max-context-len: "32768"
-      --gpu-memory-utilization: "0.9"
-      --trust-remote-code: "true"
-      --port: "8001" 
+      --tensor-parallel-size: '8'
+      --gpu-memory-utilization: '0.9'
+      --trust-remote-code: 'true'
+      --port: '8001'
+      --max-num-batched-tokens: '24576'
+      --max-model-len: '32768'
