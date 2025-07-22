@@ -61,7 +61,7 @@ class AIMEndpointManager:
             self.logger.error(f"Failed to start endpoint: {str(e)}")
             return {"success": False, "error": str(e)}
     
-    def _wait_for_endpoint_ready(self, endpoint_url: str, timeout: int = 300) -> bool:
+    def _wait_for_endpoint_ready(self, endpoint_url: str, timeout: int = 600) -> bool:
         """
         Wait for endpoint to be ready by checking health endpoint
         
