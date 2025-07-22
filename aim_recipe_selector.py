@@ -339,13 +339,15 @@ class AIMRecipeSelector:
         Returns:
             Best matching recipe or None if no match found
         """
-        # Step 1: Detect available GPUs
-        available_gpus = self._detect_available_gpus()
+        # Step 1: Use provided GPU count or detect available GPUs
+        if gpu_count is not None:
+            available_gpus = gpu_count
+            optimal_gpu_count = gpu_count
+        else:
+            available_gpus = self._detect_available_gpus()
+            optimal_gpu_count = self._get_optimal_gpu_count(model_id, available_gpus, gpu_count)
         
-        # Step 2: Determine optimal GPU count
-        optimal_gpu_count = self._get_optimal_gpu_count(model_id, available_gpus, gpu_count)
-        
-        # Step 3: Select optimal precision
+        # Step 2: Select optimal precision
         optimal_precision = self._select_best_precision(model_id, precision)
         
         self.logger.info(f"Model: {model_id}")
@@ -354,7 +356,7 @@ class AIMRecipeSelector:
         self.logger.info(f"Selected precision: {optimal_precision}")
         self.logger.info(f"Selected backend: {backend}")
         
-        # Step 4: Find matching recipes
+        # Step 3: Find matching recipes
         matching_recipes = self.find_matching_recipes(
             model_id, optimal_gpu_count, optimal_precision, backend
         )
@@ -383,7 +385,7 @@ class AIMRecipeSelector:
             
             return None
         
-        # Step 5: Select the best recipe (currently first match, future: performance-based)
+        # Step 4: Select the best recipe (currently first match, future: performance-based)
         selected_recipe = matching_recipes[0]
         self.logger.info(f"Selected recipe: {selected_recipe['recipe_id']}")
         
