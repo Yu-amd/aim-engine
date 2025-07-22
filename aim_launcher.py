@@ -18,31 +18,32 @@ from typing import Dict, List, Optional, Tuple
 from aim_docker_manager import AIMDockerManager
 from aim_endpoint_manager import AIMEndpointManager
 from aim_config_generator import AIMConfigGenerator
-            self.logger.info(f"Cache enabled at: {self.cache_dir}")
+        self.logger.info(f"Cache enabled at: {self.cache_dir}")
 class AIMEngine:
     """AIM Engine for AI Model Deployment"""
-    
     def __init__(self, config_dir: str = ".", cache_dir: str = "/workspace/model-cache"):
-        self.config_dir = Path(config_dir)
-        self.cache_dir = Path(cache_dir)
-        self.recipe_selector = AIMRecipeSelector(self.config_dir)
-        self.docker_manager = AIMDockerManager()
-        self.endpoint_manager = AIMEndpointManager()
-        self.config_generator = AIMConfigGenerator()
-       
-        import logging
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        self.logger = logging.getLogger(__name__)
-        # Initialize cache manager if available
-        try:
-            from aim_cache_manager import AIMCacheManager
-            self.cache_manager = AIMCacheManager(str(self.cache_dir))
-            self.cache_enabled = True
-            self.logger.info(f"Cache enabled at: {self.cache_dir}")
-        except ImportError:
-            self.cache_enabled = False
-            self.cache_manager = None
-            self.logger.warning("Cache manager not available - caching disabled")
+    self.config_dir = Path(config_dir)
+    self.cache_dir = Path(cache_dir)
+    self.recipe_selector = AIMRecipeSelector(self.config_dir)
+    self.docker_manager = AIMDockerManager()
+    self.endpoint_manager = AIMEndpointManager()
+    self.config_generator = AIMConfigGenerator()
+
+    # Initialize logger first
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    self.logger = logging.getLogger(__name__)
+
+    # Initialize cache manager if available
+    try:
+        from aim_cache_manager import AIMCacheManager
+        self.cache_manager = AIMCacheManager(str(self.cache_dir))
+        self.cache_enabled = True
+        self.logger.info(f"Cache enabled at: {self.cache_dir}")
+    except ImportError:
+        self.cache_manager = None
+        self.cache_enabled = False
+        self.logger.warning("Cache manager not available - caching disabled")
+        
     def validate_inputs(self, model_id: str, gpu_count: Optional[int] = None, 
                        precision: Optional[str] = None, backend: str = 'vllm') -> bool:
         """
