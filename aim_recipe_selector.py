@@ -503,18 +503,42 @@ class AIMRecipeSelector:
         actual_gpu_count = self._get_optimal_gpu_count(model_id, container_gpus, customer_gpu_count)
         actual_precision = self._select_best_precision(model_id, customer_precision)
         
-        # Find a recipe that matches the actual GPU count
+        # Try to find a recipe with the optimal configuration
+        recipe = None
+        
+        # First try with the optimal GPU count
         recipe = self.select_best_recipe(model_id, actual_gpu_count, actual_precision, backend)
         
+        # If no recipe found, try with supported GPU counts in order of preference
         if not recipe:
-            # If no recipe found for the actual GPU count, try with 1 GPU
-            if actual_gpu_count > 1:
-                self.logger.warning(f"No recipe found for {actual_gpu_count} GPUs, trying with 1 GPU")
-                actual_gpu_count = 1
-                recipe = self.select_best_recipe(model_id, actual_gpu_count, actual_precision, backend)
+            supported_gpu_counts = [8, 4, 2, 1]  # Prefer higher GPU counts first
+            for gpu_count in supported_gpu_counts:
+                if gpu_count <= container_gpus:
+                    self.logger.info(f"Trying with {gpu_count} GPUs...")
+                    recipe = self.select_best_recipe(model_id, gpu_count, actual_precision, backend)
+                    if recipe:
+                        actual_gpu_count = gpu_count
+                        self.logger.info(f"Found recipe with {gpu_count} GPUs")
+                        break
+        
+        # If still no recipe, try with different precisions
+        if not recipe:
+            for precision in ['bf16', 'fp16', 'fp8']:
+                if precision != actual_precision:
+                    for gpu_count in [8, 4, 2, 1]:
+                        if gpu_count <= container_gpus:
+                            self.logger.info(f"Trying with {gpu_count} GPUs and {precision} precision...")
+                            recipe = self.select_best_recipe(model_id, gpu_count, precision, backend)
+                            if recipe:
+                                actual_gpu_count = gpu_count
+                                actual_precision = precision
+                                self.logger.info(f"Found recipe with {gpu_count} GPUs and {precision} precision")
+                                break
+                    if recipe:
+                        break
         
         if not recipe:
-            self.logger.error(f"No suitable recipe found for {model_id} with {actual_gpu_count} GPUs")
+            self.logger.error(f"No suitable recipe found for {model_id} with any supported configuration")
             return None
         
         config = self.get_recipe_config(recipe, actual_gpu_count, backend)
