@@ -278,14 +278,14 @@ aim-engine/
 
 #### **Stop and Remove All Containers**
 ```bash
-# Stop all running containers
-docker stop $(docker ps -q)
+# Stop all running containers (safe - won't error if none running)
+docker stop $(docker ps -q) 2>/dev/null || true
 
-# Remove all containers (including stopped ones)
-docker rm $(docker ps -aq)
+# Remove all containers (including stopped ones) (safe - won't error if none exist)
+docker rm $(docker ps -aq) 2>/dev/null || true
 
 # Or do both in one command
-docker stop $(docker ps -q) && docker rm $(docker ps -aq)
+docker stop $(docker ps -q) 2>/dev/null || true && docker rm $(docker ps -aq) 2>/dev/null || true
 ```
 
 #### **Clean Up Specific Containers**
@@ -431,8 +431,8 @@ python3 generate_docker_command.py Qwen/Qwen3-32B 4 fp16
 # Check if containers are running
 docker ps
 
-# Clean up all containers
-docker stop $(docker ps -q) && docker rm $(docker ps -aq)
+# Clean up all containers (safe - won't error if none exist)
+docker stop $(docker ps -q) 2>/dev/null || true && docker rm $(docker ps -aq) 2>/dev/null || true
 
 # Try again with the generated command
 ```
