@@ -1,4 +1,4 @@
-# AIM Engine + vLLM Combined Container Usage Guide
+# AIM Engine based on vLLM ROCm container - Usage Guide
 
 ## 🎯 **Overview**
 
