@@ -46,6 +46,7 @@ aim-engine stop aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm
 - [System Architecture](architecture/system-architecture.md) - Overall system design
 - [Workflow](architecture/workflow.md) - Complete deployment workflow
 - [Unified Container](architecture/unified-container.md) - Unified container approach
+-- [AIM Engine BOM](AIM_Engine_BOM.md) - Complete container composition and dependencies
 - [Production Deployment](architecture/production.md) - Production deployment guide
 
 ### **Examples**
