@@ -22,7 +22,49 @@ AIM (AMD Inference Microservice) Engine automatically deploys AI models with opt
 
 ## 🚀 **Quick Start**
 
-### **1. Build the Container**
+### **Option 1: Direct vLLM with AIM Engine Recipe Selection (Recommended)**
+
+This approach uses AIM Engine's intelligent recipe selection to generate optimal Docker commands, then runs vLLM directly for maximum reliability.
+
+#### **1. Generate Optimal Docker Command**
+```bash
+# Clone the repository
+git clone https://github.com/Yu-amd/aim-engine.git
+cd aim-engine
+
+# Generate optimal Docker command for any model
+python3 generate_docker_command.py Qwen/Qwen3-32B
+```
+
+#### **2. Run the Generated Command**
+```bash
+# Copy and paste the generated command
+docker run --rm \
+  --name vllm-qwen-qwen3-32b-1gpu-bf16 \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  -p 8000:8000 \
+  rocm/vllm:latest \
+  python -m vllm.entrypoints.openai.api_server --model Qwen/Qwen3-32B --dtype bfloat16 --max-num-batched-tokens 8192 --max-model-len 32768 --gpu-memory-utilization 0.9 --trust-remote-code --port 8000
+```
+
+#### **3. Test the Endpoint**
+```bash
+# Test the API
+curl -X GET http://localhost:8000/v1/models
+
+# Test chat completion
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "Qwen/Qwen3-32B", "messages": [{"role": "user", "content": "Hello"}], "max_tokens": 50}'
+```
+
+### **Option 2: Traditional AIM Engine Container**
+
+#### **1. Build the Container**
 ```bash
 # Clone and build
 git clone https://github.com/Yu-amd/aim-engine.git
@@ -30,7 +72,7 @@ cd aim-engine
 ./scripts/build.sh
 ```
 
-### **2. Launch Your First Model**
+#### **2. Launch Your First Model**
 ```bash
 # Launch with auto-detection (recommended)
 docker run --rm --gpus all \
@@ -41,7 +83,7 @@ docker run --rm --gpus all \
   aim-engine launch Qwen/Qwen3-32B
 ```
 
-### **3. Launch Another Model (Uses Cache)**
+#### **3. Launch Another Model (Uses Cache)**
 ```bash
 # This will be much faster - uses cached components
 docker run --rm --gpus all \
@@ -54,7 +96,34 @@ docker run --rm --gpus all \
 
 ## 📋 **How to Use AIM Engine**
 
-### **Basic Commands**
+### **Recipe Selection Script (Recommended)**
+
+The `generate_docker_command.py` script uses AIM Engine's intelligent recipe selection to generate optimal Docker commands for any model.
+
+#### **Basic Usage**
+```bash
+# Generate optimal command for any model
+python3 generate_docker_command.py Qwen/Qwen3-32B
+
+# Specify GPU count
+python3 generate_docker_command.py Qwen/Qwen3-32B 4
+
+# Specify precision
+python3 generate_docker_command.py Qwen/Qwen3-32B 4 bf16
+
+# Specify custom port
+python3 generate_docker_command.py Qwen/Qwen3-32B 4 bf16 8001
+```
+
+#### **Benefits of Recipe Selection**
+- ✅ **Automatic GPU detection** and optimal allocation
+- ✅ **Smart precision selection** (bf16, fp16, fp8, etc.)
+- ✅ **Performance-tuned parameters** from tested recipes
+- ✅ **AMD/ROCm optimized** device mounts and settings
+- ✅ **Model-specific optimizations** based on size and requirements
+- ✅ **Reliable vLLM deployment** with direct Docker commands
+
+### **Traditional AIM Engine Commands**
 
 ```bash
 # Launch model with auto-detection
@@ -192,6 +261,7 @@ python tests/test_aim_implementation.py
 ```
 aim-engine/
 ├── aim_*.py                    # Core AIM Engine modules
+├── generate_docker_command.py  # Recipe selection script (recommended)
 ├── models/                     # Model definitions
 ├── recipes/                    # AIM recipes
 ├── templates/                  # Configuration templates
@@ -204,7 +274,41 @@ aim-engine/
 
 ## 🔍 **Troubleshooting**
 
-### **Common Issues**
+### **Recipe Selection Script Issues**
+
+#### **Port Already in Use**
+```bash
+# Check what's using the port
+netstat -tlnp | grep :8000
+
+# Use a different port
+python3 generate_docker_command.py Qwen/Qwen3-32B 1 bf16 8001
+```
+
+#### **GPU Memory Issues**
+```bash
+# Check available GPU memory
+rocm-smi
+
+# Reduce GPU count
+python3 generate_docker_command.py Qwen/Qwen3-32B 2
+
+# Use lower precision
+python3 generate_docker_command.py Qwen/Qwen3-32B 4 fp16
+```
+
+#### **Container Startup Failures**
+```bash
+# Check if containers are running
+docker ps
+
+# Clean up all containers
+docker stop $(docker ps -q) && docker rm $(docker ps -aq)
+
+# Try again with the generated command
+```
+
+### **Traditional AIM Engine Issues**
 
 #### **Cache Not Working**
 ```bash
