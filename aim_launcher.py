@@ -15,12 +15,10 @@ import yaml
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from aim_recipe_selector import AIMRecipeSelector
 from aim_docker_manager import AIMDockerManager
 from aim_endpoint_manager import AIMEndpointManager
 from aim_config_generator import AIMConfigGenerator
-
-
+            self.logger.info(f"Cache enabled at: {self.cache_dir}")
 class AIMEngine:
     """AIM Engine for AI Model Deployment"""
     
@@ -31,7 +29,10 @@ class AIMEngine:
         self.docker_manager = AIMDockerManager()
         self.endpoint_manager = AIMEndpointManager()
         self.config_generator = AIMConfigGenerator()
-        
+       
+        import logging
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        self.logger = logging.getLogger(__name__)
         # Initialize cache manager if available
         try:
             from aim_cache_manager import AIMCacheManager
@@ -39,17 +40,9 @@ class AIMEngine:
             self.cache_enabled = True
             self.logger.info(f"Cache enabled at: {self.cache_dir}")
         except ImportError:
-            self.cache_manager = None
             self.cache_enabled = False
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        self.logger = logging.getLogger(__name__)
-        
-        if self.cache_manager:
-            self.cache_enabled = True
-            self.logger.info(f"Cache enabled at: {self.cache_dir}")
-        else:
+            self.cache_manager = None
             self.logger.warning("Cache manager not available - caching disabled")
-    
     def validate_inputs(self, model_id: str, gpu_count: Optional[int] = None, 
                        precision: Optional[str] = None, backend: str = 'vllm') -> bool:
         """
