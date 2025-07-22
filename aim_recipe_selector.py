@@ -175,7 +175,7 @@ class AIMRecipeSelector:
         try:
             import subprocess
             
-            # Try to run a simple vLLM command to see how many GPUs it detects
+            # Try to run a simple PyTorch command to see how many GPUs it detects
             test_cmd = [
                 "python", "-c", 
                 "import torch; print(torch.cuda.device_count() if torch.cuda.is_available() else 0)"
@@ -184,36 +184,51 @@ class AIMRecipeSelector:
             result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
                 gpu_count = int(result.stdout.strip())
-                self.logger.info(f"vLLM-compatible GPU count: {gpu_count}")
-                return gpu_count
+                if gpu_count > 0:
+                    self.logger.info(f"vLLM-compatible GPU count: {gpu_count}")
+                    return gpu_count
+                else:
+                    self.logger.warning("PyTorch detected 0 GPUs, trying fallback detection")
                 
         except Exception as e:
-            self.logger.warning(f"Failed to detect vLLM GPUs: {e}")
+            self.logger.warning(f"Failed to detect vLLM GPUs with PyTorch: {e}")
         
-        # Fallback to container GPU detection
-        return self._detect_container_gpus()
+        # Fallback: Try container GPU detection
+        container_gpus = self._detect_container_gpus()
+        if container_gpus > 0:
+            self.logger.info(f"Using container GPU count as fallback: {container_gpus}")
+            return container_gpus
+        
+        # Final fallback: Assume 1 GPU if all else fails
+        self.logger.warning("All GPU detection methods failed, assuming 1 GPU")
+        return 1
     
     def _get_optimal_gpu_count(self, model_id: str, available_gpus: int, 
                               customer_gpu_count: Optional[int] = None) -> int:
         """
-        Determine optimal GPU count based on available GPUs and customer preference
+        Get the optimal GPU count for a model based on available resources
         
         Args:
-            model_id: Model ID
+            model_id: Hugging Face model ID
             available_gpus: Number of available GPUs
             customer_gpu_count: Customer specified GPU count (optional)
             
         Returns:
             Optimal GPU count to use
         """
+        # If customer specified a GPU count, use it (but validate)
         if customer_gpu_count is not None:
-            if customer_gpu_count <= available_gpus:
-                self.logger.info(f"Using customer specified GPU count: {customer_gpu_count}")
-                return customer_gpu_count
-            else:
+            self.logger.info(f"Using customer specified GPU count: {customer_gpu_count}")
+            # Ensure customer GPU count doesn't exceed available GPUs
+            if customer_gpu_count > available_gpus:
                 self.logger.warning(f"Customer requested {customer_gpu_count} GPUs but only {available_gpus} available")
-                self.logger.info(f"Using maximum available GPUs: {available_gpus}")
                 return available_gpus
+            return customer_gpu_count
+        
+        # Ensure we have at least 1 GPU
+        if available_gpus < 1:
+            self.logger.warning("No GPUs detected, assuming 1 GPU")
+            available_gpus = 1
         
         # Auto-select optimal GPU count based on model size and available GPUs
         model_info = self.models.get(model_id, {})
