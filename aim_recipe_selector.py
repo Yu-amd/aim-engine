@@ -87,11 +87,23 @@ class AIMRecipeSelector:
         """
         try:
             import subprocess
+            # Try AMD ROCm first
+            result = subprocess.run(['rocm-smi', '--showproductname'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                # Count lines with GPU names (excluding header)
+                gpu_lines = [line for line in result.stdout.strip().split('\n') 
+                           if 'GPU' in line and 'Product Name' in line]
+                gpu_count = len(gpu_lines)
+                self.logger.info(f"Detected {gpu_count} AMD GPUs using rocm-smi")
+                return gpu_count
+            
+            # Fallback to NVIDIA if ROCm not available
             result = subprocess.run(['nvidia-smi', '--list-gpus'], 
                                   capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
                 gpu_count = len(result.stdout.strip().split('\n'))
-                self.logger.info(f"Detected {gpu_count} available GPUs")
+                self.logger.info(f"Detected {gpu_count} NVIDIA GPUs using nvidia-smi")
                 return gpu_count
         except Exception as e:
             self.logger.warning(f"Could not detect GPUs: {e}")
