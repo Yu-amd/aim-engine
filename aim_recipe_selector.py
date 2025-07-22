@@ -588,6 +588,20 @@ class AIMRecipeSelector:
             self.logger.error(f"No suitable recipe found for {model_id} with any supported configuration")
             return None
         
+        # Extract the actual GPU count from the recipe to ensure consistency
+        recipe_gpu_count = None
+        backend_key = f"{backend}_serve"
+        if backend_key in recipe:
+            for gpu_key in recipe[backend_key].keys():
+                if recipe[backend_key][gpu_key].get('enabled', False):
+                    gpu_count = int(gpu_key.replace('_gpu', ''))
+                    recipe_gpu_count = gpu_count
+                    break
+        
+        if recipe_gpu_count is not None:
+            actual_gpu_count = recipe_gpu_count
+            self.logger.info(f"Using GPU count from recipe: {actual_gpu_count}")
+        
         config = self.get_recipe_config(recipe, actual_gpu_count, backend)
         
         if not config:
