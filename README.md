@@ -312,7 +312,7 @@ aim-engine/
 ├── aim_cache_manager.py        # Model caching system
 ├── Dockerfile.aim-vllm         # Combined container Dockerfile
 ├── build-aim-vllm.sh           # Build script for combined container
-├── AIM_VLLM_COMBINED_USAGE.md  # Combined container usage guide
+├── AIM_VLLM_USAGE.md           # Combined container usage guide
 ├── AIM_ENGINE_DESIGN_SUMMARY.md # Technical architecture summary
 ├── models/                     # Model definitions
 ├── recipes/                    # AIM recipes
@@ -585,7 +585,7 @@ docker run --rm -it \
 
 ## 📚 **Documentation**
 
-- **[Combined Container Usage](AIM_VLLM_COMBINED_USAGE.md)** - Complete guide for the combined container approach
+- **[Combined Container Usage](AIM_VLLM_USAGE.md)** - Complete guide for the combined container approach
 - **[Design Summary](AIM_ENGINE_DESIGN_SUMMARY.md)** - Technical architecture and recipe selection mechanism
 - **[Complete Guide](docs/README.md)** - Comprehensive documentation
 - **[Installation Guide](docs/guides/installation.md)** - Setup instructions
