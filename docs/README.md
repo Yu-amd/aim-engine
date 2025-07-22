@@ -271,17 +271,16 @@ aim-engine launch Qwen/Qwen3-32B 4 --precision bf16
 
 ### **Project Structure**
 ```
-aim-engine/
-├── aim_*.py              # Core AIM Engine modules
-├── models/               # Model definitions
-├── recipes/              # AIM recipes
-├── templates/            # Configuration templates
-├── tests/                # Test files
-├── scripts/              # Utility scripts
-├── docs/                 # Documentation
-├── Dockerfile            # Standard container
-├── Dockerfile.unified    # Unified container
-└── requirements.txt      # Python dependencies
+    aim-engine/
+    ├── aim_*.py              # Core AIM Engine modules
+    ├── models/               # Model definitions
+    ├── recipes/              # AIM recipes
+    ├── templates/            # Configuration templates
+    ├── tests/                # Test files
+    ├── scripts/              # Utility scripts
+    ├── docs/                 # Documentation
+    ├── Dockerfile            # Standard container
+    └── requirements.txt      # Python dependencies
 ```
 
 ### **Running Tests**
