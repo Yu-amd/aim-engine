@@ -53,13 +53,67 @@ docker run --rm \
 
 #### **3. Test the Endpoint**
 ```bash
-# Test the API
+# Test basic connectivity
+curl -X GET http://localhost:8000/health
+
+# Test model info
 curl -X GET http://localhost:8000/v1/models
+
+# Test completion endpoint
+curl -X POST http://localhost:8000/v1/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen/Qwen3-32B",
+    "prompt": "Hello, how are you?",
+    "max_tokens": 50,
+    "temperature": 0.7
+  }'
 
 # Test chat completion
 curl -X POST http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model": "Qwen/Qwen3-32B", "messages": [{"role": "user", "content": "Hello"}], "max_tokens": 50}'
+  -d '{
+    "model": "Qwen/Qwen3-32B",
+    "messages": [
+      {"role": "user", "content": "What is the capital of France?"}
+    ],
+    "max_tokens": 100,
+    "temperature": 0.7
+  }'
+```
+
+#### **4. Monitor Performance and Metrics**
+```bash
+# Check container status
+docker ps
+
+# Monitor container logs
+docker logs -f <container_name>
+
+# Monitor resource usage
+docker stats <container_name>
+
+# Check GPU utilization
+docker exec <container_name> rocm-smi
+
+# Monitor memory usage
+docker exec <container_name> free -h
+
+# Check API metrics (if available)
+curl -X GET http://localhost:8000/metrics
+
+# Test throughput with multiple requests
+for i in {1..5}; do
+  curl -X POST http://localhost:8000/v1/completions \
+    -H "Content-Type: application/json" \
+    -d '{
+      "model": "Qwen/Qwen3-32B",
+      "prompt": "Test request '$i'",
+      "max_tokens": 20,
+      "temperature": 0.1
+    }' &
+done
+wait
 ```
 
 ### **Option 2: Traditional AIM Engine Container**
