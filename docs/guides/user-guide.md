@@ -227,7 +227,6 @@ version: '3.8'
 services:
   aim-engine:
     image: aim-engine:latest
-    runtime: nvidia
     environment:
       - AIM_CACHE_DIR=/workspace/model-cache
       - AIM_CACHE_ENABLED=1

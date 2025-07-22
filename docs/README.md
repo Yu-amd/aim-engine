@@ -149,7 +149,7 @@ aim-engine stop aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm
 - Initialize AIM Engine components
 
 ### **Phase 2: Auto-Detection & Resource Analysis**
-- Detect available GPUs using `nvidia-smi`
+- Detect available GPUs using `rocm-smi`
 - Auto-select optimal GPU count based on model size
 - Auto-select optimal precision based on model characteristics
 

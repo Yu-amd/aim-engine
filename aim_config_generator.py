@@ -104,12 +104,11 @@ class AIMConfigGenerator:
                 self.logger.info(f"Detected {gpu_count} AMD GPUs in container using rocm-smi")
                 return gpu_count
             
-            # Fallback to NVIDIA if ROCm not available
-            result = subprocess.run(['nvidia-smi', '--list-gpus'], 
+            result = subprocess.run(['rocm-smi', '--list-gpus'], 
                                   capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
                 gpu_count = len(result.stdout.strip().split('\n'))
-                self.logger.info(f"Detected {gpu_count} NVIDIA GPUs in container using nvidia-smi")
+                self.logger.info(f"Detected {gpu_count} AMD GPUs in container using rocm-smi")
                 return gpu_count
         except Exception as e:
             self.logger.warning(f"Could not detect GPUs in container: {e}")
@@ -342,7 +341,6 @@ services:
       resources:
         reservations:
           devices:
-            - driver: nvidia
               count: {gpu_count}
               capabilities: [gpu]
     command: {config['command']}
@@ -410,9 +408,7 @@ spec:
         command: {config['command'].split()}
         resources:
           limits:
-            nvidia.com/gpu: {gpu_count}
           requests:
-            nvidia.com/gpu: {gpu_count}
         volumeMounts:
         - name: cache-volume
           mountPath: /tmp/.cache

@@ -168,7 +168,7 @@ docker logs --tail 100 aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm
 docker exec -it aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm bash
 
 # Check GPU usage inside container
-docker exec aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm nvidia-smi
+docker exec aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm rocm-smi
 
 # Check vLLM processes
 docker exec aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm ps aux | grep vllm
@@ -212,10 +212,10 @@ docker rm $(docker ps -aq --filter "name=aim-engine")
 ### **GPU Resources**
 ```bash
 # Check GPU usage
-nvidia-smi
+rocm-smi
 
 # Check GPU usage from container perspective
-docker exec aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm nvidia-smi
+docker exec aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm rocm-smi
 ```
 
 ### **Memory Usage**

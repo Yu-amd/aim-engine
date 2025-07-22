@@ -85,7 +85,7 @@ aim-engine status qwen-production
 docker stats qwen-production
 
 # Check GPU usage
-nvidia-smi
+rocm-smi
 ```
 
 ### **Example 4: Development Environment Setup**
@@ -230,7 +230,6 @@ services:
       resources:
         reservations:
           devices:
-            - driver: nvidia
               count: 4
               capabilities: [gpu]
     restart: unless-stopped
@@ -277,7 +276,6 @@ spec:
           mountPath: /workspace/models
         resources:
           limits:
-            nvidia.com/gpu: 4
       volumes:
       - name: docker-sock
         hostPath:
@@ -325,7 +323,7 @@ aim-engine launch Qwen/Qwen3-32B 4 \
 watch -n 1 'docker stats qwen-profiled --no-stream'
 
 # Check GPU utilization
-watch -n 1 'nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv'
+watch -n 1 'rocm-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv'
 
 # Profile inference performance
 curl -X POST http://localhost:8000/v1/chat/completions \
@@ -376,7 +374,7 @@ Handle memory-related problems:
 free -h
 
 # Check GPU memory
-nvidia-smi
+rocm-smi
 
 # Deploy with memory monitoring
 aim-engine launch Qwen/Qwen3-32B 2 \
@@ -420,11 +418,11 @@ Handle GPU-related problems:
 
 ```bash
 # Check GPU availability
-nvidia-smi
-nvidia-smi -L
+rocm-smi
+rocm-smi -L
 
 # Check GPU driver
-nvidia-smi --query-gpu=driver_version --format=csv
+rocm-smi --query-gpu=driver_version --format=csv
 
 # Deploy with GPU debugging
 aim-engine launch Qwen/Qwen3-32B 1 \
@@ -434,7 +432,7 @@ aim-engine launch Qwen/Qwen3-32B 1 \
   --gpu-debug
 
 # Monitor GPU usage
-watch -n 1 'nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,memory.total --format=csv'
+watch -n 1 'rocm-smi --query-gpu=index,name,utilization.gpu,memory.used,memory.total --format=csv'
 ```
 
 ## 🎯 **Production Best Practices**

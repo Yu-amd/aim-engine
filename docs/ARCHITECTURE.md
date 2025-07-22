@@ -111,7 +111,7 @@ class AIMRecipeSelector:
 **GPU Detection Strategy**:
 1. **vLLM GPU Detection**: Uses PyTorch to detect GPUs that vLLM can actually use
 2. **Container GPU Detection**: Checks GPUs visible inside the Docker container
-3. **Host GPU Detection**: Uses rocm-smi/nvidia-smi to detect host GPUs
+3. **Host GPU Detection**: Uses rocm-smi to detect host GPUs
 4. **Fallback Strategy**: Falls back to lower GPU counts (8→4→2→1) if optimal not available
 
 ### 3. Config Generator (`aim_config_generator.py`)

@@ -233,7 +233,6 @@ services:
       resources:
         reservations:
           devices:
-            - driver: nvidia
               count: 4
               capabilities: [gpu]
     restart: unless-stopped
@@ -264,7 +263,6 @@ services:
       resources:
         reservations:
           devices:
-            - driver: nvidia
               count: 2
               capabilities: [gpu]
     restart: unless-stopped

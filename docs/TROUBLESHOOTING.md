@@ -56,7 +56,7 @@ aim-engine debug gpu-info
 ```bash
 # 1. Check host GPU detection
 rocm-smi
-nvidia-smi  # if using NVIDIA GPUs
+rocm-smi  # if using AMD GPUs
 
 # 2. Check container GPU access
 docker run --rm --device=/dev/kfd rocm/vllm:latest rocm-smi
