@@ -34,6 +34,8 @@ ENV HF_HUB_DISABLE_TELEMETRY=1
 ENV PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
 ENV AIM_CACHE_DIR=/workspace/model-cache
 ENV AIM_CACHE_ENABLED=1
+ENV PATH="/opt/aim-engine:$PATH"
+ENV PATH="/opt/aim-engine:$PATH"
 
 # Set working directory
 WORKDIR /opt/aim-engine
