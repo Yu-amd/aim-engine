@@ -200,26 +200,9 @@ aim-engine stop aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm
 **Benefits:**
 - Single container deployment
 - Self-contained environment
-- Dual mode operation (orchestration + direct serving)
+- Single container operation (orchestration + direct serving)
 - Easy distribution and deployment
 
-### **Model 2: Separate Containers**
-```
-┌─────────────────┐    ┌─────────────────┐
-│  AIM Engine     │    │  vLLM Container │
-│  Container      │    │                 │
-│                 │    │                 │
-│ • Orchestration │    │ • Model Serving │
-│ • Recipe Mgmt   │    │ • GPU Access    │
-│ • Docker Mgmt   │    │ • Inference API │
-└─────────────────┘    └─────────────────┘
-```
-
-**Benefits:**
-- Resource isolation
-- Independent scaling
-- Better for multi-node deployment
-- Microservices architecture
 
 ## 📊 **Performance Benefits**
 
