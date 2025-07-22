@@ -22,36 +22,48 @@ AIM (AMD Inference Microservice) Engine automatically deploys AI models with opt
 
 ## 🚀 **Quick Start**
 
-### **Option 1: Direct vLLM with AIM Engine Recipe Selection (Recommended)**
+### **Combined AIM Engine + vLLM Container**
 
-This approach uses AIM Engine's intelligent recipe selection to generate optimal Docker commands, then runs vLLM directly for maximum reliability.
+This approach uses a single container that includes both AIM Engine's intelligent recipe selection tools and the vLLM ROCm runtime for maximum efficiency and simplicity.
 
-#### **1. Generate Optimal Docker Command**
+#### **1. Build the Combined Container**
 ```bash
 # Clone the repository
 git clone https://github.com/Yu-amd/aim-engine.git
 cd aim-engine
 
-# Generate optimal Docker command for any model
-python3 generate_docker_command.py Qwen/Qwen3-32B
+# Build the combined container
+./build-aim-vllm.sh
 ```
 
-#### **2. Run the Generated Command**
+#### **2. Generate Optimal Configuration**
 ```bash
-# Copy and paste the generated command
-docker run --rm \
-  --name vllm-qwen-qwen3-32b-1gpu-bf16 \
+# Generate optimal vLLM command
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  aim-vllm:latest \
+  aim-generate Qwen/Qwen3-32B
+```
+
+#### **3. Run vLLM Server Directly**
+```bash
+# Start vLLM server with optimal configuration
+docker run --rm -d \
   --device=/dev/kfd \
   --device=/dev/dri \
   --group-add=video \
   --group-add=render \
   -v /workspace/model-cache:/workspace/model-cache \
   -p 8000:8000 \
-  rocm/vllm:latest \
-  python -m vllm.entrypoints.openai.api_server --model Qwen/Qwen3-32B --dtype bfloat16 --max-num-batched-tokens 8192 --max-model-len 32768 --gpu-memory-utilization 0.9 --trust-remote-code --port 8000
+  aim-vllm:latest \
+  aim-serve Qwen/Qwen3-32B
 ```
 
-#### **3. Test the Endpoint**
+#### **4. Test the Endpoint**
 ```bash
 # Test basic connectivity
 curl -X GET http://localhost:8000/health
@@ -82,7 +94,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
   }'
 ```
 
-#### **4. Monitor Performance and Metrics**
+#### **5. Monitor Performance and Metrics**
 ```bash
 # Check container status
 docker ps
@@ -116,141 +128,122 @@ done
 wait
 ```
 
-### **Option 2: Traditional AIM Engine Container**
-
-#### **1. Build the Container**
-```bash
-# Clone and build
-git clone https://github.com/Yu-amd/aim-engine.git
-cd aim-engine
-./scripts/build.sh
-```
-
-#### **2. Launch Your First Model**
-```bash
-# Launch with auto-detection (recommended)
-docker run --rm --gpus all \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -p 8000:8000 \
-  aim-engine:latest \
-  aim-engine launch Qwen/Qwen3-32B
-```
-
-#### **3. Launch Another Model (Uses Cache)**
-```bash
-# This will be much faster - uses cached components
-docker run --rm --gpus all \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -p 8001:8000 \
-  aim-engine:latest \
-  aim-engine launch Llama-3-8B
-```
-
 ## 📋 **How to Use AIM Engine**
 
-### **Recipe Selection Script (Recommended)**
+### **Combined Container Commands**
 
-The `generate_docker_command.py` script uses AIM Engine's intelligent recipe selection to generate optimal Docker commands for any model.
+The combined container provides three main commands for different use cases:
 
-#### **Basic Usage**
+#### **1. Configuration Generation (`aim-generate`)**
 ```bash
-# Generate optimal command for any model
-python3 generate_docker_command.py Qwen/Qwen3-32B
+# Generate optimal vLLM command
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  aim-vllm:latest \
+  aim-generate Qwen/Qwen3-32B
 
-# Specify GPU count
-python3 generate_docker_command.py Qwen/Qwen3-32B 4
-
-# Specify precision
-python3 generate_docker_command.py Qwen/Qwen3-32B 4 bf16
-
-# Specify custom port
-python3 generate_docker_command.py Qwen/Qwen3-32B 4 bf16 8001
+# Specify custom parameters
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  aim-vllm:latest \
+  aim-generate Qwen/Qwen3-32B --gpu-count 4 --precision fp16 --port 8001
 ```
 
-#### **Benefits of Recipe Selection**
-- ✅ **Automatic GPU detection** and optimal allocation
-- ✅ **Smart precision selection** (bf16, fp16, fp8, etc.)
-- ✅ **Performance-tuned parameters** from tested recipes
-- ✅ **AMD/ROCm optimized** device mounts and settings
-- ✅ **Model-specific optimizations** based on size and requirements
-- ✅ **Reliable vLLM deployment** with direct Docker commands
-
-### **Traditional AIM Engine Commands**
-
+#### **2. Direct Server Launch (`aim-serve`)**
 ```bash
-# Launch model with auto-detection
-aim-engine launch Qwen/Qwen3-32B
+# Launch server with optimal configuration
+docker run --rm -d \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  -p 8000:8000 \
+  aim-vllm:latest \
+  aim-serve Qwen/Qwen3-32B
 
-# Launch with specific GPU count
-aim-engine launch Qwen/Qwen3-32B 4
-
-# Launch with specific precision
-aim-engine launch Qwen/Qwen3-32B 4 --precision bf16
-
-# Serve model directly (bypasses orchestration)
-aim-engine serve Qwen/Qwen3-32B --tensor-parallel-size 4
+# Launch with custom parameters
+docker run --rm -d \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  -p 8001:8000 \
+  aim-vllm:latest \
+  aim-serve Qwen/Qwen3-32B --gpu-count 4 --precision fp16
 ```
+
+#### **3. Interactive Development (`aim-shell`)**
+```bash
+# Interactive shell for development
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  -p 8000:8000 \
+  aim-vllm:latest \
+  aim-shell
+
+# Inside the container, you can run:
+# python3 generate_docker_command.py Qwen/Qwen3-32B
+# python3 -m vllm.entrypoints.openai.api_server --help
+# python3 -c "from aim_recipe_selector import AIMRecipeSelector; print('Loaded!')"
+```
+
+#### **Benefits of Combined Container**
+- ✅ **Single Container**: No Docker-in-Docker complexity
+- ✅ **Shared Environment**: AIM Engine tools and vLLM runtime together
+- ✅ **Direct Execution**: Run vLLM commands directly within container
+- ✅ **Simplified Deployment**: One container handles everything
+- ✅ **Better Resource Management**: No container orchestration overhead
 
 ### **Cache Management**
 
+The combined container automatically manages model caching. Cache is shared across all container instances.
+
 ```bash
-# Check cache status
-aim-engine cache stats
-
-# List cached models
-aim-engine cache list
-
-# Clean up old models
-aim-engine cache cleanup --days 30
+# Check cache status (from inside container)
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  aim-vllm:latest \
+  python3 -c "
+from aim_cache_manager import AIMCacheManager
+cache = AIMCacheManager('/workspace/model-cache')
+stats = cache.get_cache_stats()
+print(f'Cached models: {stats[\"total_models\"]}')
+print(f'Total size: {stats[\"total_size_gb\"]:.2f} GB')
+"
 ```
 
 ### **Model Management**
 
 ```bash
-# List running models
-aim-engine list
+# List running containers
+docker ps | grep aim-vllm
 
-# Get model status
-aim-engine status <container-name>
+# Check container logs
+docker logs <container_name>
 
 # Stop a model
-aim-engine stop <container-name>
-```
+docker stop <container_name>
 
-## 🐳 **Docker Usage**
-
-### **Single Model Deployment**
-```bash
-# Basic deployment
-docker run --rm --gpus all \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -p 8000:8000 \
-  aim-engine:latest \
-  aim-engine launch Qwen/Qwen3-32B 4
-```
-
-### **Multiple Models with Docker Compose**
-```bash
-# Start all services
-docker compose up -d
-
-# Check cache status
-docker exec aim-engine aim-engine cache stats
-
-# Launch additional models
-docker exec aim-engine aim-engine launch Mistral-7B 2
-```
-
-### **Interactive Mode**
-```bash
-# Run container interactively
-docker run -it --rm --gpus all \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  aim-engine:latest
+# Monitor resource usage
+docker stats <container_name>
 ```
 
 ## 📊 **Performance Benefits**
@@ -314,15 +307,18 @@ python tests/test_aim_implementation.py
 ### **Project Structure**
 ```
 aim-engine/
-├── aim_*.py                    # Core AIM Engine modules
-├── generate_docker_command.py  # Recipe selection script (recommended)
+├── aim_recipe_selector.py      # Intelligent recipe selection
+├── aim_config_generator.py     # Configuration generation
+├── aim_cache_manager.py        # Model caching system
+├── Dockerfile.aim-vllm         # Combined container Dockerfile
+├── build-aim-vllm.sh           # Build script for combined container
+├── AIM_VLLM_COMBINED_USAGE.md  # Combined container usage guide
+├── AIM_ENGINE_DESIGN_SUMMARY.md # Technical architecture summary
 ├── models/                     # Model definitions
 ├── recipes/                    # AIM recipes
 ├── templates/                  # Configuration templates
 ├── tests/                      # Test files
-├── scripts/                    # Build scripts
 ├── docs/                       # Documentation
-├── Dockerfile                  # Container (with built-in cache)
 └── requirements.txt            # Python dependencies
 ```
 
@@ -457,78 +453,139 @@ docker system prune -a -f --volumes
 
 ## 🔍 **Troubleshooting**
 
-### **Recipe Selection Script Issues**
+### **Combined Container Issues**
+
+#### **Container Build Failures**
+```bash
+# Check if build script is executable
+chmod +x build-aim-vllm.sh
+
+# Build manually with verbose output
+docker build -f Dockerfile.aim-vllm -t aim-vllm:latest . --progress=plain
+
+# Check for missing dependencies
+docker run --rm aim-vllm:latest python3 -c "import aim_recipe_selector; print('AIM Engine loaded successfully')"
+```
 
 #### **Port Already in Use**
 ```bash
-# Check what's using the port
-netstat -tlnp | grep :8000
+# Check if port is in use
+netstat -tlnp | grep :8000 || ss -tlnp | grep :8000 || echo "No process found on port 8000"
 
 # Use a different port
-python3 generate_docker_command.py Qwen/Qwen3-32B 1 bf16 8001
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  aim-vllm:latest \
+  aim-generate Qwen/Qwen3-32B --port 8001
 ```
 
 #### **GPU Memory Issues**
 ```bash
-# Check available GPU memory
+# Check GPU memory usage
 rocm-smi
 
-# Reduce GPU count
-python3 generate_docker_command.py Qwen/Qwen3-32B 2
+# Check container GPU access
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  aim-vllm:latest \
+  rocm-smi
 
-# Use lower precision
-python3 generate_docker_command.py Qwen/Qwen3-32B 4 fp16
+# Reduce GPU memory utilization
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  aim-vllm:latest \
+  aim-generate Qwen/Qwen3-32B --gpu-count 1
 ```
 
 #### **Container Startup Failures**
 ```bash
 # Check if containers are running
-docker ps
+docker ps | grep aim-vllm
 
 # Clean up all containers (safe - won't error if none exist)
 docker stop $(docker ps -q) 2>/dev/null || true && docker rm $(docker ps -aq) 2>/dev/null || true
 
-# Try again with the generated command
+# Try again with the combined container
+docker run --rm -d \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  -p 8000:8000 \
+  aim-vllm:latest \
+  aim-serve Qwen/Qwen3-32B
 ```
 
-### **Traditional AIM Engine Issues**
+### **General Issues**
 
-#### **Cache Not Working**
+#### **GPU Detection Issues**
 ```bash
-# Check cache directory permissions
-ls -la /workspace/model-cache
+# Check GPU availability
+rocm-smi --showproductname
 
-# Verify environment variables
-docker exec aim-engine env | grep CACHE
+# Check PyTorch GPU detection inside container
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  aim-vllm:latest \
+  python3 -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}'); print(f'GPU count: {torch.cuda.device_count()}')"
 
-# Reinitialize cache
-docker exec aim-engine aim-engine cache stats
+# Check environment variables
+docker run --rm -it aim-vllm:latest env | grep -E "(HIP|CUDA|VLLM)"
 ```
 
-#### **GPU Memory Issues**
+#### **Model Download Issues**
 ```bash
-# Check available GPU memory
-rocm-smi
+# Check cache directory
+ls -la /workspace/model-cache/
 
-# Reduce GPU count
-aim-engine launch Qwen/Qwen3-32B 2  # Use 2 GPUs instead of 4
-
-# Use lower precision
-aim-engine launch Qwen/Qwen3-32B 4 --precision fp16
-```
-
-#### **Model Download Failures**
-```bash
 # Check network connectivity
-curl -I https://huggingface.co/Qwen/Qwen3-32B
+docker run --rm aim-vllm:latest curl -I https://huggingface.co
 
-# Use alternative mirror
-export HF_ENDPOINT=https://hf-mirror.com
+# Clear cache and retry
+rm -rf /workspace/model-cache/*
+```
+
+#### **Command Execution Issues**
+```bash
+# Test aim-generate command
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  aim-vllm:latest \
+  aim-generate --help
+
+# Test aim-serve command
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  aim-vllm:latest \
+  aim-serve --help
 ```
 
 ## 📚 **Documentation**
 
+- **[Combined Container Usage](AIM_VLLM_COMBINED_USAGE.md)** - Complete guide for the combined container approach
+- **[Design Summary](AIM_ENGINE_DESIGN_SUMMARY.md)** - Technical architecture and recipe selection mechanism
 - **[Complete Guide](docs/README.md)** - Comprehensive documentation
-- **[Container Guide](docs/guides/unified-container-cache.md)** - Using the container
-- **[User Guide](docs/guides/user-guide.md)** - How to use AIM Engine
 - **[Installation Guide](docs/guides/installation.md)** - Setup instructions
