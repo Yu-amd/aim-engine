@@ -149,7 +149,7 @@ show_cache_status() {
 
 # Main function
 main() {
-    echo "🚀 AIM Engine Unified Container with Cache"
+    echo "🚀 AIM Engine - AMD Inference Microservice"
     echo "=========================================="
     echo "Cache Directory: /workspace/model-cache"
     echo "Cache Enabled: \${AIM_CACHE_ENABLED:-1}"
