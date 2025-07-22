@@ -1,4 +1,4 @@
-# AIM Engine Design & Recipe Selection Summary
+# AIM Engine Design Summary
 
 ## 🎯 **Overview**
 

@@ -1,0 +1,60 @@
+# AIM Engine + vLLM ROCm Combined Container
+FROM rocm/vllm:latest
+
+# Set environment variables for AMD/ROCm
+ENV PYTHONUNBUFFERED=1
+ENV HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+ENV PYTORCH_ROCM_ARCH=gfx90a
+ENV VLLM_USE_ROCM=1
+
+# Install additional dependencies for AIM Engine
+RUN pip install --no-cache-dir \
+    pyyaml \
+    pathlib \
+    typing-extensions
+
+# Create workspace directory
+WORKDIR /workspace
+
+# Copy AIM Engine source code
+COPY . /workspace/aim-engine/
+
+# Install AIM Engine in development mode
+RUN cd /workspace/aim-engine && \
+    pip install -e .
+
+# Create cache directories
+RUN mkdir -p /workspace/model-cache /tmp/.cache /root/.cache/huggingface
+
+# Set up environment
+ENV PYTHONPATH="/workspace/aim-engine:${PYTHONPATH}"
+ENV HF_HOME="/workspace/model-cache"
+ENV TRANSFORMERS_CACHE="/workspace/model-cache"
+ENV HF_DATASETS_CACHE="/workspace/model-cache"
+ENV VLLM_CACHE_DIR="/workspace/model-cache"
+ENV HF_HUB_DISABLE_TELEMETRY="1"
+
+# Create convenience scripts
+RUN echo '#!/bin/bash\n\
+# Generate optimal vLLM command using AIM Engine\n\
+cd /workspace/aim-engine\n\
+python3 generate_docker_command.py "$@"\n\
+' > /usr/local/bin/aim-generate && \
+    chmod +x /usr/local/bin/aim-generate
+
+RUN echo '#!/bin/bash\n\
+# Run vLLM server with generated configuration\n\
+cd /workspace/aim-engine\n\
+python3 generate_docker_command.py "$@" | tail -n 1 | bash\n\
+' > /usr/local/bin/aim-serve && \
+    chmod +x /usr/local/bin/aim-serve
+
+RUN echo '#!/bin/bash\n\
+# Interactive mode with AIM Engine tools\n\
+cd /workspace/aim-engine\n\
+exec "$@"\n\
+' > /usr/local/bin/aim-shell && \
+    chmod +x /usr/local/bin/aim-shell
+
+# Default command
+CMD ["/bin/bash"] 
