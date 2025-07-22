@@ -190,7 +190,7 @@ python tests/test_aim_implementation.py
 
 ### **Project Structure**
 ```
-AIM-implementation/
+aim-engine/
 ├── aim_*.py                    # Core AIM Engine modules
 ├── models/                     # Model definitions
 ├── recipes/                    # AIM recipes

@@ -10,7 +10,7 @@ AIM Engine is an intelligent AI model deployment system that automatically selec
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd AIM-implementation
+cd aim-engine
 
 # Install dependencies
 ./install.sh
@@ -252,7 +252,7 @@ aim-engine serve Qwen/Qwen3-32B 4
 
 ### **Project Structure**
 ```
-AIM-implementation/
+aim-engine/
 ├── aim_*.py              # Core AIM Engine modules
 ├── models/               # Model definitions
 ├── recipes/              # AIM recipes
