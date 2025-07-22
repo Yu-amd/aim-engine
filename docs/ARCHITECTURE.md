@@ -49,7 +49,7 @@ The AIM (AMD Inference Microservice) Engine is designed as a single-container so
 
 ### 1. Single Container Architecture
 - **One Container**: All components run within a single Docker container
-- **Direct Execution**: vLLM/SGLang run as subprocesses, not separate containers
+- **Direct Execution**: vLLM/SGLang run as subprocesses, within the same container
 - **Shared Resources**: All components share the same GPU access and memory
 - **Simplified Deployment**: No Docker-in-Docker complexity
 
@@ -399,7 +399,7 @@ docker run --rm \
 - **Reduced Overhead**: No container orchestration overhead
 - **Shared Memory**: All components share the same memory space
 - **Direct GPU Access**: No GPU passthrough complexity
-- **Faster Startup**: Single container startup vs. multiple containers
+- **Faster Startup**: Single container startup 
 
 ### Resource Optimization
 
@@ -528,7 +528,7 @@ docker run --rm \
 
 ### Reliability
 - **Simplified Failure Handling**: Single container failure model
-- **Easier Recovery**: Single container restart vs. multiple containers
+- **Easier Recovery**: Single container restart 
 - **Reduced Dependencies**: Fewer moving parts and dependencies
 - **Better Resource Management**: Direct control over all resources
 
