@@ -112,7 +112,8 @@ class AIMRecipeSelector:
         
         # Fallback to environment variable or default
         import os
-        gpu_count = int(os.environ.get('CUDA_VISIBLE_DEVICES', '0').count(',') + 1)
+        # For AMD/ROCm, we use HIP_VISIBLE_DEVICES instead of CUDA_VISIBLE_DEVICES
+        gpu_count = int(os.environ.get('HIP_VISIBLE_DEVICES', os.environ.get('CUDA_VISIBLE_DEVICES', '0')).count(',') + 1)
         self.logger.info(f"Using fallback GPU count: {gpu_count}")
         return gpu_count
     
@@ -131,7 +132,7 @@ class AIMRecipeSelector:
             # Try PyTorch first (most reliable inside containers)
             if torch.cuda.is_available():
                 gpu_count = torch.cuda.device_count()
-                self.logger.info(f"Detected {gpu_count} GPUs using PyTorch")
+                self.logger.info(f"Detected {gpu_count} GPUs using PyTorch (ROCm backend)")
                 return gpu_count
             
             # Try AMD ROCm
@@ -158,7 +159,8 @@ class AIMRecipeSelector:
         
         # Fallback to environment variable or default to 1
         import os
-        gpu_count = int(os.environ.get('CUDA_VISIBLE_DEVICES', '0').count(',') + 1)
+        # For AMD/ROCm, we use HIP_VISIBLE_DEVICES instead of CUDA_VISIBLE_DEVICES
+        gpu_count = int(os.environ.get('HIP_VISIBLE_DEVICES', os.environ.get('CUDA_VISIBLE_DEVICES', '0')).count(',') + 1)
         self.logger.info(f"Using fallback container GPU count: {gpu_count}")
         return gpu_count
     
@@ -174,6 +176,7 @@ class AIMRecipeSelector:
             import subprocess
             
             # Try to run a simple PyTorch command to see how many GPUs it detects
+            # Note: torch.cuda still works with ROCm backend, it's just the API name
             test_cmd = [
                 "python", "-c", 
                 "import torch; print(torch.cuda.device_count() if torch.cuda.is_available() else 0)"
