@@ -394,9 +394,6 @@ mkdir -p /workspace/model-cache/{models,tokenizers,configs,datasets}
 chown -R aim-engine:aim-engine /workspace/model-cache
 chmod -R 755 /workspace/model-cache
 
-# Initialize cache index
-python3 aim_cache_manager.py setup --cache-dir /workspace/model-cache
-
 echo "✅ Cache initialization completed"
 echo "📁 Cache directory: /workspace/model-cache"
 echo "🔧 Use 'aim-engine cache stats' to view cache status"
