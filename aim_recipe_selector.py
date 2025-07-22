@@ -91,9 +91,9 @@ class AIMRecipeSelector:
             result = subprocess.run(['rocm-smi', '--showproductname'], 
                                   capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
-                # Count lines with GPU names (excluding header)
+                # Count GPU entries (lines starting with "GPU[")
                 gpu_lines = [line for line in result.stdout.strip().split('\n') 
-                           if 'GPU' in line and 'Product Name' in line]
+                           if line.strip().startswith('GPU[')]
                 gpu_count = len(gpu_lines)
                 self.logger.info(f"Detected {gpu_count} AMD GPUs using rocm-smi")
                 return gpu_count
