@@ -41,10 +41,19 @@ class AIMEngine:
         except ImportError:
             self.cache_manager = None
             self.cache_enabled = False
-            self.logger.warning("Cache manager not available - caching disabled")
-        
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
+        
+        if self.cache_manager:
+        if self.cache_manager:
+            self.cache_enabled = True
+            self.logger.info(f"Cache enabled at: {self.cache_dir}")
+        else:
+            self.logger.warning("Cache manager not available - caching disabled")
+            self.cache_enabled = True
+            self.logger.info(f"Cache enabled at: {self.cache_dir}")
+        else:
+            self.logger.warning("Cache manager not available - caching disabled")
     
     def validate_inputs(self, model_id: str, gpu_count: Optional[int] = None, 
                        precision: Optional[str] = None, backend: str = 'vllm') -> bool:
