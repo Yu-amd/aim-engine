@@ -84,11 +84,11 @@ dev:
 
 lint:
 	@echo "🔍 Running code linting..."
-	@flake8 *.py tests/ scripts/ 2>/dev/null || echo "flake8 not installed, skipping linting"
+	@flake8 *.py tests/ 2>/dev/null || echo "flake8 not installed, skipping linting"
 
 format:
 	@echo "🎨 Formatting code..."
-	@black *.py tests/ scripts/ 2>/dev/null || echo "black not installed, skipping formatting"
+	@black *.py tests/ 2>/dev/null || echo "black not installed, skipping formatting"
 
 # Documentation
 docs:
@@ -96,18 +96,17 @@ docs:
 	@echo "Documentation is available in the docs/ directory"
 	@echo "Main files:"
 	@echo "  - README.md"
-	@echo "  - INSTALLATION_GUIDE.md"
-	@echo "  - docs/AIM_IMPLEMENTATION_README.md"
-	@echo "  - PROJECT_SUMMARY.md"
+	@echo "  - AIM_VLLM_USAGE.md"
+	@echo "  - AIM_ENGINE_DESIGN_SUMMARY.md"
 
 # Quick start and examples
 quick-start:
 	@echo "🚀 Running AIM Engine quick start..."
-	@cd scripts && ./quick_start.sh
+	@echo "Use: ./build-aim-vllm.sh to build the combined container"
 
 examples:
 	@echo "📖 Running AIM Engine examples..."
-	@python3 example_usage.py
+	@echo "See AIM_VLLM_USAGE.md for usage examples"
 
 # Maintenance
 clean:

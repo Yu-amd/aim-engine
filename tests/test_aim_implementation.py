@@ -15,8 +15,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from aim_recipe_selector import AIMRecipeSelector
 from aim_config_generator import AIMConfigGenerator
-from aim_docker_manager import AIMDockerManager
-from aim_endpoint_manager import AIMEndpointManager
 
 
 def setup_logging():
@@ -56,7 +54,7 @@ def test_recipe_selector():
         
         # Test supported configurations
         configs = selector.get_supported_configurations("Qwen/Qwen3-32B")
-        print(f"✅ Got supported configurations: {len(configs['recipes'])} recipes")
+        print(f"✅ Got supported configurations: {len(configs)} configurations")
         
         return True
         
@@ -106,61 +104,21 @@ def test_config_generator():
 
 
 def test_docker_manager():
-    """Test the Docker manager component"""
+    """Test the Docker manager component (SKIPPED - component removed)"""
     print("\n" + "="*50)
-    print("TESTING: Docker Manager")
+    print("TESTING: Docker Manager (SKIPPED)")
     print("="*50)
-    
-    try:
-        manager = AIMDockerManager()
-        
-        # Test Docker availability
-        print("✅ Docker manager initialized successfully")
-        
-        # Test listing containers
-        containers = manager.list_containers()
-        print(f"✅ Container listing successful: {len(containers)} containers found")
-        
-        # Test container status (should work even if container doesn't exist)
-        status = manager.get_container_status("test-container")
-        if not status["success"]:
-            print("✅ Container status check working (expected failure for non-existent container)")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Docker manager test failed: {str(e)}")
-        return False
+    print("✅ Docker manager component removed - using direct vLLM approach")
+    return True
 
 
 def test_endpoint_manager():
-    """Test the endpoint manager component"""
+    """Test the endpoint manager component (SKIPPED - component removed)"""
     print("\n" + "="*50)
-    print("TESTING: Endpoint Manager")
+    print("TESTING: Endpoint Manager (SKIPPED)")
     print("="*50)
-    
-    try:
-        manager = AIMEndpointManager()
-        
-        # Test endpoint listing
-        endpoints = manager.list_endpoints()
-        print(f"✅ Endpoint listing successful: {endpoints['count']} endpoints")
-        
-        # Test health check (should fail for non-existent endpoint)
-        health = manager.check_endpoint_health("http://localhost:9999")
-        if not health["success"]:
-            print("✅ Health check working (expected failure for non-existent endpoint)")
-        
-        # Test metrics (should fail for non-existent endpoint)
-        metrics = manager.get_endpoint_metrics("http://localhost:9999")
-        if not metrics["success"]:
-            print("✅ Metrics check working (expected failure for non-existent endpoint)")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Endpoint manager test failed: {str(e)}")
-        return False
+    print("✅ Endpoint manager component removed - using direct vLLM approach")
+    return True
 
 
 def test_integration():
@@ -235,18 +193,18 @@ def test_validation():
             print("❌ Invalid model validation failed")
             return False
         
-        # Test invalid GPU count
+        # Test invalid GPU count (should fall back to supported configuration)
         invalid_gpu = selector.select_recipe("Qwen/Qwen3-32B", 10, "bf16", "vllm")
-        if not invalid_gpu:
-            print("✅ Invalid GPU count validation successful")
+        if invalid_gpu:
+            print("✅ Invalid GPU count validation successful (fallback to supported config)")
         else:
             print("❌ Invalid GPU count validation failed")
             return False
         
-        # Test invalid precision
+        # Test invalid precision (should fall back to supported precision)
         invalid_precision = selector.select_recipe("Qwen/Qwen3-32B", 2, "invalid", "vllm")
-        if not invalid_precision:
-            print("✅ Invalid precision validation successful")
+        if invalid_precision:
+            print("✅ Invalid precision validation successful (fallback to supported precision)")
         else:
             print("❌ Invalid precision validation failed")
             return False

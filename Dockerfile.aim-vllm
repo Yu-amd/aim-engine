@@ -27,7 +27,7 @@ RUN cd /workspace/aim-engine && \
 RUN mkdir -p /workspace/model-cache /tmp/.cache /root/.cache/huggingface
 
 # Set up environment
-ENV PYTHONPATH="/workspace/aim-engine:${PYTHONPATH}"
+ENV PYTHONPATH="/workspace/aim-engine"
 ENV HF_HOME="/workspace/model-cache"
 ENV TRANSFORMERS_CACHE="/workspace/model-cache"
 ENV HF_DATASETS_CACHE="/workspace/model-cache"
@@ -38,14 +38,14 @@ ENV HF_HUB_DISABLE_TELEMETRY="1"
 RUN echo '#!/bin/bash\n\
 # Generate optimal vLLM command using AIM Engine\n\
 cd /workspace/aim-engine\n\
-python3 generate_docker_command.py "$@"\n\
+python3 -c "from aim_recipe_selector import AIMRecipeSelector; import sys; selector = AIMRecipeSelector(\".\"); recipe = selector.select_recipe(sys.argv[1], 2, \"bf16\", \"vllm\") if len(sys.argv) > 1 else None; print(f\"docker run --rm -d --device=/dev/kfd --device=/dev/dri --group-add=video --group-add=render -v /workspace/model-cache:/workspace/model-cache -p 8000:8000 rocm/vllm:latest python3 -m vllm.entrypoints.openai.api_server --model {recipe[\"model_id\"]} --port 8000 {recipe[\"vllm_args\"]}\") if recipe else print(\"echo \\\"No recipe found\\\"\")" "$@"\n\
 ' > /usr/local/bin/aim-generate && \
     chmod +x /usr/local/bin/aim-generate
 
 RUN echo '#!/bin/bash\n\
 # Run vLLM server with generated configuration\n\
 cd /workspace/aim-engine\n\
-python3 generate_docker_command.py "$@" | tail -n 1 | bash\n\
+python3 -c "from aim_recipe_selector import AIMRecipeSelector; import sys; selector = AIMRecipeSelector(\".\"); recipe = selector.select_recipe(sys.argv[1], 2, \"bf16\", \"vllm\") if len(sys.argv) > 1 else None; print(f\"docker run --rm -d --device=/dev/kfd --device=/dev/dri --group-add=video --group-add=render -v /workspace/model-cache:/workspace/model-cache -p 8000:8000 rocm/vllm:latest python3 -m vllm.entrypoints.openai.api_server --model {recipe[\"model_id\"]} --port 8000 {recipe[\"vllm_args\"]}\") if recipe else print(\"echo \\\"No recipe found\\\"\")" "$@" | tail -n 1 | bash\n\
 ' > /usr/local/bin/aim-serve && \
     chmod +x /usr/local/bin/aim-serve
 

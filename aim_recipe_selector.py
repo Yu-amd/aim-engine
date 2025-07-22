@@ -619,3 +619,37 @@ class AIMRecipeSelector:
             'container_gpus': container_gpus,
             'host_gpus': host_gpus
         } 
+
+def main():
+    """Main function for console script entry point"""
+    import sys
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="AIM Recipe Selector")
+    parser.add_argument("model_id", help="Hugging Face model ID")
+    parser.add_argument("--gpu-count", type=int, help="Number of GPUs")
+    parser.add_argument("--precision", choices=["fp8", "fp16", "bf16"], help="Precision")
+    parser.add_argument("--backend", default="vllm", help="Backend (default: vllm)")
+    
+    args = parser.parse_args()
+    
+    # Initialize selector
+    selector = AIMRecipeSelector(Path("."))
+    
+    # Select recipe
+    recipe = selector.select_recipe(args.model_id, args.gpu_count, args.precision, args.backend)
+    
+    if recipe:
+        print(f"Selected recipe: {recipe['recipe_id']}")
+        print(f"Model: {recipe['model_id']}")
+        print(f"Backend: {args.backend}")
+        if args.gpu_count:
+            print(f"GPU Count: {args.gpu_count}")
+        if args.precision:
+            print(f"Precision: {args.precision}")
+    else:
+        print(f"No suitable recipe found for {args.model_id}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main() 

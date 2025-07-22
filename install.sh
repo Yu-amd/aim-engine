@@ -53,7 +53,7 @@ check_venv() {
 }
 
 # Check if we're in the right directory
-if [ ! -f "aim_launcher.py" ]; then
+if [ ! -f "aim_recipe_selector.py" ]; then
     print_error "Please run this script from the AIM Engine directory"
     exit 1
 fi

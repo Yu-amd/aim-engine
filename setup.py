@@ -45,7 +45,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "aim-engine=aim_launcher:main",
+            "aim-generate=aim_recipe_selector:main",
         ],
     },
     python_requires=">=3.8",
