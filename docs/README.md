@@ -218,17 +218,6 @@ aim-engine launch Qwen/Qwen3-32B 4 --precision bf16
 
 ### **Example 3: Unified Container Deployment**
 ```bash
-# Deploy unified container
-docker run -it --gpus all \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  aim-engine-unified:latest
-
-# Inside container, launch model
-aim-engine launch Qwen/Qwen3-32B 4
-
-# Or serve model directly
-aim-engine serve Qwen/Qwen3-32B 4
-```
 
 ## 🔍 **Configuration Selection Logic**
 
@@ -281,12 +270,6 @@ python -m pytest tests/ --cov=.
 ```bash
 # Build standard container
 docker build -t aim-engine:latest .
-
-# Build unified container
-docker build -f Dockerfile.unified -t aim-engine-unified:latest .
-```
-
-## 🎉 **Benefits Summary**
 
 ### **For Users**
 - ✅ **Simple**: Just specify the model, everything else is automatic

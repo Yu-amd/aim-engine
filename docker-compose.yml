@@ -36,7 +36,7 @@ services:
               count: all
               capabilities: [gpu]
 
-  # Example: Qwen model deployment using unified container
+  # Example: Qwen model deployment
   qwen-model:
     image: aim-engine-unified-cache:latest
     container_name: aim-qwen-32b-cached
@@ -71,7 +71,7 @@ services:
               count: 4
               capabilities: [gpu]
 
-  # Example: Llama model deployment using unified container
+  # Example: Llama model deployment
   llama-model:
     image: aim-engine-unified-cache:latest
     container_name: aim-llama-8b-cached
