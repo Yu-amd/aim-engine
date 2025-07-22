@@ -272,6 +272,135 @@ aim-engine/
 └── requirements.txt            # Python dependencies
 ```
 
+## 🧹 **Cleanup and Maintenance**
+
+### **Container Cleanup**
+
+#### **Stop and Remove All Containers**
+```bash
+# Stop all running containers
+docker stop $(docker ps -q)
+
+# Remove all containers (including stopped ones)
+docker rm $(docker ps -aq)
+
+# Or do both in one command
+docker stop $(docker ps -q) && docker rm $(docker ps -aq)
+```
+
+#### **Clean Up Specific Containers**
+```bash
+# List all containers
+docker ps -a
+
+# Stop specific container
+docker stop <container-name>
+
+# Remove specific container
+docker rm <container-name>
+
+# Force remove (if container is running)
+docker rm -f <container-name>
+```
+
+#### **Clean Up Images**
+```bash
+# Remove unused images
+docker image prune
+
+# Remove all unused images (including untagged)
+docker image prune -a
+
+# Remove specific image
+docker rmi <image-name>
+```
+
+### **Port Cleanup**
+
+#### **Check Port Usage**
+```bash
+# Check what's using a specific port
+netstat -tlnp | grep :8000
+
+# Check all listening ports
+netstat -tlnp
+
+# Alternative using ss command
+ss -tlnp | grep :8000
+```
+
+#### **Kill Process Using Port**
+```bash
+# Find process using port 8000
+lsof -i :8000
+
+# Kill process by PID
+kill -9 <PID>
+
+# Or kill all processes using the port
+sudo fuser -k 8000/tcp
+```
+
+### **Cache Cleanup**
+
+#### **Model Cache Management**
+```bash
+# Check cache size
+du -sh /workspace/model-cache
+
+# List cached models
+ls -la /workspace/model-cache/models/
+
+# Remove specific model from cache
+rm -rf /workspace/model-cache/models/<model-name>
+
+# Clean up old cache files
+find /workspace/model-cache -type f -mtime +30 -delete
+```
+
+### **Complete System Cleanup**
+
+#### **Full Cleanup Script**
+```bash
+#!/bin/bash
+echo "🧹 Starting complete cleanup..."
+
+# Stop and remove all containers
+echo "📦 Stopping and removing containers..."
+docker stop $(docker ps -q) 2>/dev/null || true
+docker rm $(docker ps -aq) 2>/dev/null || true
+
+# Remove unused images
+echo "🖼️  Removing unused images..."
+docker image prune -f
+
+# Remove unused volumes
+echo "💾 Removing unused volumes..."
+docker volume prune -f
+
+# Remove unused networks
+echo "🌐 Removing unused networks..."
+docker network prune -f
+
+# Clean up cache (optional - uncomment if needed)
+# echo "🗂️  Cleaning up model cache..."
+# rm -rf /workspace/model-cache/*
+
+echo "✅ Cleanup complete!"
+```
+
+#### **Quick Cleanup Commands**
+```bash
+# One-liner cleanup
+docker system prune -f
+
+# Cleanup everything (including images)
+docker system prune -a -f
+
+# Cleanup with volumes
+docker system prune -a -f --volumes
+```
+
 ## 🔍 **Troubleshooting**
 
 ### **Recipe Selection Script Issues**
