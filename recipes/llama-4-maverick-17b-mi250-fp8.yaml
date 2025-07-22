@@ -1,0 +1,101 @@
+recipe_id: llama-4-maverick-17b-mi250-fp8
+model_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+huggingface_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+hardware: MI250
+precision: fp8
+
+vllm_serve:
+  "1_gpu":
+    enabled: true
+    args:
+      --model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      --dtype: float8_e5m2
+      --max-batch-size: "12"
+      --max-context-len: "131072"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8000"
+
+  "2_gpu":
+    enabled: true
+    args:
+      --model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      --dtype: float8_e5m2
+      --tensor-parallel-size: "2"
+      --max-batch-size: "24"
+      --max-context-len: "131072"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8000"
+
+  "4_gpu":
+    enabled: true
+    args:
+      --model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      --dtype: float8_e5m2
+      --tensor-parallel-size: "4"
+      --max-batch-size: "48"
+      --max-context-len: "131072"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8000"
+
+  "8_gpu":
+    enabled: true
+    args:
+      --model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      --dtype: float8_e5m2
+      --tensor-parallel-size: "8"
+      --max-batch-size: "96"
+      --max-context-len: "131072"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8000"
+
+sglang_serve:
+  "1_gpu":
+    enabled: true
+    args:
+      --model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      --dtype: float8_e5m2
+      --max-batch-size: "6"
+      --max-context-len: "131072"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8001"
+
+  "2_gpu":
+    enabled: true
+    args:
+      --model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      --dtype: float8_e5m2
+      --tensor-parallel-size: "2"
+      --max-batch-size: "12"
+      --max-context-len: "131072"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8001"
+
+  "4_gpu":
+    enabled: true
+    args:
+      --model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      --dtype: float8_e5m2
+      --tensor-parallel-size: "4"
+      --max-batch-size: "24"
+      --max-context-len: "131072"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8001"
+
+  "8_gpu":
+    enabled: true
+    args:
+      --model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      --dtype: float8_e5m2
+      --tensor-parallel-size: "8"
+      --max-batch-size: "48"
+      --max-context-len: "131072"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8001" 

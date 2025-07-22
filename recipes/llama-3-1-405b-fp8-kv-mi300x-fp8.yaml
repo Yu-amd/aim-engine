@@ -1,0 +1,101 @@
+recipe_id: llama-3-1-405b-fp8-kv-mi300x-fp8
+model_id: amd/Llama-3.1-405B-Instruct-FP8-KV
+huggingface_id: amd/Llama-3.1-405B-Instruct-FP8-KV
+hardware: MI300X
+precision: fp8
+
+vllm_serve:
+  "1_gpu":
+    enabled: true
+    args:
+      --model: amd/Llama-3.1-405B-Instruct-FP8-KV
+      --dtype: float8_e4m3
+      --max-batch-size: "1"
+      --max-context-len: "8192"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8000"
+
+  "2_gpu":
+    enabled: true
+    args:
+      --model: amd/Llama-3.1-405B-Instruct-FP8-KV
+      --dtype: float8_e4m3
+      --tensor-parallel-size: "2"
+      --max-batch-size: "2"
+      --max-context-len: "8192"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8000"
+
+  "4_gpu":
+    enabled: true
+    args:
+      --model: amd/Llama-3.1-405B-Instruct-FP8-KV
+      --dtype: float8_e4m3
+      --tensor-parallel-size: "4"
+      --max-batch-size: "4"
+      --max-context-len: "8192"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8000"
+
+  "8_gpu":
+    enabled: true
+    args:
+      --model: amd/Llama-3.1-405B-Instruct-FP8-KV
+      --dtype: float8_e4m3
+      --tensor-parallel-size: "8"
+      --max-batch-size: "8"
+      --max-context-len: "8192"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8000"
+
+sglang_serve:
+  "1_gpu":
+    enabled: true
+    args:
+      --model: amd/Llama-3.1-405B-Instruct-FP8-KV
+      --dtype: float8_e4m3
+      --max-batch-size: "1"
+      --max-context-len: "8192"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8001"
+
+  "2_gpu":
+    enabled: true
+    args:
+      --model: amd/Llama-3.1-405B-Instruct-FP8-KV
+      --dtype: float8_e4m3
+      --tensor-parallel-size: "2"
+      --max-batch-size: "1"
+      --max-context-len: "8192"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8001"
+
+  "4_gpu":
+    enabled: true
+    args:
+      --model: amd/Llama-3.1-405B-Instruct-FP8-KV
+      --dtype: float8_e4m3
+      --tensor-parallel-size: "4"
+      --max-batch-size: "2"
+      --max-context-len: "8192"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8001"
+
+  "8_gpu":
+    enabled: true
+    args:
+      --model: amd/Llama-3.1-405B-Instruct-FP8-KV
+      --dtype: float8_e4m3
+      --tensor-parallel-size: "8"
+      --max-batch-size: "4"
+      --max-context-len: "8192"
+      --gpu-memory-utilization: "0.9"
+      --trust-remote-code: "true"
+      --port: "8001" 

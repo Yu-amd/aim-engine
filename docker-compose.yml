@@ -1,0 +1,161 @@
+version: '3.8'
+
+services:
+  # AIM Engine Unified Container with Cache
+  aim-engine-unified:
+    build:
+      context: .
+      dockerfile: Dockerfile.unified.cache
+    container_name: aim-engine-unified-cache
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - model-cache-data:/workspace/model-cache
+      - ./models:/opt/aim-engine/models:ro
+      - ./recipes:/opt/aim-engine/recipes:ro
+      - ./templates:/opt/aim-engine/templates:ro
+    environment:
+      - AIM_CACHE_DIR=/workspace/model-cache
+      - AIM_CACHE_ENABLED=1
+      - AIM_PRE_DOWNLOAD_MODELS=false  # Set to true to pre-download common models
+      - HF_HOME=/workspace/model-cache
+      - TRANSFORMERS_CACHE=/workspace/model-cache
+      - HF_DATASETS_CACHE=/workspace/model-cache
+      - VLLM_CACHE_DIR=/workspace/model-cache
+      - HF_HUB_DISABLE_TELEMETRY=1
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+    ports:
+      - "8080:8080"  # AIM Engine API
+    networks:
+      - aim-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Example: Qwen model deployment using unified container
+  qwen-model:
+    image: aim-engine-unified-cache:latest
+    container_name: aim-qwen-32b-cached
+    depends_on:
+      - aim-engine-unified
+    volumes:
+      - model-cache-data:/workspace/model-cache:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AIM_CACHE_DIR=/workspace/model-cache
+      - HF_HOME=/workspace/model-cache
+      - TRANSFORMERS_CACHE=/workspace/model-cache
+      - HF_DATASETS_CACHE=/workspace/model-cache
+      - VLLM_CACHE_DIR=/workspace/model-cache
+      - HF_HUB_DISABLE_TELEMETRY=1
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+    ports:
+      - "8000:8000"
+    command: >
+      aim-engine serve Qwen/Qwen3-32B
+      --tensor-parallel-size 4
+      --port 8000
+      --host 0.0.0.0
+    networks:
+      - aim-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 4
+              capabilities: [gpu]
+
+  # Example: Llama model deployment using unified container
+  llama-model:
+    image: aim-engine-unified-cache:latest
+    container_name: aim-llama-8b-cached
+    depends_on:
+      - aim-engine-unified
+    volumes:
+      - model-cache-data:/workspace/model-cache:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AIM_CACHE_DIR=/workspace/model-cache
+      - HF_HOME=/workspace/model-cache
+      - TRANSFORMERS_CACHE=/workspace/model-cache
+      - HF_DATASETS_CACHE=/workspace/model-cache
+      - VLLM_CACHE_DIR=/workspace/model-cache
+      - HF_HUB_DISABLE_TELEMETRY=1
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+    ports:
+      - "8001:8000"
+    command: >
+      aim-engine serve meta-llama/Llama-3-8B
+      --tensor-parallel-size 2
+      --port 8000
+      --host 0.0.0.0
+    networks:
+      - aim-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 2
+              capabilities: [gpu]
+
+  # Monitoring service
+  monitoring:
+    image: prom/prometheus:latest
+    container_name: aim-monitoring
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - aim-network
+    restart: unless-stopped
+
+  # Cache management service (optional)
+  cache-manager:
+    image: aim-engine-unified-cache:latest
+    container_name: aim-cache-manager
+    depends_on:
+      - aim-engine-unified
+    volumes:
+      - model-cache-data:/workspace/model-cache
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AIM_CACHE_DIR=/workspace/model-cache
+    command: >
+      aim-engine cache stats
+    networks:
+      - aim-network
+    restart: "no"
+
+volumes:
+  model-cache-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /workspace/model-cache
+  prometheus-data:
+    driver: local
+
+networks:
+  aim-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

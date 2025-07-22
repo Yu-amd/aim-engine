@@ -1,0 +1,17 @@
+# Core Python orchestration dependencies for AIM implementation
+# Note: The vLLM container (rocm/vllm:latest) includes all model deployment dependencies
+
+# Essential dependencies for the AIM launcher
+requests>=2.31.0
+PyYAML>=6.0
+jsonschema>=4.17.0
+
+# Python standard library dependencies (included with Python 3.8+)
+# argparse, logging, subprocess, pathlib - no need to install separately
+
+# Optional dependencies for enhanced functionality
+# Uncomment these if you want additional features:
+# docker>=6.0.0  # Docker Python SDK (alternative to subprocess)
+# kubernetes>=26.0.0  # Kubernetes deployment support
+# prometheus-client>=0.16.0  # Metrics collection
+# psutil>=5.9.0  # System monitoring 

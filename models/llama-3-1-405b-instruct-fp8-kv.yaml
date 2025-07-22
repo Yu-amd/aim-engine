@@ -1,0 +1,137 @@
+model_id: amd/Llama-3_1-405B-Instruct-FP8-KV
+name: Llama 3.1 405B Instruct FP8 KV
+builder: AMD
+family: Llama
+size: 405B
+huggingface_id: amd/Llama-3_1-405B-Instruct-FP8-KV
+description: 'AMD''s Llama-3.1-405B-Instruct-FP8-KV is a quantized version of Meta''s
+  Llama 3.1 405B Instruct model  using AMD''s Quark framework. It applies FP8 quantization
+  to weights, activations, and KV cache,  significantly reducing memory usage while
+  maintaining high accuracy. The model uses symmetric per-tensor  quantization for
+  optimal performance on AMD hardware.
+
+  '
+logo: model_llama3_1_405b_fp8.png
+readiness_level: Production-Ready
+status_badges:
+- FP8
+- FlashAttention
+- Featured
+tags:
+- Text Generation
+- Multilingual
+- Instruction-Tuned
+- vLLM-Compatible
+- Efficient
+license: Meta RAIL
+endpoint: https://api.inference-hub.com/v1/chat/completions
+demo_assets:
+  notebook: https://github.com/inference-hub/notebooks/llama-3-1-405b-fp8-kv-demo.ipynb
+  demo_link: https://playground.inference-hub.com/models/amd/Llama-3.1-405B-Instruct-FP8-KV
+aim_recipes:
+- name: MI300X FP8
+  hardware: MI300X
+  precision: fp8
+  recipe_file: configs/llama-3-1-405b-fp8-kv-mi300x-fp8.yaml
+- name: MI250 FP8
+  hardware: MI250
+  precision: fp8
+  recipe_file: configs/llama-3-1-405b-fp8-kv-mi250-fp8.yaml
+api_examples:
+  python: "import requests\n\nheaders = {\n    \"Authorization\": \"Bearer YOUR_API_KEY\"\
+    ,\n    \"Content-Type\": \"application/json\"\n}\n\npayload = {\n    \"model\"\
+    : \"amd/Llama-3.1-405B-Instruct-FP8-KV\",\n    \"messages\": [{\"role\": \"user\"\
+    , \"content\": \"Hello\"}],\n    \"stream\": False\n}\n\nresponse = requests.post(\"\
+    https://api.inference-hub.com/v1/chat/completions\", headers=headers, json=payload)\n\
+    print(response.json())\n"
+  shell: "curl -X POST https://api.inference-hub.com/v1/chat/completions \\\n  -H\
+    \ \"Authorization: Bearer YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+    \ \\\n  -d '{\n    \"model\": \"amd/Llama-3.1-405B-Instruct-FP8-KV\",\n    \"\
+    messages\": [{\"role\": \"user\", \"content\": \"Hello\"}],\n    \"stream\": false\n\
+    \  }'\n"
+  go: "package main\n\nimport (\n    \"bytes\"\n    \"fmt\"\n    \"io/ioutil\"\n \
+    \   \"net/http\"\n)\n\nfunc main() {\n    jsonStr := []byte(`{\n        \"model\"\
+    : \"amd/Llama-3.1-405B-Instruct-FP8-KV\",\n        \"messages\": [{\"role\": \"\
+    user\", \"content\": \"Hello\"}],\n        \"stream\": false\n    }`)\n\n    req,\
+    \ _ := http.NewRequest(\"POST\", \"https://api.inference-hub.com/v1/chat/completions\"\
+    , bytes.NewBuffer(jsonStr))\n    req.Header.Set(\"Authorization\", \"Bearer YOUR_API_KEY\"\
+    )\n    req.Header.Set(\"Content-Type\", \"application/json\")\n\n    client :=\
+    \ &http.Client{}\n    resp, _ := client.Do(req)\n    body, _ := ioutil.ReadAll(resp.Body)\n\
+    \    fmt.Println(string(body))\n}\n"
+  typescript: "const response = await fetch(\"https://api.inference-hub.com/v1/chat/completions\"\
+    , {\n  method: \"POST\",\n  headers: {\n    \"Authorization\": \"Bearer YOUR_API_KEY\"\
+    ,\n    \"Content-Type\": \"application/json\"\n  },\n  body: JSON.stringify({\n\
+    \    model: \"amd/Llama-3.1-405B-Instruct-FP8-KV\",\n    messages: [{ role: \"\
+    user\", content: \"Hello\" }],\n    stream: false\n  })\n});\n\nconst data = await\
+    \ response.json();\nconsole.log(data.choices[0].message.content);\n"
+  rust: "use axum::{\n    extract::Json,\n    http::StatusCode,\n    response::sse::{Event,\
+    \ Sse},\n    routing::post,\n    Router,\n};\nuse serde::{Deserialize, Serialize};\n\
+    use std::convert::Infallible;\nuse tokio_stream::wrappers::ReceiverStream;\n\n\
+    #[derive(Deserialize)]\nstruct ChatRequest {\n    model: String,\n    messages:\
+    \ Vec<Message>,\n    temperature: f32,\n    max_tokens: u32,\n    top_p: f32,\n\
+    \    stream: bool,\n}\n\n#[derive(Serialize, Deserialize)]\nstruct Message {\n\
+    \    role: String,\n    content: String,\n}\n\nasync fn chat_completion(Json(payload):\
+    \ Json<ChatRequest>) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {\n\
+    \    let (tx, rx) = tokio::sync::mpsc::channel(100);\n    \n    tokio::spawn(async\
+    \ move {\n        // Simulate streaming response\n        let response = format!(\"\
+    Response for model: {}\", payload.model);\n        for chunk in response.chars()\
+    \ {\n            let event = Event::default().data(chunk.to_string());\n     \
+    \       let _ = tx.send(Ok(event)).await;\n            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;\n\
+    \        }\n    });\n    \n    Sse::new(ReceiverStream::new(rx))\n}\n\n#[tokio::main]\n\
+    async fn main() {\n    let app = Router::new()\n        .route(\"/chat/completions\"\
+    , post(chat_completion));\n    \n    axum::Server::bind(&\"0.0.0.0:3000\".parse().unwrap())\n\
+    \        .serve(app.into_make_service())\n        .await\n        .unwrap();\n\
+    }"
+model_card:
+  overview: >
+    AMD's Llama-3.1-405B-Instruct-FP8-KV is a quantized version of Meta's Llama 3.1 405B Instruct model 
+    using AMD's Quark framework. This model applies FP8 quantization to weights, activations, and KV cache, 
+    significantly reducing memory usage while maintaining high accuracy. The model uses symmetric per-tensor 
+    quantization for optimal performance on AMD hardware. Llama 3.1 is a state-of-the-art multilingual 
+    large language model with 405 billion parameters, featuring a 128K context window and support for 
+    8 languages including English, German, French, Italian, Portuguese, Hindi, Spanish, and Thai.
+
+  intended_use:
+    - Conversational AI and chatbots
+    - Multilingual text generation and translation
+    - Code generation and programming assistance
+    - Document summarization and analysis
+    - Research and educational applications
+    - Content creation and writing assistance
+
+  limitations:
+    - May generate biased or harmful content despite safety measures
+    - Performance may vary across different languages and domains
+    - Requires significant computational resources for optimal performance
+    - Not suitable for safety-critical applications without additional safeguards
+    - May hallucinate facts or generate inaccurate information
+    - Limited to the 8 officially supported languages for optimal performance
+
+  training_data: >
+    Llama 3.1 was pretrained on approximately 15 trillion tokens of publicly available data with a 
+    knowledge cutoff of December 2023. The fine-tuning data includes publicly available instruction 
+    datasets as well as over 25 million synthetically generated examples. The model uses a mix of 
+    publicly available online data sources, with rigorous filtering for quality and safety.
+
+  evaluation:
+    - MMLU (5-shot): 85.2
+    - MMLU-Pro (CoT, 5-shot): 61.6
+    - HumanEval (0-shot): 89.0
+    - GSM-8K (CoT, 8-shot): 96.8
+    - MATH (CoT, 0-shot): 73.8
+    - ARC-Challenge (25-shot): 96.1
+    - TriviaQA-Wiki (5-shot): 91.8
+    - Multilingual MGSM (CoT, 0-shot): 91.6
+
+  known_issues:
+    - May produce biased content reflecting training data biases
+    - Performance degradation on very long contexts beyond 128K tokens
+    - Slower inference without proper hardware optimization
+    - May struggle with highly specialized or technical domains
+    - Limited reasoning capabilities on complex multi-step problems
+
+  references:
+    - https://huggingface.co/amd/Llama-3.1-405B-Instruct-FP8-KV
+    - https://github.com/meta-llama/llama3
+    - https://llama.meta.com/
+    - https://arxiv.org/abs/2402.19155

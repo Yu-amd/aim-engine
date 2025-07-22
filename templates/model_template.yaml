@@ -1,0 +1,199 @@
+model_id: <unique-id>  # e.g., llama3-8b-chat
+name: <Model Display Name>  # e.g., LLaMA 3 8B Chat
+builder: <Publisher>  # e.g., Meta, Mistral, Google
+family: <Model Family>  # e.g., LLaMA, Gemma, Qwen
+size: <Size>  # e.g., 7B, 13B, 70B
+huggingface_id: <namespace/model-name>  # e.g., meta-llama/Meta-Llama-3-8B-Instruct
+
+description: >
+  Short description of what the model is for and where it shines.
+
+logo: <filename.svg>  # Optional logo or icon file for the model family
+
+readiness_level: <Readiness>  # One of: Day-0 Available, Tech Preview, Production-Ready
+status_badges:
+  - FP8
+  - FlashAttention
+  - New
+
+tags:
+  - Chat
+  - Instruction-Tuned
+  - Multilingual
+  - vLLM-Compatible
+  - Lightweight
+
+license: <License Name or URL>  # e.g., Meta LLaMA 3 License
+
+endpoint: <https://your.api.endpoint/v1/chat/completions>
+
+demo_assets:
+  notebook: <https://github.com/your-org/notebooks/demo.ipynb>
+  demo_link: <https://your-company.com/demo/model-id>
+
+aim_recipes:
+  - name: MI300X FP8
+    hardware: MI300X
+    precision: fp8
+    recipe_file: configs/<hash>.yaml
+
+  - name: MI250 INT8
+    hardware: MI250
+    precision: int8
+    recipe_file: configs/<hash>.yaml
+
+api_examples:
+  python: |
+    import requests
+
+    headers = {
+        "Authorization": "Bearer YOUR_API_KEY",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "<model_id>",
+        "messages": [{"role": "user", "content": "Hello"}],
+        "stream": False
+    }
+
+    response = requests.post("<endpoint>", headers=headers, json=payload)
+    print(response.json())
+
+  typescript: |
+    const response = await fetch("<endpoint>", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer YOUR_API_KEY",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "<model_id>",
+        messages: [{ role: "user", content: "Hello" }],
+        stream: false
+      })
+    });
+
+    const data = await response.json();
+    console.log(data.choices[0].message.content);
+
+  shell: |
+    curl -X POST <endpoint> \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "<model_id>",
+        "messages": [{"role": "user", "content": "Hello"}],
+        "stream": false
+      }'
+
+  rust: |
+    use axum::{
+        extract::Json,
+        http::StatusCode,
+        response::sse::{Event, Sse},
+        routing::post,
+        Router,
+    };
+    use serde::{Deserialize, Serialize};
+    use std::convert::Infallible;
+    use tokio_stream::wrappers::ReceiverStream;
+
+    #[derive(Deserialize)]
+    struct ChatRequest {
+        model: String,
+        messages: Vec<Message>,
+        temperature: f32,
+        max_tokens: u32,
+        top_p: f32,
+        stream: bool,
+    }
+
+    #[derive(Serialize, Deserialize)]
+    struct Message {
+        role: String,
+        content: String,
+    }
+
+    async fn chat_completion(Json(payload): Json<ChatRequest>) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+        let (tx, rx) = tokio::sync::mpsc::channel(100);
+        
+        tokio::spawn(async move {
+            // Simulate streaming response
+            let response = format!("Response for model: {}", payload.model);
+            for chunk in response.chars() {
+                let event = Event::default().data(chunk.to_string());
+                let _ = tx.send(Ok(event)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+            }
+        });
+        
+        Sse::new(ReceiverStream::new(rx))
+    }
+
+    #[tokio::main]
+    async fn main() {
+        let app = Router::new()
+            .route("/chat/completions", post(chat_completion));
+        
+        axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+            .serve(app.into_make_service())
+            .await
+            .unwrap();
+    }
+
+  go: |
+    package main
+
+    import (
+        "bytes"
+        "fmt"
+        "io/ioutil"
+        "net/http"
+    )
+
+    func main() {
+        jsonStr := []byte(`{
+            "model": "<model_id>",
+            "messages": [{"role": "user", "content": "Hello"}],
+            "stream": false
+        }`)
+
+        req, _ := http.NewRequest("POST", "<endpoint>", bytes.NewBuffer(jsonStr))
+        req.Header.Set("Authorization", "Bearer YOUR_API_KEY")
+        req.Header.Set("Content-Type", "application/json")
+
+        client := &http.Client{}
+        resp, _ := client.Do(req)
+        body, _ := ioutil.ReadAll(resp.Body)
+        fmt.Println(string(body))
+    }
+
+model_card:
+  overview: >
+    Short high-level overview of the model, its tuning, and key capabilities.
+
+  intended_use:
+    - Conversational agents
+    - Document summarization
+    - Retrieval-augmented generation (RAG)
+
+  limitations:
+    - May hallucinate facts
+    - Not suitable for safety-critical use
+
+  training_data: >
+    Public web corpus, GitHub, Wikipedia, filtered Common Crawl (exact datasets not disclosed).
+
+  evaluation:
+    - MMLU: 65.3
+    - HumanEval (code): 37.5%
+    - MT-Bench: 7.8
+
+  known_issues:
+    - Degraded performance on 32k context
+    - Slower inference without FlashAttention
+
+  references:
+    - https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
+    - https://github.com/facebookresearch/llama
