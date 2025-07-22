@@ -4,6 +4,8 @@
 
 AIM (AMD Inference Microservice) Engine is an intelligent AI model deployment system that automatically selects optimal configurations for serving large language models on AMD hardware. It combines recipe-based optimization with dynamic resource detection to deliver the best performance for any given model and hardware setup.
 
+**Implementation Approach**: AIM Engine is implemented by installing AIM Engine tools directly into the vLLM ROCm container, creating a unified environment where both the intelligent recipe selection system and the vLLM inference runtime coexist. This eliminates the need for Docker-in-Docker or container orchestration, providing a single, efficient container that handles both configuration generation and model serving.
+
 ## 🏗️ **Architecture Components**
 
 ### **1. Core Classes**
@@ -33,7 +35,26 @@ AIM (AMD Inference Microservice) Engine is an intelligent AI model deployment sy
   - Environment variable generation for cached models
   - Volume mount configuration for Docker deployments
 
-### **2. Data Structure**
+### **2. Container Integration**
+
+#### **Base Container: vLLM ROCm**
+- **Foundation**: Uses `rocm/vllm:latest` as the base container
+- **Runtime**: Provides the vLLM inference engine with AMD/ROCm support
+- **Environment**: Pre-configured with AMD GPU drivers and ROCm runtime
+
+#### **AIM Engine Tools Installation**
+- **Installation Method**: AIM Engine tools are installed directly into the vLLM container
+- **Dependencies**: Additional Python packages (pyyaml, pathlib, typing-extensions)
+- **Integration**: AIM Engine modules are added to the Python path
+- **Convenience Scripts**: Creates `aim-generate`, `aim-serve`, and `aim-shell` commands
+
+#### **Unified Environment**
+- **Shared Runtime**: Both AIM Engine tools and vLLM runtime share the same environment
+- **Direct Execution**: vLLM commands can be executed directly within the container
+- **Resource Sharing**: GPU access, memory, and cache are shared between tools and runtime
+- **Simplified Deployment**: Single container handles both configuration and inference
+
+### **3. Data Structure**
 
 #### **Models Directory** (`models/`)
 - **Purpose**: Model metadata and characteristics
@@ -473,14 +494,22 @@ def _build_environment(self, recipe, precision, backend):
 
 ## 🔄 **Workflow Summary**
 
-1. **Input**: Model ID + optional GPU count/precision
-2. **Cache Check**: Verify if model is already cached locally
-3. **Detection**: Multi-level GPU detection (vLLM → Container → Host)
-4. **Optimization**: Model-size based GPU count and precision selection
-5. **Matching**: Find best recipe matching requirements
-6. **Fallback**: Try alternative configurations if primary fails
-7. **Cache Integration**: Add cache volume mounts and environment variables
-8. **Generation**: Create optimized vLLM command and environment
-9. **Output**: Ready-to-run Docker command with optimal parameters and cache access
+### **Container-Based Workflow**
+1. **Container Build**: Install AIM Engine tools into vLLM ROCm container
+2. **Input**: Model ID + optional GPU count/precision
+3. **Cache Check**: Verify if model is already cached locally
+4. **Detection**: Multi-level GPU detection (vLLM → Container → Host)
+5. **Optimization**: Model-size based GPU count and precision selection
+6. **Matching**: Find best recipe matching requirements
+7. **Fallback**: Try alternative configurations if primary fails
+8. **Direct Execution**: Run vLLM command directly within the same container
+9. **Output**: Optimized vLLM server running with optimal parameters
+
+### **Key Advantages of Container Integration**
+- **No Docker-in-Docker**: Eliminates complexity of nested containers
+- **Direct Command Execution**: vLLM commands run directly within the container
+- **Shared Environment**: AIM Engine tools and vLLM runtime share resources
+- **Simplified Deployment**: Single container handles both configuration and inference
+- **Better Performance**: No container orchestration overhead
 
 This design ensures that AIM Engine automatically delivers the best possible performance for any model on any AMD hardware configuration, with robust fallback mechanisms and comprehensive resource optimization. 
