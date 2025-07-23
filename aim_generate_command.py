@@ -24,8 +24,22 @@ def main():
         recipe = selector.select_recipe(model_id, 2, "bf16", "vllm")
         
         if recipe:
-            # Generate the docker command
-            docker_cmd = f"""docker run --rm -d \\
+            # Get the specific configuration for 2 GPUs
+            config = selector.get_recipe_config(recipe, 2, "vllm")
+            
+            if config and 'args' in config:
+                # Convert args dictionary to string
+                args_list = []
+                for key, value in config['args'].items():
+                    if key.startswith('--'):
+                        args_list.append(f"{key} {value}")
+                    else:
+                        args_list.append(f"--{key} {value}")
+                
+                vllm_args = " ".join(args_list)
+                
+                # Generate the docker command
+                docker_cmd = f"""docker run --rm -d \\
   --device=/dev/kfd \\
   --device=/dev/dri \\
   --group-add=video \\
@@ -34,11 +48,12 @@ def main():
   -p 8000:8000 \\
   rocm/vllm:latest \\
   python3 -m vllm.entrypoints.openai.api_server \\
-  --model {recipe['model_id']} \\
-  --port 8000 \\
-  {recipe['vllm_args']}"""
-            
-            print(docker_cmd)
+  {vllm_args}"""
+                
+                print(docker_cmd)
+            else:
+                print(f"No valid configuration found for model: {model_id}")
+                sys.exit(1)
         else:
             print(f"No recipe found for model: {model_id}")
             sys.exit(1)
