@@ -1,0 +1,41 @@
+# AIM Engine Agent Examples Requirements
+
+# Core dependencies
+requests>=2.31.0
+flask>=2.3.0
+
+# Optional dependencies for enhanced functionality
+# Uncomment as needed:
+
+# For advanced features
+# numpy>=1.24.0
+# pandas>=2.0.0
+
+# For web interface enhancements
+# flask-cors>=4.0.0
+# flask-socketio>=5.3.0
+
+# For database storage
+# sqlalchemy>=2.0.0
+# flask-sqlalchemy>=3.0.0
+
+# For authentication
+# flask-login>=0.6.0
+# werkzeug>=2.3.0
+
+# For rate limiting
+# flask-limiter>=3.5.0
+
+# For environment variables
+# python-dotenv>=1.0.0
+
+# For async support
+# aiohttp>=3.8.0
+# asyncio
+
+# For logging
+# structlog>=23.0.0
+
+# For testing
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0 
