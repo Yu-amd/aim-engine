@@ -542,6 +542,12 @@ spec:
 - [ ] **Backend Comparison**: Performance comparison tools
 - [ ] **Dynamic Backend Switching**: Runtime backend selection
 
+#### **Fraction GPU Resource Recipes**
+- [ ] **Partial GPU Allocation**: Support for fractional GPU resource allocation
+- [ ] **Multi-Model GPU Sharing**: Multiple models sharing single GPU resources
+- [ ] **GPU Memory Partitioning**: Intelligent GPU memory allocation for concurrent models
+- [ ] **Resource Isolation**: Secure isolation between models sharing GPU resources
+
 #### **Advanced Caching**
 - [ ] **Distributed Caching**: Redis-based distributed cache
 - [ ] **Cache Prefetching**: Intelligent model prefetching
