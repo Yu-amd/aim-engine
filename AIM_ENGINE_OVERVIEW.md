@@ -176,7 +176,7 @@ sequenceDiagram
 
 ### **1. AIMRecipeSelector**
 
-**Purpose**: Intelligent recipe selection and resource optimization (AMD equivalent of NIM Controller)
+**Purpose**: Intelligent recipe selection and resource optimization.
 
 **Key Features**:
 - Multi-level GPU detection (vLLM → Container → Host)
@@ -211,7 +211,7 @@ class AIMRecipeSelector:
 
 ### **2. AIMConfigGenerator**
 
-**Purpose**: Generates deployment configurations from selected recipes (AMD equivalent of NIM Config Manager)
+**Purpose**: Generates deployment configurations from selected recipes
 
 **Key Features**:
 - vLLM command generation
@@ -245,7 +245,7 @@ class AIMConfigGenerator:
 
 ### **3. AIMCacheManager**
 
-**Purpose**: Intelligent model caching and storage management (AMD equivalent of NIM Cache Manager)
+**Purpose**: Intelligent model caching and storage management
 
 **Key Features**:
 - Persistent model storage
@@ -285,7 +285,7 @@ class AIMCacheManager:
 
 ### **AIM Caching**
 
-**AIM Engine** delivers comprehensive caching for AIM deployments. The caching system ensures that model dependencies are efficiently managed and reused across deployments, providing the same level of optimization that NIM users expect.
+**AIM Engine** delivers comprehensive caching for AIM deployments. The caching system ensures that model dependencies are efficiently managed and reused across deployments.
 
 ### **Cache Architecture**
 
@@ -329,7 +329,7 @@ graph TB
 
 ### **AIM Recipe Selection**
 
-**AIM Engine** provides AMD-specific optimization through intelligent recipe selection. The recipe engine ensures that AIM deployments are configured optimally for AMD GPUs, delivering the same level of performance optimization that NIM users experience.
+**AIM Engine** provides AMD-specific optimization through intelligent recipe selection. The recipe engine ensures that AIM deployments are configured optimally for AMD GPUs, delivering leadership performance.
 
 ### **Recipe Selection Algorithm**
 
