@@ -2,7 +2,7 @@
 
 ---
 
-## 📋 **Table of Contents**
+## **Table of Contents**
 
 1. [Executive Summary](#executive-summary)
 2. [Architecture Overview](#architecture-overview)
@@ -16,7 +16,7 @@
 
 ---
 
-## 🎯 **Executive Summary**
+## **Executive Summary**
 
 AMD Inference Microservice is the AMD equivalent of NVIDIA's NIM ecosystem. Just as NVIDIA NIM Operator manages and orchestrates NIM deployments on NVIDIA hardware, **AIM Engine** ensures efficient and successful deployment of AIM (AMD Inference Microservices) on AMD hardware.
 
@@ -42,7 +42,7 @@ AMD Inference Microservice is the AMD equivalent of NVIDIA's NIM ecosystem. Just
 
 ---
 
-## 🏗️ **Architecture Overview**
+## **Architecture Overview**
 
 ### **AIM Engine vs NVIDIA NIM Operator Comparison**
 
@@ -112,7 +112,7 @@ graph LR
 
 ---
 
-## 🔧 **System Architecture**
+## **System Architecture**
 
 ### **AIM Engine**
 
@@ -185,7 +185,7 @@ sequenceDiagram
 
 ---
 
-## 🧩 **Core Components**
+## **Core Components**
 
 ### **1. AIMRecipeSelector**
 
@@ -294,7 +294,7 @@ class AIMCacheManager:
 
 ---
 
-## 🗄️ **Model Caching System**
+## **Model Caching System**
 
 ### **AIM Caching**
 
@@ -338,7 +338,7 @@ graph TB
 
 ### **Cache Management Operations**
 
-## 🎯 **Recipe Selection Engine**
+## **Recipe Selection Engine**
 
 ### **AIM Recipe Selection**
 
@@ -432,7 +432,7 @@ vllm_serve:
 
 ---
 
-## ⚡ **Performance Optimization**
+## **Performance Optimization**
 
 ### **Optimization Techniques**
 
@@ -444,7 +444,7 @@ vllm_serve:
 
 ---
 
-## 🚀 **Deployment Models**
+## **Deployment Models**
 
 ### **Current Deployment: Container-Based**
 
@@ -498,7 +498,7 @@ spec:
 
 ---
 
-## 🗺️ **Roadmap**
+## **Roadmap**
 
 ### **Phase 1: Q4 2025 - Enterprise Readiness**
 
