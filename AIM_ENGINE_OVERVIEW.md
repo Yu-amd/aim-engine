@@ -23,7 +23,7 @@
 **AIM Engine** is an intelligent AI model deployment system that automatically optimizes large language model serving on AMD hardware. It combines intelligent recipe selection, dynamic resource detection, and advanced caching to deliver optimal performance with zero configuration, serving as the essential dependency management and orchestration layer for AIM deployments.
 
 ### **Key Value Propositions**
-- **AMD Engine**: Manages and orchestrates AIM deployments on AMD hardware.
+- **AIM Engine**: Manages and orchestrates AIM deployments on AMD hardware.
 - **Zero Configuration**: Works out-of-the-box with automatic optimization
 - **Hardware Intelligence**: AMD GPU-aware optimization and resource allocation
 - **Performance Optimization**: Up to 10x faster deployment with intelligent caching
