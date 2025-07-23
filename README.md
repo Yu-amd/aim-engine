@@ -180,26 +180,7 @@ docker run --rm -it \
 # - Use AIM Engine tools: python3 -c "from aim_recipe_selector import AIMRecipeSelector; ..."
 ```
 
-#### **3. Interactive Development (`aim-shell`)**
-```bash
-# Interactive shell for development
-docker run --rm -it \
-  --device=/dev/kfd \
-  --device=/dev/dri \
-  --group-add=video \
-  --group-add=render \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -p 8000:8000 \
-  aim-vllm:latest \
-  aim-shell
-
-# Inside the container, you can run:
-# python3 generate_docker_command.py Qwen/Qwen3-32B
-# python3 -m vllm.entrypoints.openai.api_server --help
-# python3 -c "from aim_recipe_selector import AIMRecipeSelector; print('Loaded!')"
-```
-
-#### **Benefits of Combined Container**
+#### **Benefits of AIM Engine Design**
 - ✅ **Single Container**: No Docker-in-Docker complexity
 - ✅ **Shared Environment**: AIM Engine tools and vLLM runtime together
 - ✅ **Direct Execution**: Run vLLM commands directly within container
