@@ -19,7 +19,23 @@ class SimpleAgent:
         """
         self.endpoint_url = endpoint_url
         self.conversation_history = []
+        self.model_name = self._get_available_model()
         
+    def _get_available_model(self) -> str:
+        """Get the first available model from the endpoint"""
+        try:
+            response = requests.get(f"{self.endpoint_url}/models", timeout=10)
+            if response.status_code == 200:
+                models = response.json()
+                if models.get("data") and len(models["data"]) > 0:
+                    return models["data"][0]["id"]
+                else:
+                    return "Qwen/Qwen3-32B"  # Fallback model name
+            else:
+                return "Qwen/Qwen3-32B"  # Fallback model name
+        except:
+            return "Qwen/Qwen3-32B"  # Fallback model name
+    
     def add_message(self, role: str, content: str):
         """Add a message to the conversation history"""
         self.conversation_history.append({
@@ -53,7 +69,7 @@ class SimpleAgent:
         
         # Prepare the API request
         payload = {
-            "model": "default",  # vLLM uses "default" for the loaded model
+            "model": self.model_name,  # Use the detected model name
             "messages": messages,
             "max_tokens": 1000,
             "temperature": 0.7,
@@ -102,6 +118,7 @@ def main():
     
     print("🤖 Simple Agent Example")
     print("=" * 50)
+    print(f"Using model: {agent.model_name}")
     print("Type 'quit' to exit, 'clear' to clear history")
     print()
     

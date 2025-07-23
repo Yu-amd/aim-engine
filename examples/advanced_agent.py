@@ -37,6 +37,22 @@ class AdvancedAgent:
         self.tools = {}
         self.memory = []
         self.max_memory_size = 100
+        self.model_name = self._get_available_model()
+        
+    def _get_available_model(self) -> str:
+        """Get the first available model from the endpoint"""
+        try:
+            response = requests.get(f"{self.endpoint_url}/models", timeout=10)
+            if response.status_code == 200:
+                models = response.json()
+                if models.get("data") and len(models["data"]) > 0:
+                    return models["data"][0]["id"]
+                else:
+                    return "Qwen/Qwen3-32B"  # Fallback model name
+            else:
+                return "Qwen/Qwen3-32B"  # Fallback model name
+        except:
+            return "Qwen/Qwen3-32B"  # Fallback model name
         
     def add_tool(self, tool: Tool):
         """Add a tool to the agent"""
@@ -175,7 +191,7 @@ class AdvancedAgent:
         
         # API request
         payload = {
-            "model": "default",
+            "model": self.model_name,
             "messages": messages,
             "max_tokens": 1500,
             "temperature": 0.7,
