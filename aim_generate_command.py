@@ -10,6 +10,34 @@ import os
 from pathlib import Path
 from aim_recipe_selector import AIMRecipeSelector
 
+def detect_available_gpus():
+    """Detect the actual number of GPUs available in the container"""
+    try:
+        # Try PyTorch detection first
+        import torch
+        if torch.cuda.is_available():
+            gpu_count = torch.cuda.device_count()
+            if gpu_count > 0:
+                return gpu_count
+    except:
+        pass
+    
+    try:
+        # Try rocm-smi
+        result = subprocess.run(['rocm-smi', '--showproductname'], 
+                              capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            # Count lines that contain GPU info
+            lines = result.stdout.strip().split('\n')
+            gpu_count = len([line for line in lines if 'GPU' in line or 'MI' in line])
+            if gpu_count > 0:
+                return gpu_count
+    except:
+        pass
+    
+    # Fallback to 1 GPU
+    return 1
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python3 aim_generate_command.py <model_id> [--serve]")
@@ -24,12 +52,16 @@ def main():
         # Initialize selector
         selector = AIMRecipeSelector(Path("."))
         
-        # Select recipe
-        recipe = selector.select_recipe(model_id, 2, "bf16", "vllm")
+        # Detect actual available GPUs in container
+        available_gpus = detect_available_gpus()
+        print(f"Detected {available_gpus} GPU(s) available in container")
+        
+        # Select recipe with actual GPU count
+        recipe = selector.select_recipe(model_id, available_gpus, "bf16", "vllm")
         
         if recipe:
-            # Get the specific configuration for 2 GPUs
-            config = selector.get_recipe_config(recipe, 2, "vllm")
+            # Get the specific configuration for available GPUs
+            config = selector.get_recipe_config(recipe, available_gpus, "vllm")
             
             if config and 'args' in config:
                 # Convert args dictionary to string
@@ -45,6 +77,7 @@ def main():
                 if serve_mode:
                     # Direct execution mode - run vLLM server directly
                     print(f"Starting vLLM server for model: {model_id}")
+                    print(f"Using {available_gpus} GPU(s)")
                     print(f"Arguments: {vllm_args}")
                     
                     # Split the arguments for subprocess
@@ -67,10 +100,10 @@ def main():
                     
                     print(docker_cmd)
             else:
-                print(f"No valid configuration found for model: {model_id}")
+                print(f"No valid configuration found for model: {model_id} with {available_gpus} GPU(s)")
                 sys.exit(1)
         else:
-            print(f"No recipe found for model: {model_id}")
+            print(f"No recipe found for model: {model_id} with {available_gpus} GPU(s)")
             sys.exit(1)
             
     except Exception as e:

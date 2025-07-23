@@ -52,7 +52,11 @@ python3 aim_generate_command.py "$@" --serve\n\
 RUN echo '#!/bin/bash\n\
 # Interactive mode with AIM Engine tools\n\
 cd /workspace/aim-engine\n\
-exec "$@"\n\
+if [ $# -eq 0 ]; then\n\
+    exec /bin/bash\n\
+else\n\
+    exec "$@"\n\
+fi\n\
 ' > /usr/local/bin/aim-shell && \
     chmod +x /usr/local/bin/aim-shell
 
