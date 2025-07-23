@@ -5,14 +5,18 @@
 
 ## 🎯 **Executive Summary**
 
+**AIM Engine** is the AMD equivalent of NVIDIA's NIM (NVIDIA Inference Microservice) ecosystem. Just as NVIDIA NIM Operator manages and orchestrates NIM deployments on NVIDIA hardware, **AIM Engine** ensures efficient and successful deployment of AIM (AMD Inference Microservices) on AMD hardware.
+
 **AIM Engine** has evolved into a comprehensive AI model deployment system with intelligent optimization, advanced caching, and enterprise-ready features. This presentation covers the enhanced architecture, performance improvements, and Kubernetes roadmap.
 
 ### **Key Achievements**
+- ✅ **AMD NIM Equivalent**: Direct counterpart to NVIDIA NIM Operator for AMD hardware
 - ✅ **Zero-Configuration Deployment**: Works out-of-the-box with automatic optimization
 - ✅ **Intelligent Caching**: 10-100x faster deployment with persistent model caching
 - ✅ **Streaming Support**: Real-time response streaming for enhanced UX
 - ✅ **Production Ready**: Comprehensive monitoring and health checks
 - ✅ **Enterprise Roadmap**: Kubernetes, Helm, and KServe integration
+- ✅ **Dependency Management**: Ensures all AIM deployment dependencies are met
 
 ---
 
@@ -63,11 +67,13 @@ graph TB
 
 ### **Key Architectural Improvements**
 
-1. **Unified Container Design**: AIM Engine tools integrated into vLLM ROCm container
-2. **Intelligent Caching System**: Persistent model storage with metadata tracking
-3. **Dynamic Resource Detection**: Multi-level GPU detection and optimization
-4. **Recipe-Based Optimization**: Hardware-specific performance tuning
-5. **Streaming Support**: Real-time response generation for better UX
+1. **AMD NIM Operator**: Direct equivalent to NVIDIA NIM Operator for AMD ecosystem
+2. **Unified Container Design**: AIM Engine tools integrated into vLLM ROCm container
+3. **Intelligent Caching System**: Persistent model storage with metadata tracking
+4. **Dynamic Resource Detection**: Multi-level GPU detection and optimization
+5. **Recipe-Based Optimization**: Hardware-specific performance tuning
+6. **Streaming Support**: Real-time response generation for better UX
+7. **Dependency Orchestration**: Manages all AIM deployment prerequisites and requirements
 
 ---
 
