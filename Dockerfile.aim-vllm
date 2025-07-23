@@ -45,7 +45,7 @@ python3 aim_generate_command.py "$@"\n\
 RUN echo '#!/bin/bash\n\
 # Run vLLM server with generated configuration\n\
 cd /workspace/aim-engine\n\
-python3 aim_generate_command.py "$@" | bash\n\
+python3 aim_generate_command.py "$@" --serve\n\
 ' > /usr/local/bin/aim-serve && \
     chmod +x /usr/local/bin/aim-serve
 

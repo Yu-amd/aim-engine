@@ -5,16 +5,20 @@ Generates optimal vLLM commands based on model and hardware.
 """
 
 import sys
+import subprocess
+import os
 from pathlib import Path
 from aim_recipe_selector import AIMRecipeSelector
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 aim_generate_command.py <model_id>")
+        print("Usage: python3 aim_generate_command.py <model_id> [--serve]")
         print("Example: python3 aim_generate_command.py Qwen/Qwen3-32B")
+        print("Example: python3 aim_generate_command.py Qwen/Qwen3-32B --serve")
         sys.exit(1)
     
     model_id = sys.argv[1]
+    serve_mode = "--serve" in sys.argv
     
     try:
         # Initialize selector
@@ -38,8 +42,19 @@ def main():
                 
                 vllm_args = " ".join(args_list)
                 
-                # Generate the docker command
-                docker_cmd = f"""docker run --rm -d \\
+                if serve_mode:
+                    # Direct execution mode - run vLLM server directly
+                    print(f"Starting vLLM server for model: {model_id}")
+                    print(f"Arguments: {vllm_args}")
+                    
+                    # Split the arguments for subprocess
+                    cmd = ["python3", "-m", "vllm.entrypoints.openai.api_server"] + vllm_args.split()
+                    
+                    # Execute vLLM server directly
+                    os.execvp("python3", ["python3", "-m", "vllm.entrypoints.openai.api_server"] + vllm_args.split())
+                else:
+                    # Generate mode - print the docker command
+                    docker_cmd = f"""docker run --rm -d \\
   --device=/dev/kfd \\
   --device=/dev/dri \\
   --group-add=video \\
@@ -49,8 +64,8 @@ def main():
   rocm/vllm:latest \\
   python3 -m vllm.entrypoints.openai.api_server \\
   {vllm_args}"""
-                
-                print(docker_cmd)
+                    
+                    print(docker_cmd)
             else:
                 print(f"No valid configuration found for model: {model_id}")
                 sys.exit(1)
