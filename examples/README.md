@@ -33,10 +33,11 @@ pip install requests flask
 ## 🚀 Available Examples
 
 ### 1. Simple Agent (`simple_agent.py`)
-A basic conversational agent with conversation history.
+A basic conversational agent with conversation history and **real-time streaming responses**.
 
 **Features:**
 - ✅ Basic chat functionality
+- ✅ **Real-time streaming responses** 🆕
 - ✅ Conversation history
 - ✅ System prompts
 - ✅ Error handling
@@ -60,10 +61,11 @@ Agent: Paris is the capital and largest city of France, located in the north-cen
 ```
 
 ### 2. Advanced Agent (`advanced_agent.py`)
-An agent with tools, memory, and structured reasoning.
+An agent with tools, memory, structured reasoning, and **real-time streaming responses**.
 
 **Features:**
 - ✅ Tool integration (calculator, file reader, time)
+- ✅ **Real-time streaming responses** 🆕
 - ✅ Memory system with relevance matching
 - ✅ Structured tool calling
 - ✅ Enhanced system prompts
@@ -105,10 +107,11 @@ The current time is 2024-01-15 14:30:25.
 ```
 
 ### 3. Web Agent (`web_agent.py`)
-A beautiful web interface for the agent.
+A beautiful web interface for the agent with **real-time streaming responses**.
 
 **Features:**
 - ✅ Modern web UI with real-time chat
+- ✅ **Real-time streaming responses** 🆕
 - ✅ Connection status monitoring
 - ✅ Mobile-responsive design
 - ✅ Session management
@@ -122,6 +125,31 @@ python3 examples/web_agent.py
 The web interface will be available at:
 - **Local access**: `http://localhost:5000`
 - **Network access**: `http://<remote-ip>:5000`
+
+## ✨ Streaming Features
+
+All agent examples now support **real-time streaming responses** for a better user experience:
+
+### 🚀 Benefits of Streaming
+- **Faster perceived response time**: Users see responses as they're generated
+- **Better engagement**: Real-time feedback keeps users engaged
+- **Improved UX**: No waiting for complete responses before seeing content
+- **Interactive experience**: Users can see the AI "thinking" in real-time
+
+### 🔧 How Streaming Works
+1. **Simple Agent**: Uses `chat_stream()` method with real-time console output
+2. **Advanced Agent**: Streams responses and shows tool execution in real-time
+3. **Web Agent**: Uses Server-Sent Events (SSE) for browser-based streaming
+
+### 🧪 Testing Streaming
+Use the included test script to verify streaming functionality:
+
+```bash
+cd examples
+python3 test_streaming.py
+```
+
+This will test both the direct vLLM endpoint and web agent streaming.
 
 ## 🌐 Remote Access Methods
 

@@ -152,6 +152,121 @@ class AdvancedAgent:
         
         return results
     
+    def chat_stream(self, message: str, system_prompt: str = None) -> str:
+        """
+        Advanced chat with tool usage and memory (streaming version)
+        
+        Args:
+            message: User message
+            system_prompt: Optional system prompt
+            
+        Returns:
+            Agent's response
+        """
+        # Add user message to history
+        self.add_message("user", message)
+        
+        # Get relevant memory
+        relevant_memory = self.get_relevant_memory(message)
+        memory_context = ""
+        if relevant_memory:
+            memory_context = "\n\nRelevant memory:\n" + "\n".join([
+                f"- {entry['content']}" for entry in relevant_memory
+            ])
+        
+        # Create enhanced system prompt
+        enhanced_system_prompt = system_prompt or "You are a helpful AI assistant."
+        
+        if self.tools:
+            tool_descriptions = self._create_tool_descriptions()
+            enhanced_system_prompt += f"\n\nYou have access to these tools:\n{tool_descriptions}\n\nTo use a tool, format your response as: [TOOL: tool_name(arg1, arg2, param=value)]"
+        
+        enhanced_system_prompt += memory_context
+        
+        # Prepare messages
+        messages = [
+            {"role": "system", "content": enhanced_system_prompt}
+        ]
+        messages.extend(self.conversation_history)
+        
+        # API request for streaming
+        payload = {
+            "model": self.model_name,
+            "messages": messages,
+            "max_tokens": 1500,
+            "temperature": 0.7,
+            "stream": True
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.endpoint_url}/chat/completions",
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=30,
+                stream=True
+            )
+            
+            if response.status_code == 200:
+                full_response = ""
+                
+                for line in response.iter_lines():
+                    if line:
+                        line = line.decode('utf-8')
+                        if line.startswith('data: '):
+                            data = line[6:]  # Remove 'data: ' prefix
+                            
+                            if data == '[DONE]':
+                                break
+                            
+                            try:
+                                chunk = json.loads(data)
+                                if 'choices' in chunk and len(chunk['choices']) > 0:
+                                    delta = chunk['choices'][0].get('delta', {})
+                                    if 'content' in delta:
+                                        content = delta['content']
+                                        full_response += content
+                                        print(content, end='', flush=True)
+                            except json.JSONDecodeError:
+                                continue
+                
+                # Extract and execute tool calls
+                tool_calls = self._extract_tool_calls(full_response)
+                if tool_calls:
+                    print("\n\n🔧 Executing tools...")
+                    tool_results = self._execute_tool_calls(tool_calls)
+                    
+                    # Add tool results to memory
+                    for result in tool_results:
+                        self.add_to_memory(result, "tool_result")
+                    
+                    # Display tool results
+                    print("\n📋 Tool Results:")
+                    for result in tool_results:
+                        print(f"  • {result}")
+                    
+                    # Create final response with tool results
+                    final_response = full_response + "\n\n" + "\n".join(tool_results)
+                else:
+                    final_response = full_response
+                
+                # Add to conversation history
+                self.add_message("assistant", final_response)
+                
+                # Add to memory
+                self.add_to_memory(f"User asked: {message}. Assistant responded: {final_response}")
+                
+                return final_response
+            else:
+                error_msg = f"Error: {response.status_code} - {response.text}"
+                print(error_msg)
+                return error_msg
+                
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Connection error: {str(e)}"
+            print(error_msg)
+            return error_msg
+
     def chat(self, message: str, system_prompt: str = None) -> str:
         """
         Advanced chat with tool usage and memory
@@ -309,10 +424,11 @@ def main():
     You can perform calculations, read files, and remember previous interactions.
     Use tools when appropriate to help users with their tasks."""
     
-    print("🤖 Advanced Agent Example")
+    print("🤖 Advanced Agent Example (with Streaming)")
     print("=" * 50)
     print("Commands: 'quit', 'clear', 'memory', 'history'")
     print("Tools available: calculator, read_file, get_time")
+    print("Responses will stream in real-time for better UX")
     print()
     
     while True:
@@ -336,9 +452,8 @@ def main():
                 continue
             
             print("Agent: ", end="", flush=True)
-            response = agent.chat(user_input, system_prompt)
-            print(response)
-            print()
+            response = agent.chat_stream(user_input, system_prompt)
+            print() # Print a newline after streaming
             
         except KeyboardInterrupt:
             print("\nGoodbye!")
