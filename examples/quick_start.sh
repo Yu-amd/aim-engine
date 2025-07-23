@@ -4,6 +4,16 @@
 
 set -e
 
+# Trap to cleanup on exit
+cleanup_on_exit() {
+    if [ -n "$VIRTUAL_ENV" ]; then
+        print_status "Deactivating virtual environment..."
+        deactivate 2>/dev/null || true
+    fi
+}
+
+trap cleanup_on_exit EXIT
+
 echo "🚀 AIM Engine Agent Examples - Quick Start"
 echo "=========================================="
 echo ""
@@ -59,9 +69,32 @@ fi
 
 # Check if Python dependencies are installed
 print_status "Checking Python dependencies..."
+
+# Check if virtual environment exists
+if [ ! -d "venv" ]; then
+    print_warning "Virtual environment not found. Creating..."
+    
+    # Check if python3-venv is installed
+    if ! dpkg -l | grep -q python3-venv; then
+        print_warning "Installing python3-venv..."
+        sudo apt update
+        sudo apt install -y python3-venv
+    fi
+    
+    # Create virtual environment
+    python3 -m venv venv
+    print_success "Virtual environment created"
+fi
+
+# Activate virtual environment
+print_status "Activating virtual environment..."
+source venv/bin/activate
+
+# Check if dependencies are installed in virtual environment
 if ! python3 -c "import requests, flask" 2>/dev/null; then
-    print_warning "Installing Python dependencies..."
+    print_warning "Installing Python dependencies in virtual environment..."
     pip install -r requirements.txt
+    print_success "Dependencies installed"
 else
     print_success "Python dependencies are installed"
 fi
@@ -133,20 +166,23 @@ show_menu() {
     echo "3. Web Agent (Browser Interface)"
     echo "4. Check AIM Engine Status"
     echo "5. Stop AIM Engine"
-    echo "6. Exit"
+    echo "6. Cleanup Virtual Environment"
+    echo "7. Exit"
     echo ""
-    read -p "Enter your choice (1-6): " choice
+    read -p "Enter your choice (1-7): " choice
 }
 
 # Function to run simple agent
 run_simple_agent() {
     print_status "Starting Simple Agent..."
+    source venv/bin/activate
     python3 simple_agent.py
 }
 
 # Function to run advanced agent
 run_advanced_agent() {
     print_status "Starting Advanced Agent..."
+    source venv/bin/activate
     python3 advanced_agent.py
 }
 
@@ -155,6 +191,7 @@ run_web_agent() {
     print_status "Starting Web Agent..."
     print_success "Web interface will be available at http://localhost:5000"
     print_status "Press Ctrl+C to stop the web server"
+    source venv/bin/activate
     python3 web_agent.py
 }
 
@@ -182,6 +219,17 @@ stop_aim_engine() {
     fi
 }
 
+# Function to cleanup virtual environment
+cleanup_venv() {
+    print_status "Cleaning up virtual environment..."
+    if [ -d "venv" ]; then
+        rm -rf venv
+        print_success "Virtual environment removed"
+    else
+        print_warning "No virtual environment found"
+    fi
+}
+
 # Main menu loop
 while true; do
     show_menu
@@ -203,11 +251,14 @@ while true; do
             stop_aim_engine
             ;;
         6)
+            cleanup_venv
+            ;;
+        7)
             print_success "Goodbye!"
             exit 0
             ;;
         *)
-            print_error "Invalid choice. Please enter 1-6."
+            print_error "Invalid choice. Please enter 1-7."
             ;;
     esac
     
