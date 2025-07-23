@@ -520,7 +520,7 @@ spec:
 
 ## 🗺️ **Roadmap**
 
-### **Phase 1: Q1 2024 - Enterprise Foundation**
+### **Phase 1: Q4 2025 - Enterprise Readiness**
 
 #### **Kubernetes Integration**
 - [ ] **Helm Charts**: Complete Helm chart for AIM Engine deployment
@@ -534,7 +534,7 @@ spec:
 - [ ] **Health Checks**: Kubernetes liveness and readiness probes
 - [ ] **Logging**: Structured logging with ELK stack integration
 
-### **Phase 2: Q2 2024 - Advanced Features**
+### **Phase 2: Q1 2026 - Advanced Features**
 
 #### **Multi-Backend Support**
 - [ ] **SGLang Integration**: Native SGLang backend support
@@ -548,7 +548,7 @@ spec:
 - [ ] **Cache Compression**: Model compression for storage efficiency
 - [ ] **Cache Analytics**: Advanced cache performance analytics
 
-### **Phase 3: Q3 2024 - Production Features**
+### **Phase 3: Q2 2026 - Production Features**
 
 #### **High Availability**
 - [ ] **Auto-scaling**: Horizontal Pod Autoscaler (HPA) support
@@ -562,7 +562,7 @@ spec:
 - [ ] **Secrets Management**: Secure credential management
 - [ ] **Audit Logging**: Comprehensive audit trails
 
-### **Phase 4: Q4 2024 - Enterprise Features**
+### **Phase 4: Q3 2026 - Enterprise Features**
 
 #### **Multi-Tenancy**
 - [ ] **Namespace Isolation**: Multi-tenant deployment support
@@ -575,10 +575,6 @@ spec:
 - [ ] **Cost Optimization**: Cost analysis and optimization
 - [ ] **Capacity Planning**: Predictive capacity planning
 - [ ] **Business Intelligence**: BI dashboard integration
-
-### **AIM Engine Kubernetes Operator**
-
-The Kubernetes roadmap for AIM Engine mirrors the evolution of NVIDIA NIM Operator, providing the same level of enterprise-grade orchestration and management capabilities. This roadmap ensures that AIM Engine becomes the definitive AMD equivalent of NVIDIA NIM Operator in the Kubernetes ecosystem.
 
 ### **Detailed Kubernetes Roadmap**
 
@@ -749,190 +745,7 @@ vllm_serve:
       --tensor-parallel-size: 4
       --max-num-batched-tokens: 32768
 ```
-
 ---
 
-## 🔧 **Troubleshooting**
-
-### **Common Issues**
-
-#### **1. GPU Detection Issues**
-```bash
-# Check GPU availability
-rocm-smi --showproductname
-nvidia-smi  # For CUDA compatibility
-
-# Verify ROCm installation
-rocm-smi --version
-```
-
-#### **2. Cache Issues**
-```bash
-# Check cache status
-aim-cache stats
-
-# Clear corrupted cache
-aim-cache remove <model_id>
-aim-cache add <model_id>
-```
-
-#### **3. Performance Issues**
-```bash
-# Check GPU utilization
-rocm-smi --showmeminfo
-
-# Monitor system resources
-htop
-nvidia-smi  # For CUDA compatibility
-```
-
-### **Debug Commands**
-
-```bash
-# Enable debug logging
-export AIM_DEBUG=1
-aim-generate <model_id>
-
-# Check container logs
-docker logs <container_id>
-
-# Verify configuration
-aim-generate <model_id> --dry-run
-```
-
-### **Performance Tuning**
-
-```bash
-# Optimize for specific hardware
-aim-generate <model_id> --hardware MI300X
-
-# Custom precision
-aim-generate <model_id> --precision bf16
-
-# Manual GPU allocation
-aim-generate <model_id> --gpu-count 4
-```
-
----
-
-## 📊 **Metrics & Monitoring**
-
-### **Key Performance Indicators**
-
-| KPI | Target | Current | Status |
-|-----|--------|---------|--------|
-| **Deployment Speed** | < 10s | 30s | 🟡 Improving |
-| **Cache Hit Rate** | > 90% | 87% | 🟡 Improving |
-| **GPU Utilization** | > 90% | 91% | ✅ Good |
-| **Throughput** | > 150 tokens/s | 164 tokens/s | ✅ Good |
-| **Availability** | > 99.9% | 99.5% | 🟡 Improving |
-
-### **Monitoring Dashboard**
-
-```yaml
-# grafana-dashboard.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard
-data:
-  dashboard.json: |
-    {
-      "dashboard": {
-        "title": "AIM Engine Performance",
-        "panels": [
-          {
-            "title": "Deployment Time",
-            "type": "graph",
-            "targets": [
-              {
-                "expr": "aim_deployment_time_seconds"
-              }
-            ]
-          },
-          {
-            "title": "Cache Hit Rate",
-            "type": "stat",
-            "targets": [
-              {
-                "expr": "aim_cache_hit_rate"
-              }
-            ]
-          }
-        ]
-      }
-    }
-```
-
----
-
-## 🤝 **Contributing**
-
-### **Development Setup**
-
-```bash
-# Clone repository
-git clone https://github.com/amd/aim-engine.git
-cd aim-engine
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run tests
-python -m pytest tests/
-
-# Build container
-docker build -f Dockerfile.aim-vllm -t aim-vllm:latest .
-```
-
-### **Adding New Models**
-
-1. **Create model configuration**:
-   ```yaml
-   # models/new-model.yaml
-   model_id: org/new-model
-   name: New Model
-   size: 13B
-   family: Custom
-   readiness_level: experimental
-   ```
-
-2. **Create recipe configuration**:
-   ```yaml
-   # recipes/new-model-mi300x.yaml
-   recipe_id: new-model-mi300x-bf16
-   model_id: org/new-model
-   hardware: MI300X
-   precision: bf16
-   vllm_serve:
-     2_gpu:
-       enabled: true
-       args:
-         --model: org/new-model
-         --dtype: bfloat16
-   ```
-
-3. **Test deployment**:
-   ```bash
-   aim-generate org/new-model --gpu-count 2
-   ```
-
----
-
-## 📄 **License**
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 📞 **Support**
-
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/amd/aim-engine/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/amd/aim-engine/discussions)
-- **Email**: aim-engine-support@amd.com
-
----
-
-*Last updated: January 2024*
-*Version: 1.0.0* 
+*Last updated: July 2025*
+*Version: 1.0.0*
