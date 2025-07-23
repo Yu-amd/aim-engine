@@ -49,10 +49,10 @@ docker run --rm -it \
   aim-generate Qwen/Qwen3-32B
 ```
 
-#### **3. Run vLLM Server Directly**
+#### **3. Run vLLM Server (Interactive Mode - Recommended)**
 ```bash
-# Start vLLM server with optimal configuration
-docker run --rm -d \
+# Start interactive container
+docker run --rm -it \
   --device=/dev/kfd \
   --device=/dev/dri \
   --group-add=video \
@@ -60,7 +60,11 @@ docker run --rm -d \
   -v /workspace/model-cache:/workspace/model-cache \
   -p 8000:8000 \
   aim-vllm:latest \
-  aim-serve Qwen/Qwen3-32B
+  aim-shell
+
+# Inside the container:
+aim-generate Qwen/Qwen3-32B
+# Copy the generated command and run it directly
 ```
 
 #### **4. Test the Endpoint**
@@ -157,10 +161,10 @@ docker run --rm -it \
   aim-generate Qwen/Qwen3-32B --gpu-count 4 --precision fp16 --port 8001
 ```
 
-#### **2. Direct Server Launch (`aim-serve`)**
+#### **2. Interactive Development (`aim-shell`) - Recommended**
 ```bash
-# Launch server with optimal configuration
-docker run --rm -d \
+# Interactive shell for development and testing
+docker run --rm -it \
   --device=/dev/kfd \
   --device=/dev/dri \
   --group-add=video \
@@ -168,18 +172,12 @@ docker run --rm -d \
   -v /workspace/model-cache:/workspace/model-cache \
   -p 8000:8000 \
   aim-vllm:latest \
-  aim-serve Qwen/Qwen3-32B
+  aim-shell
 
-# Launch with custom parameters
-docker run --rm -d \
-  --device=/dev/kfd \
-  --device=/dev/dri \
-  --group-add=video \
-  --group-add=render \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -p 8001:8000 \
-  aim-vllm:latest \
-  aim-serve Qwen/Qwen3-32B --gpu-count 4 --precision fp16
+# Inside the container, you can:
+# - Generate optimal commands: aim-generate Qwen/Qwen3-32B
+# - Run vLLM directly: python3 -m vllm.entrypoints.openai.api_server --model ...
+# - Use AIM Engine tools: python3 -c "from aim_recipe_selector import AIMRecipeSelector; ..."
 ```
 
 #### **3. Interactive Development (`aim-shell`)**
@@ -516,8 +514,8 @@ docker ps | grep aim-vllm
 # Clean up all containers (safe - won't error if none exist)
 docker stop $(docker ps -q) 2>/dev/null || true && docker rm $(docker ps -aq) 2>/dev/null || true
 
-# Try again with the combined container
-docker run --rm -d \
+# Try again with interactive mode
+docker run --rm -it \
   --device=/dev/kfd \
   --device=/dev/dri \
   --group-add=video \
@@ -525,7 +523,7 @@ docker run --rm -d \
   -v /workspace/model-cache:/workspace/model-cache \
   -p 8000:8000 \
   aim-vllm:latest \
-  aim-serve Qwen/Qwen3-32B
+  aim-shell
 ```
 
 ### **General Issues**
