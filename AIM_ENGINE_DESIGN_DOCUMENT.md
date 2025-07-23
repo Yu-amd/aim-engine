@@ -92,7 +92,7 @@ graph TB
     J --> L
 ```
 
-### **Container Architecture**
+### **AIM Container Architecture**
 
 ```mermaid
 graph LR
