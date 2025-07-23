@@ -38,6 +38,64 @@ def detect_available_gpus():
     # Fallback to 1 GPU
     return 1
 
+def convert_args_to_command_line(args_dict):
+    """Convert args dictionary to proper command line arguments"""
+    args_list = []
+    
+    # Define boolean flags that should not have values
+    boolean_flags = {
+        '--trust-remote-code',
+        '--enforce-eager',
+        '--disable-sliding-window',
+        '--disable-cascade-attn',
+        '--skip-tokenizer-init',
+        '--enable-prompt-embeds',
+        '--disable-async-output-proc',
+        '--enable-sleep-mode',
+        '--enable-lora',
+        '--enable-lora-bias',
+        '--fully-sharded-loras',
+        '--enable-prompt-adapter',
+        '--enable-reasoning',
+        '--enable-prefix-caching',
+        '--calculate-kv-scales',
+        '--disable-mm-preprocessor-cache',
+        '--enable-chunked-prefill',
+        '--disable-chunked-mm-input',
+        '--disable-hybrid-kv-cache-manager',
+        '--use-v2-block-manager',
+        '--disable-log-stats',
+        '--disable-log-requests',
+        '--disable-fastapi-docs',
+        '--enable-prompt-tokens-details',
+        '--enable-force-include-usage',
+        '--enable-server-load-tracking',
+        '--multi-step-stream-outputs',
+        '--eplb-log-balancedness',
+        '--ray-workers-use-nsight',
+        '--disable-custom-all-reduce',
+        '--enable-multimodal-encoder-data-parallel'
+    }
+    
+    for key, value in args_dict.items():
+        if key.startswith('--'):
+            flag = key
+        else:
+            flag = f"--{key}"
+        
+        # Check if this is a boolean flag
+        if flag in boolean_flags:
+            # For boolean flags, only add the flag if value is True, 'true', 'True', '1', 'yes', 'Yes'
+            value_str = str(value).strip().lower()
+            if value_str in ['true', '1', 'yes']:
+                args_list.append(flag)
+            # Skip boolean flags with false values
+        else:
+            # For non-boolean flags, add flag and value
+            args_list.append(f"{flag} {value}")
+    
+    return " ".join(args_list)
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python3 aim_generate_command.py <model_id> [--serve]")
@@ -64,15 +122,8 @@ def main():
             config = selector.get_recipe_config(recipe, available_gpus, "vllm")
             
             if config and 'args' in config:
-                # Convert args dictionary to string
-                args_list = []
-                for key, value in config['args'].items():
-                    if key.startswith('--'):
-                        args_list.append(f"{key} {value}")
-                    else:
-                        args_list.append(f"--{key} {value}")
-                
-                vllm_args = " ".join(args_list)
+                # Convert args dictionary to proper command line string
+                vllm_args = convert_args_to_command_line(config['args'])
                 
                 if serve_mode:
                     # Direct execution mode - run vLLM server directly
