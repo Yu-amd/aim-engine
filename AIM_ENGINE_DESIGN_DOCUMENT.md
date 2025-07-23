@@ -340,24 +340,6 @@ graph TB
 
 ### **Cache Management Operations**
 
-```python
-# Cache Statistics
-cache_stats = {
-    "total_models": 15,
-    "total_size_gb": 245.7,
-    "cache_hit_rate": 0.87,
-    "avg_deployment_time": "2.3s",
-    "storage_efficiency": 0.92
-}
-
-# Cache Operations
-cache_manager.add_model_to_cache("Qwen/Qwen3-32B", model_path)
-cache_manager.remove_model_from_cache("old-model")
-cache_manager.cleanup_old_models(days_old=30)
-```
-
----
-
 ## 🎯 **Recipe Selection Engine**
 
 ### **AIM Recipe Selection**
