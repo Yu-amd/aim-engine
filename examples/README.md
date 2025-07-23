@@ -112,13 +112,134 @@ A beautiful web interface for the agent.
 - ✅ Connection status monitoring
 - ✅ Mobile-responsive design
 - ✅ Session management
+- ✅ Remote access support
 
 **Usage:**
 ```bash
 python3 examples/web_agent.py
 ```
 
-Then open your browser to `http://localhost:5000`
+The web interface will be available at:
+- **Local access**: `http://localhost:5000`
+- **Network access**: `http://<remote-ip>:5000`
+
+## 🌐 Remote Access Methods
+
+### Method 1: Direct Network Access (Same Network)
+If your local machine and remote node are on the same network:
+
+1. **Get the remote node's IP address:**
+   ```bash
+   # On the remote node
+   hostname -I
+   # or
+   ip addr show
+   ```
+
+2. **Access the web interface:**
+   ```
+   http://<remote-node-ip>:5000
+   ```
+
+### Method 2: SSH Port Forwarding (Recommended)
+For secure access through SSH:
+
+1. **Connect with port forwarding:**
+   ```bash
+   ssh -L 5000:localhost:5000 username@remote-node
+   ```
+
+2. **Access on your local machine:**
+   ```
+   http://localhost:5000
+   ```
+
+### Method 3: Reverse SSH Tunnel (Behind Firewall)
+If the remote node is behind a firewall:
+
+1. **On the remote node, create reverse tunnel:**
+   ```bash
+   ssh -R 5000:localhost:5000 username@your-laptop-ip
+   ```
+
+2. **Access on your local machine:**
+   ```
+   http://localhost:5000
+   ```
+
+### Method 4: Using the Quick Start Script
+The quick start script handles virtual environment setup automatically:
+
+```bash
+cd examples
+./quick_start.sh
+# Choose option 3 (Web Agent)
+```
+
+## 🔍 Network Diagnostics
+
+### Diagnostic Tool
+Use the included diagnostic tool to troubleshoot network issues:
+
+```bash
+cd examples
+python3 check_web_access.py
+```
+
+This tool will check:
+- ✅ Network configuration
+- ✅ Port accessibility
+- ✅ Firewall status
+- ✅ Web agent connectivity
+- ✅ AIM Engine endpoint status
+
+### Manual Network Checks
+
+**Check if port 5000 is listening:**
+```bash
+netstat -tlnp | grep :5000
+```
+
+**Check firewall status:**
+```bash
+sudo ufw status
+```
+
+**Allow port 5000 through firewall:**
+```bash
+sudo ufw allow 5000
+```
+
+**Test local connectivity:**
+```bash
+curl http://localhost:5000
+```
+
+## 🔧 Common Remote Access Issues
+
+### Issue: "Connection Refused"
+**Solution:**
+1. Ensure web agent is running with `host='0.0.0.0'`
+2. Check if port 5000 is open in firewall
+3. Verify the web agent process is running
+
+### Issue: "Page Not Found"
+**Solution:**
+1. Check if AIM Engine endpoint is running on port 8000
+2. Verify the web agent can connect to the AIM Engine
+3. Check web agent logs for errors
+
+### Issue: "Slow Response"
+**Solution:**
+1. Check network latency between machines
+2. Monitor AIM Engine performance
+3. Consider using SSH port forwarding for better performance
+
+### Issue: "Security Warnings"
+**Solution:**
+1. Use SSH port forwarding for secure access
+2. Consider adding authentication to the web interface
+3. Use HTTPS in production environments
 
 ## 🛠️ Customization
 

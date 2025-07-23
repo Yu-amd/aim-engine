@@ -549,9 +549,22 @@ def chat_template():
     '''
 
 if __name__ == '__main__':
+    import socket
+    
+    # Get local IP addresses for display
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    
     print("🌐 Starting Web Agent Interface...")
     print("📡 Make sure your AIM Engine endpoint is running on http://localhost:8000")
-    print("🌍 Web interface will be available at http://localhost:5000")
+    print("🌍 Web interface will be available at:")
+    print(f"   - Local: http://localhost:5000")
+    print(f"   - Network: http://{local_ip}:5000")
+    print()
+    print("🔧 For remote access:")
+    print("   - Same network: Use the Network URL above")
+    print("   - SSH tunnel: ssh -L 5000:localhost:5000 user@remote-host")
+    print("   - Then access: http://localhost:5000 on your local machine")
     print()
     
     app.run(debug=True, host='0.0.0.0', port=5000) 
