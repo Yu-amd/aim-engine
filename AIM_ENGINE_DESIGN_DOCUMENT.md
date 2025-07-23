@@ -454,40 +454,6 @@ vllm_serve:
 
 ## ⚡ **Performance Optimization**
 
-### **Performance Metrics**
-
-#### **Throughput Optimization**
-
-| Configuration | Tokens/Second | Latency (ms) | GPU Utilization |
-|---------------|---------------|--------------|-----------------|
-| **1 GPU** | 45.2 | 125 | 89% |
-| **2 GPU** | 87.6 | 68 | 91% |
-| **4 GPU** | 164.3 | 42 | 93% |
-| **8 GPU** | 298.7 | 28 | 94% |
-
-#### **Memory Optimization**
-
-```python
-# Memory Allocation Strategy
-memory_config = {
-    "small_models": {
-        "gpu_memory_utilization": 0.85,
-        "max_model_len": 16384,
-        "batch_size": 512
-    },
-    "medium_models": {
-        "gpu_memory_utilization": 0.90,
-        "max_model_len": 32768,
-        "batch_size": 1024
-    },
-    "large_models": {
-        "gpu_memory_utilization": 0.90,
-        "max_model_len": 32768,
-        "batch_size": 2048
-    }
-}
-```
-
 ### **Optimization Techniques**
 
 1. **Dynamic Batching**: Automatic batch size adjustment based on GPU count
