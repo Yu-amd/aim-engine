@@ -53,6 +53,9 @@ RUN echo '#!/bin/bash\n\
 # Interactive mode with AIM Engine tools\n\
 cd /workspace/aim-engine\n\
 if [ $# -eq 0 ]; then\n\
+    echo "Starting AIM Engine shell..."\n\
+    echo "Available commands: aim-generate, aim-serve"\n\
+    echo "Current directory: $(pwd)"\n\
     exec /bin/bash\n\
 else\n\
     exec "$@"\n\
