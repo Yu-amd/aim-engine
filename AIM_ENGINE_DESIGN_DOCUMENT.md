@@ -25,7 +25,7 @@ AMD Inference Microservice is the AMD equivalent of NVIDIA's NIM ecosystem. Just
 **AIM Engine** is an intelligent AI model deployment system that automatically optimizes large language model serving on AMD hardware. It combines intelligent recipe selection, dynamic resource detection, and advanced caching to deliver optimal performance with zero configuration, serving as the essential dependency management and orchestration layer for AIM deployments.
 
 ### **Key Value Propositions**
-- **AMD NIM Equivalent**: Direct counterpart to NVIDIA NIM Operator for AMD hardware
+- **AMD Engine**: Direct counterpart to NVIDIA NIM Operator for AMD hardware
 - **Zero Configuration**: Works out-of-the-box with automatic optimization
 - **Hardware Intelligence**: AMD GPU-aware optimization and resource allocation
 - **Performance Optimization**: Up to 10x faster deployment with intelligent caching
@@ -34,7 +34,7 @@ AMD Inference Microservice is the AMD equivalent of NVIDIA's NIM ecosystem. Just
 - **Dependency Management**: Ensures all AIM deployment dependencies are met
 
 ### **Technical Highlights**
-- **AMD NIM Operator**: Direct equivalent to NVIDIA NIM Operator for AMD ecosystem
+- **AMD Engine**: Direct equivalent to NVIDIA NIM Operator for AMD ecosystem
 - **Unified Container**: AIM Engine tools integrated into vLLM ROCm container
 - **Intelligent Caching**: Persistent model caching with significant speed improvement
 - **Dynamic Optimization**: Model-size based GPU allocation and precision selection
@@ -116,7 +116,7 @@ graph LR
 
 ## 🔧 **System Architecture**
 
-### **AIM Engine: The AMD NIM Operator**
+### **AIM Engine**
 
 **AIM Engine** serves as the AMD equivalent of NVIDIA's NIM Operator, providing the essential orchestration and dependency management layer for AIM (AMD Inference Microservice) deployments. Just as NIM Operator ensures successful NIM deployments on NVIDIA hardware, AIM Engine guarantees efficient and optimized AIM deployments on AMD hardware.
 
@@ -298,7 +298,7 @@ class AIMCacheManager:
 
 ## 🗄️ **Model Caching System**
 
-### **AIM Caching: AMD NIM Equivalent**
+### **AIM Caching**
 
 Just as NVIDIA NIM Operator provides intelligent caching for NIM deployments, **AIM Engine** delivers comprehensive caching for AIM deployments. The caching system ensures that model dependencies are efficiently managed and reused across deployments, providing the same level of optimization that NIM users expect.
 
@@ -360,7 +360,7 @@ cache_manager.cleanup_old_models(days_old=30)
 
 ## 🎯 **Recipe Selection Engine**
 
-### **AIM Recipe Selection: AMD NIM Optimization**
+### **AIM Recipe Selection**
 
 Similar to how NVIDIA NIM Operator optimizes NIM deployments for NVIDIA hardware, **AIM Engine** provides AMD-specific optimization through intelligent recipe selection. The recipe engine ensures that AIM deployments are configured optimally for AMD GPUs, delivering the same level of performance optimization that NIM users experience.
 
@@ -610,7 +610,7 @@ spec:
 - [ ] **Capacity Planning**: Predictive capacity planning
 - [ ] **Business Intelligence**: BI dashboard integration
 
-### **AIM Engine Kubernetes Operator: AMD NIM Operator Equivalent**
+### **AIM Engine Kubernetes Operator**
 
 The Kubernetes roadmap for AIM Engine mirrors the evolution of NVIDIA NIM Operator, providing the same level of enterprise-grade orchestration and management capabilities. This roadmap ensures that AIM Engine becomes the definitive AMD equivalent of NVIDIA NIM Operator in the Kubernetes ecosystem.
 
