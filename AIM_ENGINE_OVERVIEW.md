@@ -13,8 +13,6 @@
 7. [Performance Optimization](#performance-optimization)
 8. [Deployment Models](#deployment-models)
 9. [Roadmap](#roadmap)
-10. [API Reference](#api-reference)
-11. [Troubleshooting](#troubleshooting)
 
 ---
 
