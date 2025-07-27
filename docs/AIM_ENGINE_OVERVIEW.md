@@ -516,7 +516,7 @@ spec:
 - [ ] **Resource Isolation**: Secure isolation between models sharing GPU resources
 
 #### **Advanced Caching**
-- [ ] **Distributed Caching**: Redis-based distributed cache
+- [ ] **Distributed Caching**: Support distributed cache
 - [ ] **Cache Prefetching**: Intelligent model prefetching
 - [ ] **Cache Compression**: Model compression for storage efficiency
 - [ ] **Cache Analytics**: Advanced cache performance analytics
