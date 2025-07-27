@@ -208,17 +208,22 @@ install_containerd() {
 install_kubernetes() {
     log_info "Installing Kubernetes components..."
     
-    # Add Kubernetes GPG key (updated URL)
-    curl -fsSL https://dl.k8s.io/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    # Remove any existing Kubernetes repositories
+    rm -f /etc/apt/sources.list.d/kubernetes.list
+    rm -f /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     
-    # Add Kubernetes repository (updated URL)
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
+    # Add Kubernetes GPG key (correct modern URL)
+    mkdir -p /etc/apt/keyrings
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    
+    # Add Kubernetes repository (correct modern URL)
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
     
     # Update package list
     apt update
     
     # Install Kubernetes components
-    apt install -y kubelet=${KUBERNETES_VERSION}-00 kubeadm=${KUBERNETES_VERSION}-00 kubectl=${KUBERNETES_VERSION}-00
+    apt install -y kubelet kubeadm kubectl
     
     # Hold packages to prevent automatic updates
     apt-mark hold kubelet kubeadm kubectl
