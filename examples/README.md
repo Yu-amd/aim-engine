@@ -4,6 +4,18 @@ This directory contains various agent-based applications that use the AIM Engine
 
 ##  Prerequisites
 
+### 0. Port Requirements
+**Important**: All examples require port 8000 to be available for the AIM Engine endpoint.
+
+```bash
+# Check if port 8000 is available
+netstat -tlnp | grep 8000
+
+# If port 8000 is in use, either:
+# 1. Stop the service using port 8000, or
+# 2. Use a different port for AIM Engine (update examples accordingly)
+```
+
 ### 1. AIM Engine Setup
 First, make sure your AIM Engine is running:
 
