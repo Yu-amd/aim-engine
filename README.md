@@ -200,33 +200,6 @@ aim-engine/
 └── tests/                 # Test files
 ```
 
-### **Health Checks**
-
-#### **Basic Health Check**
-```bash
-# Check if container is running
-docker ps | grep aim-engine
-
-# Check container logs
-docker logs <container-name>
-
-# Test health endpoint
-curl http://localhost:8000/health
-```
-
-#### **Testing Before Running Agent Examples**
-Before running any agent examples in the `examples/` directory, ensure your AIM Engine endpoint is healthy:
-
-```bash
-# Quick health check for examples
-curl -f http://localhost:8000/health && \
-curl -f http://localhost:8000/v1/models && \
-echo "✓ AIM Engine is ready for agent examples" || \
-echo "✗ AIM Engine needs attention before running examples"
-```
-
-**Note**: If you're using a different port (e.g., 8001), replace `8000` with your port number in all the above commands.
-
 ## **Agent Examples**
 
 ### **Running Examples**
@@ -249,6 +222,60 @@ python3 web_agent.py         # Web interface
 - **Test Scripts**: Various testing and diagnostic tools
 
 See `examples/README.md` for detailed information about each example.
+
+## **Cleanup**
+
+### **Stopping Running Containers**
+```bash
+# Stop all AIM Engine containers
+docker stop $(docker ps -q --filter "ancestor=aim-vllm:latest")
+
+# Or stop by container name (if you named them)
+docker stop aim-engine
+docker stop nice_montalcini  # Example auto-generated name
+```
+
+### **Removing Containers**
+```bash
+# Remove stopped containers
+docker rm $(docker ps -aq --filter "ancestor=aim-vllm:latest")
+
+# Or remove by container name
+docker rm aim-engine
+```
+
+### **Complete Cleanup Script**
+```bash
+#!/bin/bash
+echo "Cleaning up AIM Engine containers..."
+
+# Stop all running AIM Engine containers
+echo "Stopping containers..."
+docker stop $(docker ps -q --filter "ancestor=aim-vllm:latest") 2>/dev/null || echo "No running containers found"
+
+# Remove all AIM Engine containers
+echo "Removing containers..."
+docker rm $(docker ps -aq --filter "ancestor=aim-vllm:latest") 2>/dev/null || echo "No containers to remove"
+
+# Optional: Remove AIM Engine images
+echo "Removing AIM Engine images..."
+docker rmi aim-vllm:latest 2>/dev/null || echo "No images to remove"
+
+# Optional: Clean up dangling resources
+echo "Cleaning up dangling resources..."
+docker system prune -f
+
+echo "Cleanup complete!"
+```
+
+### **Quick Cleanup Commands**
+```bash
+# Stop and remove all AIM Engine containers in one command
+docker stop $(docker ps -q --filter "ancestor=aim-vllm:latest") 2>/dev/null && docker rm $(docker ps -aq --filter "ancestor=aim-vllm:latest") 2>/dev/null
+
+# Nuclear option: Stop and remove ALL containers (use with caution)
+docker stop $(docker ps -q) 2>/dev/null && docker rm $(docker ps -aq) 2>/dev/null
+```
 
 ## **Documentation**
 
