@@ -487,7 +487,7 @@ spec:
 
 ## **Roadmap**
 
-### **Phase 1: Q4 2025 - Enterprise Readiness**
+### **Phase 1: Q3&Q4 2025 - Enterprise Readiness**
 
 #### **Kubernetes Integration**
 - [ ] **Helm Charts**: Complete Helm chart for AIM Engine deployment
