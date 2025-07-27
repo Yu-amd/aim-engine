@@ -1,515 +1,526 @@
-# AIM Engine Design Summary
+# AIM Engine Detailed Technical Documentation
 
-## 🎯 **Overview**
+## **Overview**
 
-AIM (AMD Inference Microservice) Engine is an intelligent AI model deployment system that automatically selects optimal configurations for serving large language models on AMD hardware. It combines recipe-based optimization with dynamic resource detection to deliver the best performance for any given model and hardware setup.
+AIM Engine is a comprehensive AI model deployment system that automatically optimizes configurations for AMD GPU hardware. It combines intelligent recipe selection, dynamic resource allocation, and performance monitoring to deliver optimal inference performance.
 
-**Implementation Approach**: AIM Engine is implemented by installing AIM Engine tools directly into the vLLM ROCm container, creating a unified environment where both the intelligent recipe selection system and the vLLM inference runtime coexist. This eliminates the need for Docker-in-Docker or container orchestration, providing a single, efficient container that handles both configuration generation and model serving.
+## **Architecture Components**
 
-## 🏗️ **Architecture Components**
+### **Core Components**
 
-### **1. Core Classes**
+#### **1. Recipe Selector**
+- **Purpose**: Intelligently selects optimal configurations based on model and hardware
+- **Input**: Model ID, available GPUs, performance requirements
+- **Output**: Optimized recipe configuration
+- **Features**: GPU detection, model analysis, fallback strategies
 
-#### **`AIMRecipeSelector`** (`aim_recipe_selector.py`)
-- **Purpose**: Intelligent recipe selection and resource optimization
-- **Key Responsibilities**:
-  - GPU detection and validation
-  - Model-specific configuration optimization
-  - Recipe matching and fallback strategies
-  - Precision and GPU count selection
+#### **2. Configuration Generator**
+- **Purpose**: Generates deployment configurations from recipes
+- **Input**: Selected recipe, deployment target
+- **Output**: Kubernetes manifests, Docker commands, environment variables
+- **Features**: Multi-format output, validation, customization
 
-#### **`AIMConfigGenerator`** (`aim_config_generator.py`)
-- **Purpose**: Generates deployment configurations from selected recipes
-- **Key Responsibilities**:
-  - vLLM command generation
-  - Environment variable setup
-  - Docker configuration creation
-  - Container resource allocation
+#### **3. Model Cache Manager**
+- **Purpose**: Manages model downloads and caching
+- **Input**: Model ID, cache location
+- **Output**: Cached model files, cache statistics
+- **Features**: Incremental downloads, deduplication, cleanup
 
-#### **`AIMCacheManager`** (`aim_cache_manager.py`)
-- **Purpose**: Intelligent model caching and storage management
-- **Key Responsibilities**:
-  - Model download caching and storage
-  - Cache index management and metadata tracking
-  - Cache statistics and cleanup operations
-  - Environment variable generation for cached models
-  - Volume mount configuration for Docker deployments
+#### **4. Performance Monitor**
+- **Purpose**: Tracks performance metrics and resource utilization
+- **Input**: Runtime metrics, recipe targets
+- **Output**: Performance reports, alerts, optimization suggestions
+- **Features**: Real-time monitoring, historical analysis, alerting
 
-### **2. Container Integration**
+### **Supporting Components**
 
-#### **Base Container: vLLM ROCm**
-- **Foundation**: Uses `rocm/vllm:latest` as the base container
-- **Runtime**: Provides the vLLM inference engine with AMD/ROCm support
-- **Environment**: Pre-configured with AMD GPU drivers and ROCm runtime
-
-#### **AIM Engine Tools Installation**
-- **Installation Method**: AIM Engine tools are installed directly into the vLLM container
-- **Dependencies**: Additional Python packages (pyyaml, pathlib, typing-extensions)
-- **Integration**: AIM Engine modules are added to the Python path
-- **Convenience Scripts**: Creates `aim-generate`, `aim-serve`, and `aim-shell` commands
-
-#### **Unified Environment**
-- **Shared Runtime**: Both AIM Engine tools and vLLM runtime share the same environment
-- **Direct Execution**: vLLM commands can be executed directly within the container
-- **Resource Sharing**: GPU access, memory, and cache are shared between tools and runtime
-- **Simplified Deployment**: Single container handles both configuration and inference
-
-### **3. Data Structure**
-
-#### **Models Directory** (`models/`)
-- **Purpose**: Model metadata and characteristics
-- **Format**: YAML files with model information
-- **Key Fields**:
-  - `model_id`: Hugging Face model identifier
-  - `size`: Model size (7B, 13B, 32B, 70B, etc.)
-  - `family`: Model family (Qwen, Llama, etc.)
-  - `readiness_level`: Production readiness status
-  - `aim_recipes`: Available recipe configurations
-
-#### **Cache Directory** (`/workspace/model-cache/`)
-- **Purpose**: Persistent model storage and caching
-- **Structure**:
-  ```
-  /workspace/model-cache/
-  ├── cache_index.json          # Cache metadata and statistics
-  ├── models/                   # Cached model files
-  │   ├── Qwen--Qwen3-32B/     # Model-specific cache
-  │   ├── meta-llama--Llama-2-7b-chat-hf/
-  │   └── ...
-  ├── tokenizers/              # Cached tokenizer files
-  ├── configs/                 # Cached model configurations
-  └── datasets/                # Cached dataset files
-  ```
-- **Key Features**:
-  - **Persistent Storage**: Survives container restarts
-  - **Shared Access**: Multiple containers can use same cache
-  - **Metadata Tracking**: Cache index with timestamps and sizes
-  - **Automatic Cleanup**: Configurable retention policies
-
-#### **Recipes Directory** (`recipes/`)
-- **Purpose**: Performance-tuned configurations for specific models
-- **Format**: YAML files with hardware-specific optimizations
-- **Key Structure**:
-  ```yaml
-  recipe_id: qwen3-32b-mi300x-bf16
-  model_id: Qwen/Qwen3-32B
-  hardware: MI300X
-  precision: bf16
-  vllm_serve:
-    1_gpu:
-      enabled: true
-      args:
-        --model: Qwen/Qwen3-32B
-        --dtype: bfloat16
-        --max-num-batched-tokens: '8192'
-        --max-model-len: '32768'
-        --gpu-memory-utilization: '0.9'
-    2_gpu:
-      enabled: true
-      args:
-        --tensor-parallel-size: '2'
-        --max-num-batched-tokens: '16384'
-        # ... more optimized parameters
-  ```
-
-## 🔍 **Recipe Selection Algorithm**
-
-### **Phase 1: Resource Detection**
-
-#### **Multi-Level GPU Detection**
+#### **1. GPU Detection System**
 ```python
-def get_optimal_configuration(self, model_id, customer_gpu_count=None, 
-                            customer_precision=None, backend='vllm'):
-    # 1. Detect GPUs at multiple levels
-    vllm_gpus = self._detect_vllm_gpus()        # What vLLM can actually use
-    container_gpus = self._detect_container_gpus()  # Container-level detection
-    host_gpus = self._detect_available_gpus()   # Host-level detection
+class GPUDetector:
+    def detect_available_gpus(self):
+        """Detect available AMD GPUs in the system"""
+        # Implementation for AMD GPU detection
+        pass
     
-    # 2. Use vLLM GPU count for actual configuration
-    actual_gpu_count = self._get_optimal_gpu_count(model_id, vllm_gpus, customer_gpu_count)
-    actual_precision = self._select_best_precision(model_id, customer_precision)
+    def get_gpu_info(self):
+        """Get detailed GPU information"""
+        # Implementation for GPU info retrieval
+        pass
 ```
 
-#### **GPU Detection Methods**
-1. **AMD ROCm Detection** (`rocm-smi`):
-   - Primary method for AMD GPUs
-   - Uses `--showproductname` and `--list-gpus`
-   - Counts GPU entries in output
-
-2. **PyTorch Detection**:
-   - Fallback method using `torch.cuda.device_count()`
-   - Works with ROCm backend (CUDA compatibility layer)
-
-3. **Environment Variables**:
-   - `HIP_VISIBLE_DEVICES` (AMD/ROCm)
-
-### **Phase 2: Optimal Configuration Selection**
-
-#### **GPU Count Selection Logic**
+#### **2. Recipe Database**
 ```python
-def _get_optimal_gpu_count(self, model_id, available_gpus, customer_gpu_count=None):
-    # Customer preference takes priority
-    if customer_gpu_count is not None:
-        return min(customer_gpu_count, available_gpus)
+class RecipeDatabase:
+    def load_recipes(self, model_id):
+        """Load recipes for a specific model"""
+        # Implementation for recipe loading
+        pass
     
-    # Auto-selection based on model size
-    model_size = self.models.get(model_id, {}).get('size', 'unknown')
+    def find_matching_recipe(self, requirements):
+        """Find recipe matching requirements"""
+        # Implementation for recipe matching
+        pass
+```
+
+#### **3. Configuration Validator**
+```python
+class ConfigurationValidator:
+    def validate_recipe(self, recipe):
+        """Validate recipe configuration"""
+        # Implementation for recipe validation
+        pass
     
-    if model_size in ['7B', '8B'] and available_gpus >= 1:
+    def validate_resources(self, recipe, available_resources):
+        """Validate resource requirements"""
+        # Implementation for resource validation
+        pass
+```
+
+## **Recipe Selection Algorithm**
+
+### **Algorithm Overview**
+
+The recipe selection algorithm follows a multi-step process to determine the optimal configuration:
+
+1. **Resource Detection**: Detect available hardware resources
+2. **Model Analysis**: Analyze model requirements and characteristics
+3. **Recipe Matching**: Find recipes matching requirements
+4. **Performance Ranking**: Rank recipes by expected performance
+5. **Resource Validation**: Validate against available resources
+6. **Fallback Selection**: Select fallback if primary choice unavailable
+
+### **Detailed Algorithm**
+
+```python
+def select_optimal_recipe(model_id, available_gpus, precision=None):
+    """
+    Select optimal recipe for given model and hardware
+    
+    Args:
+        model_id: HuggingFace model ID
+        available_gpus: Number of available GPUs
+        precision: Preferred precision (optional)
+    
+    Returns:
+        Optimal recipe configuration
+    """
+    
+    # Step 1: Detect available resources
+    gpu_info = detect_gpu_resources()
+    memory_info = detect_memory_resources()
+    cpu_info = detect_cpu_resources()
+    
+    # Step 2: Analyze model requirements
+    model_requirements = analyze_model_requirements(model_id)
+    optimal_gpu_count = calculate_optimal_gpu_count(model_requirements)
+    optimal_precision = select_optimal_precision(model_requirements, gpu_info)
+    
+    # Step 3: Find matching recipes
+    candidate_recipes = find_matching_recipes(
+        model_id=model_id,
+        gpu_count=min(optimal_gpu_count, available_gpus),
+        precision=precision or optimal_precision
+    )
+    
+    # Step 4: Rank recipes by performance
+    ranked_recipes = rank_recipes_by_performance(candidate_recipes)
+    
+    # Step 5: Validate against resources
+    valid_recipes = validate_recipe_resources(ranked_recipes, {
+        'gpu': gpu_info,
+        'memory': memory_info,
+        'cpu': cpu_info
+    })
+    
+    # Step 6: Select best recipe or fallback
+    if valid_recipes:
+        return valid_recipes[0]  # Best performing valid recipe
+    else:
+        return select_fallback_recipe(model_id, available_gpus)
+```
+
+### **GPU Count Selection**
+
+```python
+def calculate_optimal_gpu_count(model_requirements):
+    """
+    Calculate optimal GPU count based on model size
+    """
+    model_size = model_requirements['size']
+    
+    if model_size <= 8:  # 7B-8B models
         return 1
-    elif model_size in ['13B', '14B'] and available_gpus >= 2:
+    elif model_size <= 14:  # 13B-14B models
         return 2
-    elif model_size in ['32B', '34B'] and available_gpus >= 4:
+    elif model_size <= 34:  # 32B-34B models
         return 4
-    elif model_size in ['70B', '72B'] and available_gpus >= 8:
+    elif model_size <= 72:  # 70B-72B models
         return 8
-    else:
-        return available_gpus  # Use maximum available
+    else:  # Larger models
+        return min(16, model_size // 8)  # Scale with model size
 ```
 
-#### **Precision Selection Logic**
+### **Precision Selection**
+
 ```python
-def _select_best_precision(self, model_id, customer_precision=None):
-    if customer_precision:
-        return customer_precision
+def select_optimal_precision(model_requirements, gpu_info):
+    """
+    Select optimal precision based on model and hardware
+    """
+    model_size = model_requirements['size']
+    gpu_memory = gpu_info['memory_per_gpu']
     
-    model_size = self.models.get(model_id, {}).get('size', 'unknown')
+    # For large models or limited GPU memory, use bf16
+    if model_size > 32 or gpu_memory < 24:
+        return 'bf16'
     
-    if model_size in ['7B', '8B']:
-        return 'fp16'  # Smaller models can use fp16
-    elif model_size in ['13B', '14B']:
-        return 'bf16'  # Medium models benefit from bf16
+    # For smaller models with sufficient memory, use fp16
+    elif model_size <= 14 and gpu_memory >= 24:
+        return 'fp16'
+    
+    # Default to bf16 for stability
     else:
-        return 'bf16'  # Larger models use bf16 for stability
+        return 'bf16'
 ```
 
-### **Phase 3: Recipe Matching & Fallback**
+### **Fallback Strategy**
 
-#### **Primary Recipe Selection**
 ```python
-# Try optimal configuration first
-recipe = self.select_best_recipe(model_id, actual_gpu_count, actual_precision, backend)
-
-# If no match, try alternative configurations
-if not recipe:
-    # 1. Try different GPU counts (prefer higher counts)
-    for gpu_count in [8, 4, 2, 1]:
-        if gpu_count <= vllm_gpus:
-            recipe = self.select_best_recipe(model_id, gpu_count, actual_precision, backend)
+def select_fallback_recipe(model_id, available_gpus):
+    """
+    Select fallback recipe when optimal recipe is not available
+    """
+    
+    # Try different GPU counts
+    for gpu_count in [available_gpus, available_gpus//2, 1]:
+        if gpu_count > 0:
+            recipe = find_recipe_with_gpu_count(model_id, gpu_count)
             if recipe:
-                break
+                return recipe
     
-    # 2. Try different precisions
-    if not recipe:
-        for precision in ['bf16', 'fp16', 'fp8']:
-            for gpu_count in [8, 4, 2, 1]:
-                if gpu_count <= vllm_gpus:
-                    recipe = self.select_best_recipe(model_id, gpu_count, precision, backend)
-                    if recipe:
-                        break
+    # Try different precisions
+    for precision in ['bf16', 'fp16', 'fp8']:
+        recipe = find_recipe_with_precision(model_id, precision)
+        if recipe:
+            return recipe
+    
+    # Return default recipe
+    return get_default_recipe(model_id)
 ```
 
-#### **Recipe Matching Criteria**
-1. **Model ID Match**: Recipe must match the target model
-2. **GPU Count Match**: Recipe must support the requested GPU count
-3. **Precision Match**: Recipe must support the requested precision
-4. **Backend Match**: Recipe must support the requested backend (vLLM, sglang)
-5. **Enabled Status**: Recipe configuration must be enabled
-
-## 🗄️ **Model Caching System**
+## **Model Caching System**
 
 ### **Cache Architecture**
 
-#### **Cache Manager Components**
-```python
-class AIMCacheManager:
-    def __init__(self, cache_dir: str = "/workspace/model-cache"):
-        self.cache_dir = Path(cache_dir)
-        self.cache_index_file = self.cache_dir / "cache_index.json"
-        self.cache_index = self._load_cache_index()
+The model caching system provides efficient storage and retrieval of downloaded models:
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Model         │    │   Cache         │    │   Storage       │
+│   Registry      │    │   Manager       │    │   System        │
+│                 │    │                 │    │                 │
+│ • Model         │───▶│ • Download      │───▶│ • Local Disk    │
+│   Metadata      │    │   Management    │    │ • Network       │
+│ • Version       │    │ • Cache         │    │   Storage       │
+│   Information   │    │   Organization  │    │ • Cloud         │
+│ • Download      │    │ • Cleanup       │    │   Storage       │
+│   URLs          │    │ • Statistics    │    │ • Compression   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-#### **Cache Index Structure**
-```json
-{
-  "Qwen/Qwen3-32B": {
-    "cached": true,
-    "cache_path": "/workspace/model-cache/models/Qwen--Qwen3-32B",
-    "commit_hash": "abc123def456",
-    "cached_at": "2024-01-15T10:30:00",
-    "size": 64424509440
-  }
-}
+### **Cache Management**
+
+```python
+class ModelCacheManager:
+    def __init__(self, cache_dir):
+        self.cache_dir = cache_dir
+        self.metadata_file = os.path.join(cache_dir, 'metadata.json')
+    
+    def download_model(self, model_id, force=False):
+        """Download model to cache"""
+        if not force and self.is_cached(model_id):
+            return self.get_model_path(model_id)
+        
+        # Download model files
+        model_path = self._download_model_files(model_id)
+        
+        # Update metadata
+        self._update_metadata(model_id, model_path)
+        
+        return model_path
+    
+    def is_cached(self, model_id):
+        """Check if model is cached"""
+        metadata = self._load_metadata()
+        return model_id in metadata
+    
+    def get_model_path(self, model_id):
+        """Get cached model path"""
+        metadata = self._load_metadata()
+        return metadata.get(model_id, {}).get('path')
+    
+    def cleanup_old_models(self, max_age_days=30):
+        """Clean up old cached models"""
+        metadata = self._load_metadata()
+        current_time = time.time()
+        
+        for model_id, info in metadata.items():
+            if current_time - info['timestamp'] > max_age_days * 86400:
+                self._remove_model(model_id)
+    
+    def get_cache_stats(self):
+        """Get cache statistics"""
+        metadata = self._load_metadata()
+        total_size = sum(info['size'] for info in metadata.values())
+        
+        return {
+            'total_models': len(metadata),
+            'total_size_gb': total_size / (1024**3),
+            'cache_dir': self.cache_dir
+        }
 ```
 
-### **Caching Workflow**
+### **Cache Optimization**
 
-#### **1. Cache Detection**
-```python
-def is_model_cached(self, model_id: str) -> bool:
-    cache_info = self.get_cache_info(model_id)
-    if not cache_info:
-        return False
-    
-    # Check if model files exist
-    model_path = self.cache_dir / "models" / model_id.replace("/", "--")
-    return model_path.exists() and cache_info.get("cached", False)
-```
+#### **Deduplication**
+- **Shared Components**: Common model components are shared between models
+- **Incremental Downloads**: Only download new or changed files
+- **Compression**: Compress model files to save storage space
 
-#### **2. Cache Addition**
+#### **Performance Optimization**
+- **Memory Mapping**: Use memory mapping for large model files
+- **Parallel Downloads**: Download model files in parallel
+- **Background Prefetching**: Prefetch models likely to be used
+
+#### **Storage Management**
+- **Automatic Cleanup**: Remove old unused models
+- **Size Limits**: Enforce cache size limits
+- **Priority Management**: Keep frequently used models
+
+## **Key Performance Indicators (KPIs)**
+
+### **Throughput Metrics**
+
+#### **Tokens per Second**
+- **Definition**: Number of tokens generated per second
+- **Measurement**: Average over time window
+- **Targets**: Vary by model size and GPU count
+- **Monitoring**: Real-time tracking and alerting
+
+#### **Requests per Second**
+- **Definition**: Number of API requests processed per second
+- **Measurement**: Rate of incoming requests
+- **Targets**: Based on hardware capacity
+- **Monitoring**: Load balancing and scaling decisions
+
+### **Latency Metrics**
+
+#### **First Token Latency**
+- **Definition**: Time from request to first token generation
+- **Measurement**: End-to-end timing
+- **Targets**: < 100ms for most models
+- **Monitoring**: User experience indicator
+
+#### **End-to-End Latency**
+- **Definition**: Total time to complete request
+- **Measurement**: Request start to response end
+- **Targets**: Based on model size and complexity
+- **Monitoring**: Overall performance indicator
+
+### **Resource Utilization**
+
+#### **GPU Utilization**
+- **Definition**: Percentage of GPU compute capacity used
+- **Measurement**: Average over time window
+- **Targets**: 80-90% for optimal performance
+- **Monitoring**: Performance optimization
+
+#### **Memory Utilization**
+- **Definition**: Percentage of GPU memory used
+- **Measurement**: Peak and average usage
+- **Targets**: < 95% to avoid OOM errors
+- **Monitoring**: Resource management
+
+### **Quality Metrics**
+
+#### **Model Accuracy**
+- **Definition**: Quality of generated outputs
+- **Measurement**: Automated and manual evaluation
+- **Targets**: Model-specific benchmarks
+- **Monitoring**: Quality assurance
+
+#### **Response Quality**
+- **Definition**: Relevance and coherence of responses
+- **Measurement**: User feedback and automated metrics
+- **Targets**: Application-specific requirements
+- **Monitoring**: User satisfaction
+
+## **Configuration Generation**
+
+### **vLLM Configuration**
+
 ```python
-def add_model_to_cache(self, model_id: str, model_path: Path, commit_hash: str = None):
-    # Create cache directory for model
-    cache_path = self.get_model_cache_path(model_id)
-    cache_path.mkdir(parents=True, exist_ok=True)
+def generate_vllm_config(recipe):
+    """Generate vLLM configuration from recipe"""
     
-    # Copy model files to cache
-    shutil.copytree(model_path, cache_path, dirs_exist_ok=True)
-    
-    # Update cache index with metadata
-    self.cache_index[model_id] = {
-        "cached": True,
-        "cache_path": str(cache_path),
-        "commit_hash": commit_hash,
-        "cached_at": datetime.now().isoformat(),
-        "size": self._get_directory_size(cache_path)
+    config = {
+        'model': recipe['huggingface_id'],
+        'dtype': recipe['precision'],
+        'tensor_parallel_size': recipe['gpu_count'],
+        'max_model_len': recipe['config']['args']['max_model_len'],
+        'max_num_batched_tokens': recipe['config']['args']['max_num_batched_tokens'],
+        'gpu_memory_utilization': recipe['config']['args']['gpu_memory_utilization'],
+        'trust_remote_code': recipe['config']['args'].get('trust_remote_code', True),
+        'host': '0.0.0.0',
+        'port': 8000
     }
+    
+    return config
 ```
 
-#### **3. Cache Environment Setup**
+### **Docker Configuration**
+
 ```python
-def generate_cache_environment(self, model_id: str) -> Dict[str, str]:
-    env_vars = {
-        "HF_HOME": str(self.cache_dir),
-        "TRANSFORMERS_CACHE": str(self.cache_dir),
-        "HF_DATASETS_CACHE": str(self.cache_dir),
-        "VLLM_CACHE_DIR": str(self.cache_dir),
-        "HF_HUB_DISABLE_TELEMETRY": "1"
+def generate_docker_config(recipe):
+    """Generate Docker configuration from recipe"""
+    
+    config = {
+        'image': 'rocm/vllm:latest',
+        'ports': ['8000:8000'],
+        'devices': ['/dev/kfd', '/dev/dri'],
+        'group_add': ['video', 'render'],
+        'volumes': ['/workspace/model-cache:/workspace/model-cache'],
+        'environment': recipe['config']['env_vars'],
+        'command': ['python3', '-m', 'vllm.entrypoints.openai.api_server'],
+        'args': recipe_to_vllm_args(recipe)
     }
     
-    # If model is cached, add specific path
-    if self.is_model_cached(model_id):
-        cache_path = self.get_model_cache_path(model_id)
-        env_vars["MODEL_CACHE_PATH"] = str(cache_path)
-    
-    return env_vars
+    return config
 ```
 
-#### **4. Cache Volume Mounting**
-```python
-def generate_cache_volumes(self, model_id: str) -> List[str]:
-    volumes = [f"{self.cache_dir}:/workspace/model-cache:ro"]
-    
-    # If model is cached, add specific model volume
-    if self.is_model_cached(model_id):
-        cache_path = self.get_model_cache_path(model_id)
-        volumes.append(f"{cache_path}:/workspace/models/{model_id.replace('/', '--')}:ro")
-    
-    return volumes
-```
+### **Kubernetes Configuration**
 
-### **Cache Management Operations**
-
-#### **Cache Statistics**
 ```python
-def get_cache_stats(self) -> Dict:
-    cached_models = self.list_cached_models()
-    total_size = sum(model["size"] for model in cached_models)
+def generate_kubernetes_config(recipe):
+    """Generate Kubernetes configuration from recipe"""
     
-    return {
-        "total_models": len(cached_models),
-        "total_size": total_size,
-        "total_size_gb": total_size / (1024**3),
-        "cache_dir": str(self.cache_dir),
-        "models": cached_models
+    deployment = {
+        'apiVersion': 'apps/v1',
+        'kind': 'Deployment',
+        'metadata': {'name': 'aim-engine'},
+        'spec': {
+            'replicas': 1,
+            'selector': {'matchLabels': {'app': 'aim-engine'}},
+            'template': {
+                'metadata': {'labels': {'app': 'aim-engine'}},
+                'spec': {
+                    'containers': [{
+                        'name': 'aim-engine',
+                        'image': 'rocm/vllm:latest',
+                        'resources': {
+                            'requests': {
+                                'amd.com/gpu': str(recipe['gpu_count']),
+                                'memory': recipe['resources']['requests']['memory'],
+                                'cpu': recipe['resources']['requests']['cpu']
+                            },
+                            'limits': {
+                                'amd.com/gpu': str(recipe['gpu_count']),
+                                'memory': recipe['resources']['limits']['memory'],
+                                'cpu': recipe['resources']['limits']['cpu']
+                            }
+                        },
+                        'command': ['python3', '-m', 'vllm.entrypoints.openai.api_server'],
+                        'args': recipe_to_vllm_args(recipe),
+                        'env': recipe_to_env_vars(recipe)
+                    }]
+                }
+            }
+        }
     }
+    
+    return deployment
 ```
 
-#### **Cache Cleanup**
-```python
-def cleanup_old_models(self, days_old: int = 30):
-    cutoff_date = datetime.now().timestamp() - (days_old * 24 * 60 * 60)
-    models_to_remove = []
-    
-    for model_id, info in self.cache_index.items():
-        if info.get("cached", False):
-            cached_at = datetime.fromisoformat(info["cached_at"]).timestamp()
-            if cached_at < cutoff_date:
-                models_to_remove.append(model_id)
-    
-    for model_id in models_to_remove:
-        self.remove_model_from_cache(model_id)
-```
+## **Optimization Strategies**
 
-### **Cache Performance Benefits**
+### **Performance Optimization**
 
-#### **1. Deployment Speed**
-- **First Deployment**: Downloads and caches model (slower)
-- **Subsequent Deployments**: Uses cached model (instant)
-- **Speed Improvement**: 10-100x faster for cached models
+#### **GPU Optimization**
+- **Memory Management**: Optimize GPU memory allocation
+- **Kernel Selection**: Choose optimal CUDA kernels
+- **Parallelization**: Maximize GPU utilization
+- **Precision Tuning**: Balance accuracy and speed
 
-#### **2. Network Efficiency**
-- **Bandwidth Savings**: No repeated downloads
-- **Offline Capability**: Works without internet after caching
-- **Reduced Latency**: Local model access
+#### **Model Optimization**
+- **Quantization**: Reduce model precision for speed
+- **Pruning**: Remove unnecessary model weights
+- **Distillation**: Create smaller, faster models
+- **Caching**: Cache intermediate computations
 
-#### **3. Resource Optimization**
-- **Storage Efficiency**: Shared cache across containers
-- **Memory Optimization**: Pre-loaded model components
-- **Disk I/O Reduction**: Local cache access vs network downloads
+#### **System Optimization**
+- **I/O Optimization**: Minimize disk and network I/O
+- **Memory Management**: Optimize system memory usage
+- **Process Management**: Efficient process scheduling
+- **Network Optimization**: Minimize network latency
 
-#### **4. Reliability**
-- **Consistent Availability**: Models always available locally
-- **Version Control**: Commit hash tracking for model versions
-- **Fallback Support**: Graceful handling of cache misses
+### **Resource Optimization**
 
-### **Cache Integration with Recipe Selection**
+#### **GPU Resource Management**
+- **Memory Allocation**: Efficient GPU memory allocation
+- **Load Balancing**: Distribute load across GPUs
+- **Power Management**: Optimize GPU power consumption
+- **Thermal Management**: Monitor and manage GPU temperature
 
-#### **Cache-Aware Deployment**
-```python
-# In generate_docker_command.py
-docker_command = f"""docker run --rm \\
-  --name {container_name} \\
-  --device=/dev/kfd \\
-  --device=/dev/dri \\
-  --group-add=video \\
-  --group-add=render \\
-  -v /workspace/model-cache:/workspace/model-cache \\  # Cache volume mount
-  -p {port}:8000 \\
-  rocm/vllm:latest \\
-  {vllm_command}"""
-```
+#### **System Resource Management**
+- **CPU Allocation**: Optimize CPU usage
+- **Memory Allocation**: Efficient memory management
+- **Storage Optimization**: Optimize storage usage
+- **Network Management**: Optimize network usage
 
-#### **Cache Status in Recipe Selection**
-- **Cache Hit**: Use cached model, skip download
-- **Cache Miss**: Download and cache model for future use
-- **Cache Validation**: Verify model integrity and version
+### **Cost Optimization**
 
-## 📊 **Key Performance Indicators (KPIs)**
+#### **Hardware Optimization**
+- **Right-sizing**: Choose appropriate hardware
+- **Scaling**: Scale based on demand
+- **Consolidation**: Consolidate workloads
+- **Efficiency**: Maximize resource utilization
 
-### **1. Resource Utilization KPIs**
-- **GPU Memory Utilization**: Target 90% (`--gpu-memory-utilization: '0.9'`)
-- **GPU Count Optimization**: Match model size to optimal GPU count
-- **Memory Efficiency**: Use appropriate precision for model size
+#### **Operational Optimization**
+- **Automation**: Automate deployment and management
+- **Monitoring**: Proactive monitoring and alerting
+- **Maintenance**: Regular maintenance and updates
+- **Documentation**: Comprehensive documentation
 
-### **2. Throughput KPIs**
-- **Batch Token Capacity**: Scales with GPU count
-  - 1 GPU: 8,192 tokens
-  - 2 GPU: 16,384 tokens
-  - 4 GPU: 32,768 tokens
-  - 8 GPU: 65,536 tokens
-- **Model Length**: Consistent 32,768 tokens across configurations
-- **Tensor Parallelism**: Automatic scaling with GPU count
+## **Workflow Summary**
 
-### **3. Latency KPIs**
-- **Model Loading Time**: Optimized through caching
-- **First Token Latency**: Minimized through precision selection
-- **Inference Speed**: Optimized through hardware-specific recipes
+### **Deployment Workflow**
 
-### **4. Reliability KPIs**
-- **Fallback Success Rate**: Multiple fallback strategies
-- **Resource Validation**: GPU availability verification
-- **Configuration Validation**: Recipe parameter validation
+1. **Model Selection**: Choose model to deploy
+2. **Hardware Detection**: Detect available hardware
+3. **Recipe Selection**: Select optimal recipe
+4. **Configuration Generation**: Generate deployment config
+5. **Validation**: Validate configuration
+6. **Deployment**: Deploy to target environment
+7. **Monitoring**: Monitor performance and health
+8. **Optimization**: Optimize based on metrics
 
-### **5. Caching KPIs**
-- **Cache Hit Rate**: Percentage of deployments using cached models
-- **Cache Efficiency**: Storage utilization and cleanup effectiveness
-- **Deployment Speed**: Time reduction from first to subsequent deployments
-- **Cache Persistence**: Cache survival rate across container restarts
+### **Maintenance Workflow**
 
-## 🔧 **Configuration Generation**
+1. **Monitoring**: Monitor system health and performance
+2. **Alerting**: Respond to alerts and issues
+3. **Updates**: Apply updates and patches
+4. **Optimization**: Optimize based on performance data
+5. **Scaling**: Scale based on demand
+6. **Backup**: Regular backups and recovery testing
 
-### **vLLM Command Generation**
-```python
-def _build_command(self, recipe_config, backend, port):
-    args = recipe_config.get('args', {})
-    
-    # Build command string
-    command_parts = [f"python -m vllm.entrypoints.openai.api_server"]
-    
-    for arg, value in args.items():
-        if arg == '--port':
-            command_parts.append(f"{arg} {port}")
-        else:
-            command_parts.append(f"{arg} {value}")
-    
-    return " ".join(command_parts)
-```
+### **Development Workflow**
 
-### **Environment Variable Setup**
-```python
-def _build_environment(self, recipe, precision, backend):
-    env = {
-        'HIP_VISIBLE_DEVICES': '0,1,2,3,4,5,6,7',  # AMD/ROCm primary
-        'PYTORCH_ROCM_ARCH': 'gfx90a',  # MI300X architecture
-        'VLLM_USE_ROCM': '1'  # Enable ROCm backend
-    }
-    return env
-```
+1. **Development**: Develop new features and improvements
+2. **Testing**: Test changes thoroughly
+3. **Validation**: Validate against requirements
+4. **Deployment**: Deploy to development environment
+5. **Integration**: Integrate with existing systems
+6. **Documentation**: Update documentation
+7. **Release**: Release to production
 
-## 🎯 **Optimization Strategies**
-
-### **1. Model-Size Based Optimization**
-- **Small Models (7B-8B)**: Single GPU, fp16 precision
-- **Medium Models (13B-14B)**: 2 GPUs, bf16 precision
-- **Large Models (32B-34B)**: 4+ GPUs, bf16 precision
-- **XL Models (70B+)**: 8 GPUs, bf16 precision
-
-### **2. Hardware-Specific Optimization**
-- **MI300X**: Optimized for high memory bandwidth
-- **MI325X**: Optimized for next-generation performance
-- **Precision Selection**: Hardware-aware precision choices
-
-### **3. Dynamic Resource Allocation**
-- **GPU Count Scaling**: Automatic tensor parallelism
-- **Memory Utilization**: Optimized memory usage (90%)
-- **Batch Size Scaling**: Token capacity scales with GPU count
-
-### **4. Fallback Mechanisms**
-- **GPU Count Fallback**: Try lower GPU counts if optimal not available
-- **Precision Fallback**: Try alternative precisions
-- **Backend Fallback**: Support multiple backends (vLLM, sglang)
-
-## 📈 **Performance Benefits**
-
-### **1. Automated Optimization**
-- **Zero Configuration**: Works out-of-the-box
-- **Hardware Awareness**: Automatically detects and optimizes for AMD GPUs
-- **Model Intelligence**: Understands model characteristics and requirements
-
-### **2. Resource Efficiency**
-- **Optimal GPU Allocation**: Matches model size to GPU count
-- **Memory Optimization**: Uses appropriate precision for model size
-- **Throughput Scaling**: Batch capacity scales with available resources
-
-### **3. Reliability**
-- **Multiple Fallbacks**: Robust error handling and fallback strategies
-- **Resource Validation**: Verifies GPU availability before deployment
-- **Configuration Validation**: Ensures recipe parameters are valid
-
-### **4. Maintainability**
-- **Recipe-Based**: Easy to add new models and configurations
-- **Hardware Agnostic**: Supports different AMD GPU generations
-- **Backend Flexible**: Supports multiple inference backends
-
-## 🔄 **Workflow Summary**
-
-### **Container-Based Workflow**
-1. **Container Build**: Install AIM Engine tools into vLLM ROCm container
-2. **Input**: Model ID + optional GPU count/precision
-3. **Cache Check**: Verify if model is already cached locally
-4. **Detection**: Multi-level GPU detection (vLLM → Container → Host)
-5. **Optimization**: Model-size based GPU count and precision selection
-6. **Matching**: Find best recipe matching requirements
-7. **Fallback**: Try alternative configurations if primary fails
-8. **Direct Execution**: Run vLLM command directly within the same container
-9. **Output**: Optimized vLLM server running with optimal parameters
-
-### **Key Advantages of Container Integration**
-- **No Docker-in-Docker**: Eliminates complexity of nested containers
-- **Direct Command Execution**: vLLM commands run directly within the container
-- **Shared Environment**: AIM Engine tools and vLLM runtime share resources
-- **Simplified Deployment**: Single container handles both configuration and inference
-- **Better Performance**: No container orchestration overhead
-
-This design ensures that AIM Engine automatically delivers the best possible performance for any model on any AMD hardware configuration, with robust fallback mechanisms and comprehensive resource optimization. 
+This detailed technical documentation provides a comprehensive understanding of the AIM Engine system architecture, components, and workflows. 

@@ -1,52 +1,48 @@
-# Kubernetes Directory Structure
+# AIM Engine Kubernetes Directory Structure
 
-## 🎯 **Clean Organization**
+## **Clean Organization**
 
-The `k8s` directory has been reorganized for clarity and ease of use:
+The `k8s` directory has been reorganized for clarity and maintainability. Here's the new structure:
 
 ```
 k8s/
-├── README.md                    # Main documentation
-├── STRUCTURE.md                 # This file
-├── common/                      # Shared resources
-│   ├── namespace.yaml          # Namespace definitions
-│   ├── configmap.yaml          # Configuration settings
-│   └── kustomization.yaml      # Kustomize configuration
-├── minikube/                    # Development environment
-│   ├── deploy.sh               # Minikube deployment script
-│   ├── deployment.yaml         # Minikube deployment (no GPU)
-│   ├── service.yaml            # NodePort service
-│   ├── storage.yaml            # 10Gi storage
-│   ├── rbac.yaml               # Simplified RBAC
-│   └── mock-server.py          # Mock API server
-├── production/                  # Production environment
-│   ├── deploy.sh               # Production deployment script
-│   ├── deployment.yaml         # Full GPU deployment
-│   ├── service.yaml            # LoadBalancer service
-│   ├── storage.yaml            # 500Gi storage
-│   ├── rbac.yaml               # Full RBAC with PSP
-│   ├── ingress.yaml            # Ingress configuration
-│   ├── hpa.yaml                # Horizontal Pod Autoscaler
-│   └── monitoring.yaml         # Monitoring setup
-├── helm/                        # Helm chart
-│   ├── Chart.yaml
-│   └── values.yaml
-├── patches/                     # Kustomize patches
-│   ├── development.yaml
-│   └── production.yaml
-├── scripts/                     # Helper scripts
-│   └── helpers/
-│       ├── deploy-minikube.sh
-│       └── deploy-production.sh
-└── docs/                        # Documentation
-    ├── MINIKUBE_TO_PRODUCTION.md
-    ├── amd-gpu-setup.md
-    
-    ├── gpu-comparison.md
-    └── README.md
+├── common/                 # Shared resources for all environments
+│   ├── namespace.yaml     # Namespace definitions
+│   ├── configmap.yaml     # Configuration settings
+│   └── kustomization.yaml # Kustomize configuration
+├── minikube/              # Minikube development environment
+│   ├── deploy.sh          # Minikube deployment script
+│   ├── deployment.yaml    # Minikube-specific deployment
+│   ├── service.yaml       # NodePort service
+│   ├── storage.yaml       # 10Gi storage
+│   ├── rbac.yaml          # Simplified RBAC
+│   └── monitoring.yaml    # Basic monitoring
+├── production/            # Production environment
+│   ├── deploy.sh          # Production deployment script
+│   ├── deployment.yaml    # Full GPU-enabled deployment
+│   ├── service.yaml       # LoadBalancer service
+│   ├── storage.yaml       # 500Gi storage
+│   ├── rbac.yaml          # Full RBAC with PSP
+│   ├── ingress.yaml       # Ingress configuration
+│   ├── hpa.yaml           # Horizontal Pod Autoscaler
+│   └── monitoring.yaml    # Monitoring setup
+├── helm/                  # Helm chart (alternative deployment)
+│   ├── Chart.yaml         # Helm chart definition
+│   ├── values.yaml        # Default values
+│   └── templates/         # Helm templates
+├── patches/               # Kustomize patches
+│   ├── development.yaml   # Development overrides
+│   └── production.yaml    # Production overrides
+├── scripts/               # Helper scripts
+│   └── helpers/           # Deployment helper scripts
+└── docs/                  # Documentation
+    ├── README.md          # Main documentation
+    ├── DEVELOPMENT.md     # Development guide
+    ├── PRODUCTION.md      # Production guide
+    └── amd-gpu-setup.md   # AMD GPU setup
 ```
 
-## 🚀 **Quick Deployment**
+## **Quick Deployment**
 
 ### **Minikube (Development)**
 ```bash
@@ -54,53 +50,70 @@ cd k8s/minikube
 ./deploy.sh
 ```
 
-### **Production (AMD GPUs)**
+### **Production (Full Kubernetes)**
 ```bash
 cd k8s/production
-./deploy.sh amd my-registry.com
+./deploy.sh
 ```
 
+### **Helm Chart**
+```bash
+cd k8s/helm
+helm install aim-engine . --values values.yaml
+```
 
+### **Kustomize**
+```bash
+# Development
+kubectl apply -k ./common --env=development
 
-## 📁 **File Organization Benefits**
+# Production
+kubectl apply -k ./common --env=production
+```
 
-### **✅ Clear Separation**
-- **Minikube**: Development files (no GPU, mock server)
-- **Production**: Production files (full GPU, real AIM Engine)
-- **Common**: Shared resources (namespace, configmap)
+## **Benefits**
 
-### **✅ Easy Navigation**
-- Each environment has its own directory
-- Consistent file naming across environments
-- Dedicated deployment scripts
+### **Clear Separation**
+- **Development**: Minikube-specific configurations
+- **Production**: Full Kubernetes configurations
+- **Shared**: Common resources used by both
 
-### **✅ Simple Migration**
-- Clear distinction between environments
-- Easy to switch between Minikube and production
-- Well-documented migration process
+### **Easy Navigation**
+- **Logical grouping**: Related files are together
+- **Clear naming**: Files indicate their purpose
+- **Consistent structure**: Same pattern across environments
 
-### **✅ Maintainable**
-- No duplicate files with different prefixes
-- Logical grouping by environment
-- Comprehensive documentation
+### **Simple Migration**
+- **Development to Production**: Clear migration path
+- **Environment-specific**: Each environment has its own directory
+- **Shared resources**: Common configurations are reusable
 
-## 🔄 **Migration Path**
+### **Maintainable**
+- **Modular design**: Easy to modify individual components
+- **Version control**: Clear change tracking
+- **Documentation**: Each directory has its own documentation
 
-### **Minikube → Production**
-1. Install GPU device plugin
-2. Switch from `minikube/` to `production/` directory
-3. Run production deployment script
+## **Migration Path**
 
-### **Production → Minikube**
-1. Switch from `production/` to `minikube/` directory
-2. Run Minikube deployment script
+### **From Old Structure**
+1. **Backup**: Save your current configurations
+2. **Choose Environment**: Select minikube or production
+3. **Deploy**: Use the new deployment scripts
+4. **Verify**: Test the deployment
+5. **Cleanup**: Remove old configurations
 
-## 📚 **Documentation**
+### **Environment Migration**
+1. **Development**: Start with minikube for testing
+2. **Staging**: Use production configs with limited resources
+3. **Production**: Full deployment with monitoring
 
-- **[README.md](README.md)** - Main deployment guide
-- **[MINIKUBE_TO_PRODUCTION.md](docs/MINIKUBE_TO_PRODUCTION.md)** - Migration guide
-- **[GPU Setup Guides](docs/)** - AMD GPU configuration
+## **Documentation**
 
-## 🎉 **Success!**
+- **README.md**: Main documentation and quick start
+- **DEVELOPMENT.md**: Detailed development guide
+- **PRODUCTION.md**: Detailed production guide
+- **amd-gpu-setup.md**: AMD GPU configuration
 
-The `k8s` directory is now clean, organized, and easy to use! 🚀 
+## **Success!**
+
+The `k8s` directory is now clean, organized, and easy to use! 

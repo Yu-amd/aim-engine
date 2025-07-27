@@ -1,33 +1,41 @@
-# AIM Engine Minikube Deployment with Recipe Support
+# AIM Engine Minikube Development Guide
 
-## 🎯 **Overview**
+## **Overview**
 
-This enhanced Minikube deployment includes **recipe selection** and **monitoring capabilities**, making it a feature-complete development environment for testing AIM Engine functionality.
+This guide provides everything you need to deploy and test AIM Engine in Minikube for development, testing, and learning purposes. Minikube provides a lightweight Kubernetes environment perfect for development without requiring GPU hardware.
 
-## 🚀 **Features**
+## **Features**
 
-### **✅ Recipe Selection**
+### **Recipe Selection**
 - **Automatic recipe selection** based on model and resources
 - **Mock recipe configuration** for development testing
 - **Recipe validation** and fallback mechanisms
 - **Configuration overrides** support
 
-### **✅ Monitoring & Observability**
+### **Monitoring & Observability**
 - **Prometheus metrics** endpoint (`/metrics`)
 - **Health checks** endpoint (`/health`)
 - **Recipe information** endpoint (`/recipe`)
 - **ServiceMonitor** for Prometheus integration
 - **Basic Grafana dashboard** configuration
 
-### **✅ Development Features**
+### **Development Features**
 - **Mock vLLM server** with recipe-aware responses
 - **TGI server** for real inference capabilities
 - **Comprehensive logging** and debugging
 - **Resource optimization** for Minikube constraints
 - **Easy testing** with included test scripts
 
-## 📋 **Prerequisites**
+## **Prerequisites**
 
+### **System Requirements**
+- **Docker**: Installed and running
+- **Minikube**: Latest version installed
+- **kubectl**: Configured for Minikube
+- **Memory**: At least 4GB available RAM
+- **Storage**: At least 10GB free disk space
+
+### **Software Installation**
 ```bash
 # Install Minikube
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
@@ -37,276 +45,350 @@ sudo install minikube-linux-amd64 /usr/local/bin/minikube
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
-# Install jq (for JSON parsing)
-sudo apt-get install jq
+# Verify installation
+minikube version
+kubectl version --client
 ```
 
-## 🚀 **Quick Start**
+### **Docker Driver Support**
+```bash
+# Check Docker
+docker --version
+
+# Ensure Docker is running
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add user to docker group (if needed)
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+## **Quick Start**
 
 ### **1. Start Minikube**
 ```bash
-# Start Minikube with sufficient resources
+# Start Minikube with Docker driver
 minikube start --driver=docker --cpus=4 --memory=8192 --disk-size=20g
 
-# Enable required addons
-minikube addons enable ingress
-minikube addons enable storage-provisioner
+# Verify cluster is running
+kubectl cluster-info
+kubectl get nodes
 ```
 
-### **2. Deploy AIM Engine**
+### **2. Build and Load Docker Image**
+```bash
+# Build AIM Engine image
+./scripts/build-aim-vllm.sh
 
-#### **Option A: Mock Server (Default)**
+# Load image into Minikube
+minikube image load aim-vllm:latest
+
+# Verify image is loaded
+minikube image ls | grep aim-vllm
+```
+
+### **3. Deploy AIM Engine**
 ```bash
 # Navigate to Minikube directory
 cd k8s/minikube
 
-# Deploy with mock server
+# Deploy with mock server (default)
 ./deploy.sh
-```
 
-#### **Option B: TGI Server (Real Inference)**
-```bash
-# Navigate to Minikube directory
-cd k8s/minikube
-
-# Deploy with TGI for real inference
+# Or deploy with TGI server
 ./deploy.sh tgi
 ```
 
-### **3. Test the Deployment**
+### **4. Verify Deployment**
 ```bash
-# Test mock server functionality
-./test-recipe.sh
+# Check deployment status
+kubectl get pods -n aim-engine
 
-# Test TGI inference (if deployed with TGI)
-./test-tgi.sh
+# Check services
+kubectl get services -n aim-engine
+
+# Check recipe configuration
+kubectl get configmap aim-engine-recipe-config -n aim-engine -o yaml
 ```
 
-## 🔧 **Configuration**
+### **5. Access the Service**
+```bash
+# Port forward to service
+kubectl port-forward service/aim-engine-service 8000:8000 -n aim-engine
+
+# Test endpoints
+curl http://localhost:8000/health
+curl http://localhost:8000/recipe
+curl http://localhost:8000/metrics
+```
+
+## **Configuration**
+
+### **Environment Variables**
+```bash
+# Model configuration
+MODEL_ID=microsoft/DialoGPT-medium
+PRECISION=float16
+BACKEND=tgi
+
+# Resource configuration
+GPU_COUNT=1
+MEMORY_LIMIT=4Gi
+CPU_LIMIT=2
+
+# Performance configuration
+MAX_BATCH_SIZE=8
+MAX_INPUT_LENGTH=1024
+MAX_OUTPUT_LENGTH=512
+```
 
 ### **Recipe Configuration**
-
-The deployment automatically selects a recipe based on available resources:
-
-#### **Mock Server (Default)**
 ```yaml
-# Default recipe for Minikube mock server
-recipe_id: qwen3-32b-1gpu-bf16
-model_id: Qwen/Qwen3-32B
-gpu_count: 1
-precision: bf16
-backend: vllm
-```
-
-#### **TGI Server**
-```yaml
-# Default recipe for Minikube TGI server
+# Example recipe for Minikube
 recipe_id: dialogpt-medium-1gpu-float16
-model_id: microsoft/DialoGPT-medium
+huggingface_id: microsoft/DialoGPT-medium
+hardware: CPU
 gpu_count: 1
 precision: float16
 backend: tgi
+config:
+  args:
+    model_id: microsoft/DialoGPT-medium
+    dtype: float16
+    port: 8000
+    hostname: 0.0.0.0
+    max_batch_total_tokens: 4096
+    max_batch_prefill_tokens: 2048
+    max_input_length: 1024
+    max_total_tokens: 2048
+performance:
+  expected_tokens_per_second: 50
+  expected_latency_ms: 500
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "2"
+  limits:
+    memory: "8Gi"
+    cpu: "4"
 ```
 
-### **Custom Recipe Selection**
-
-You can customize the recipe by modifying the environment variables in `recipe-selector-job.yaml`:
-
-```yaml
-env:
-- name: MODEL_ID
-  value: "Qwen/Qwen3-7B"  # Change model
-- name: GPU_COUNT
-  value: "1"              # Change GPU count
-- name: PRECISION
-  value: "bf16"           # Change precision
-```
-
-## 📊 **Monitoring**
-
-### **Available Endpoints**
-
-#### **Mock Server Endpoints**
-| Endpoint | Description | Example |
-|----------|-------------|---------|
-| `/` | Main web interface | Shows recipe configuration |
-| `/metrics` | Prometheus metrics | Recipe and performance metrics |
-| `/health` | Health check | JSON health status |
-| `/recipe` | Recipe information | Detailed recipe configuration |
-
-#### **TGI Server Endpoints**
-| Endpoint | Description | Example |
-|----------|-------------|---------|
-| `/health` | Health check | JSON health status |
-| `/info` | Model information | Model details and configuration |
-| `/generate` | Text generation | POST with input text and parameters |
-| `/metrics` | Prometheus metrics | Performance and usage metrics |
-
-### **Accessing Endpoints**
-
+### **Custom Configuration**
 ```bash
-# Port forward to access endpoints
-kubectl port-forward service/aim-engine-service 8000:8000 -n aim-engine
+# Deploy with custom model
+./deploy.sh tgi --model microsoft/DialoGPT-small
 
-# Mock Server Endpoints
-curl http://localhost:8000/                    # Web interface
-curl http://localhost:8000/metrics             # Metrics
-curl http://localhost:8000/health              # Health check
-curl http://localhost:8000/recipe              # Recipe info
+# Deploy with custom resources
+./deploy.sh --memory 8Gi --cpu 4
 
-# TGI Server Endpoints
-curl http://localhost:8000/health              # Health check
-curl http://localhost:8000/info                # Model info
-curl -X POST http://localhost:8000/generate \  # Text generation
-  -H "Content-Type: application/json" \
-  -d '{"inputs": "Hello", "parameters": {"max_new_tokens": 50}}'
+# Deploy with custom recipe
+./deploy.sh --recipe custom-recipe.yaml
 ```
+
+## **Monitoring**
 
 ### **Prometheus Integration**
-
-If you have Prometheus Operator installed:
-
 ```bash
-# Check if monitoring is enabled
-kubectl get servicemonitor -n aim-engine-monitoring
+# Check ServiceMonitor
+kubectl get servicemonitor -n aim-engine
 
-# View monitoring resources
-kubectl get all -n aim-engine-monitoring
+# Check Prometheus targets
+kubectl port-forward service/prometheus 9090:9090 -n monitoring
+# Access: http://localhost:9090
+
+# Query metrics
+curl -G http://localhost:9090/api/v1/query --data-urlencode 'query=aim_recipe_selection_total'
 ```
 
-## 🧪 **Testing**
+### **Grafana Dashboard**
+```bash
+# Port forward to Grafana
+kubectl port-forward service/grafana 3000:3000 -n monitoring
+
+# Access dashboard
+# URL: http://localhost:3000
+# Username: admin
+# Password: admin
+```
+
+### **Custom Metrics**
+```bash
+# View available metrics
+curl http://localhost:8000/metrics | grep aim_
+
+# Example metrics
+# aim_recipe_selection_total{result="success"} 1
+# aim_performance_tokens_per_second 45.2
+# aim_gpu_memory_utilization 0.75
+```
+
+### **Logging**
+```bash
+# View pod logs
+kubectl logs -f deployment/aim-engine -n aim-engine
+
+# View recipe selector logs
+kubectl logs job/aim-engine-recipe-selector -n aim-engine
+
+# View events
+kubectl get events -n aim-engine --sort-by='.lastTimestamp'
+```
+
+## **Testing**
 
 ### **Automated Testing**
 ```bash
-# Run comprehensive tests
+# Run mock server tests
 ./test-recipe.sh
+
+# Run TGI server tests
+./test-tgi.sh
+
+# Run performance tests
+./test-performance.sh
 ```
 
 ### **Manual Testing**
 ```bash
-# Check deployment status
-kubectl get all -n aim-engine
+# Test health endpoint
+curl http://localhost:8000/health
 
-# Check recipe configuration
-kubectl get configmap aim-engine-recipe-config -n aim-engine -o yaml
+# Test recipe endpoint
+curl http://localhost:8000/recipe
 
-# View logs
-kubectl logs -n aim-engine deployment/aim-engine --tail=50
+# Test metrics endpoint
+curl http://localhost:8000/metrics
 
-# Test endpoints
-kubectl port-forward service/aim-engine-service 8000:8000 -n aim-engine
-curl http://localhost:8000/recipe | jq '.'
+# Test TGI endpoints (if using TGI)
+curl http://localhost:8000/info
+curl -X POST http://localhost:8000/generate \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": "Hello", "parameters": {"max_new_tokens": 50}}'
 ```
 
-## 📈 **Metrics**
+### **Performance Testing**
+```bash
+# Load testing
+for i in {1..10}; do
+  curl -X POST http://localhost:8000/generate \
+    -H "Content-Type: application/json" \
+    -d '{"inputs": "Test request '$i'", "parameters": {"max_new_tokens": 20}}' &
+done
+wait
 
-### **Available Metrics**
-
-The deployment exposes the following Prometheus metrics:
-
-- `aim_recipe_selection_total` - Total recipe selections
-- `aim_performance_tokens_per_second` - Performance throughput
-- `aim_gpu_memory_utilization` - GPU memory utilization
-- `aim_engine_requests_total` - Request count
-
-### **Sample Metrics Output**
-```
-# HELP aim_recipe_selection_total Total number of recipe selections
-# TYPE aim_recipe_selection_total counter
-aim_recipe_selection_total{recipe_id="qwen3-32b-1gpu-bf16",model="Qwen/Qwen3-32B",gpu_count="1",precision="bf16"} 1
-
-# HELP aim_performance_tokens_per_second Tokens per second (mock)
-# TYPE aim_performance_tokens_per_second gauge
-aim_performance_tokens_per_second{recipe_id="qwen3-32b-1gpu-bf16"} 150.5
+# Monitor resource usage
+kubectl top pods -n aim-engine
+kubectl exec deployment/aim-engine -n aim-engine -- free -h
 ```
 
-## 🔍 **Troubleshooting**
+## **Troubleshooting**
 
 ### **Common Issues**
 
-#### **Recipe Selection Fails**
+#### **Pod Not Starting**
 ```bash
-# Check recipe selector job
-kubectl get jobs -n aim-engine
-kubectl logs -n aim-engine job/aim-engine-recipe-selector-hook
+# Check pod status
+kubectl describe pod -n aim-engine deployment/aim-engine
 
-# Check recipe ConfigMap
-kubectl get configmap aim-engine-recipe-config -n aim-engine
+# Check resource limits
+kubectl describe node minikube
+
+# Check image availability
+minikube image ls | grep aim-vllm
 ```
 
 #### **Service Not Accessible**
 ```bash
-# Check service status
-kubectl get svc -n aim-engine
+# Check service configuration
+kubectl get service aim-engine-service -n aim-engine -o yaml
 
-# Check pod status
-kubectl get pods -n aim-engine
+# Check endpoints
+kubectl get endpoints -n aim-engine
 
-# Check pod logs
-kubectl logs -n aim-engine deployment/aim-engine
+# Test port forwarding
+kubectl port-forward service/aim-engine-service 8000:8000 -n aim-engine
 ```
 
-#### **Monitoring Not Working**
+#### **Recipe Selection Issues**
 ```bash
-# Check if Prometheus Operator is installed
-kubectl get crd servicemonitors.monitoring.coreos.com
+# Check recipe selector job
+kubectl logs job/aim-engine-recipe-selector -n aim-engine
 
-# Check monitoring resources
-kubectl get all -n aim-engine-monitoring
+# Check recipe configmap
+kubectl get configmap aim-engine-recipe-config -n aim-engine -o yaml
+
+# Verify recipe files
+kubectl get configmap -n aim-engine | grep recipe
+```
+
+#### **Memory Issues**
+```bash
+# Check available memory
+kubectl describe node minikube | grep -A 5 "Allocated resources"
+
+# Increase Minikube memory
+minikube stop
+minikube start --driver=docker --cpus=6 --memory=12288 --disk-size=30g
 ```
 
 ### **Debug Commands**
 ```bash
-# Get detailed pod information
-kubectl describe pod -n aim-engine -l app=aim-engine
+# Enable debug logging
+kubectl patch deployment aim-engine -n aim-engine -p '{"spec":{"template":{"spec":{"containers":[{"name":"aim-engine","env":[{"name":"LOG_LEVEL","value":"DEBUG"}]}]}}}}'
 
-# Check events
+# Check pod events
 kubectl get events -n aim-engine --sort-by='.lastTimestamp'
 
 # Check resource usage
 kubectl top pods -n aim-engine
+kubectl top nodes
 ```
 
-## 🧹 **Cleanup**
-
-### **Remove Deployment**
+### **Reset Environment**
 ```bash
-# Remove all resources
-kubectl delete namespace aim-engine --ignore-not-found=true
-kubectl delete namespace aim-engine-monitoring --ignore-not-found=true
+# Clean up deployment
+kubectl delete namespace aim-engine
 
-# Stop Minikube
+# Reset Minikube
 minikube stop
-```
-
-### **Reset Minikube**
-```bash
-# Complete reset
 minikube delete
-minikube start --driver=docker --cpus=4 --memory=8192 --disk-size=20g
+minikube start --driver=docker --cpus=6 --memory=16384 --disk-size=30g
+
+# Rebuild and redeploy
+./scripts/build-aim-vllm.sh
+minikube image load aim-vllm:latest
+./deploy.sh
 ```
 
-## 🎯 **Next Steps**
+## **Next Steps**
 
 ### **Development Workflow**
-1. **Deploy** with `./deploy.sh`
-2. **Test** with `./test-recipe.sh`
-3. **Develop** and iterate
-4. **Monitor** performance and metrics
-5. **Clean up** when done
+1. **Start Minikube**: `minikube start --driver=docker --cpus=4 --memory=8192`
+2. **Deploy AIM Engine**: `./deploy.sh`
+3. **Test Changes**: Use test scripts and manual testing
+4. **Monitor Performance**: Use Grafana dashboard
+5. **Iterate**: Make changes and redeploy
 
-### **Production Migration**
-When ready for production:
-1. **Stop Minikube**: `minikube stop`
-2. **Set up production cluster** with AMD GPUs
-3. **Deploy using production scripts**: `../scripts/deploy-with-recipe-support.sh`
-4. **Configure real monitoring** with Prometheus/Grafana
+### **Production Preparation**
+1. **Test with Real Models**: Use TGI server with actual models
+2. **Validate Performance**: Ensure performance meets requirements
+3. **Test Scaling**: Verify horizontal pod autoscaling
+4. **Security Review**: Check RBAC and network policies
+5. **Documentation**: Update deployment guides
 
-## 📚 **Additional Resources**
+### **Advanced Features**
+1. **Custom Recipes**: Create recipes for your specific models
+2. **Monitoring Alerts**: Set up Prometheus alerting rules
+3. **CI/CD Integration**: Automate deployment testing
+4. **Multi-Model Testing**: Test multiple models simultaneously
+5. **Performance Optimization**: Tune recipes for better performance
 
-- [Main Deployment Workflow](../docs/DEPLOYMENT_WORKFLOW.md)
-- [Quick Reference](../docs/QUICK_REFERENCE.md)
-- [Production Deployment](../production/)
-- [Helm Charts](../helm/)
+## **Additional Resources**
 
-This enhanced Minikube deployment provides a **complete development environment** for testing AIM Engine with full recipe support and monitoring capabilities! 🚀 
+- **[Production Guide](../docs/PRODUCTION.md)**: Full Kubernetes deployment
+- **[AMD GPU Setup](../docs/amd-gpu-setup.md)**: GPU configuration guide
+- **[Recipe System](../../docs/RECIPE_GUIDE.md)**: Recipe development guide
+- **[Troubleshooting](../../docs/TROUBLESHOOTING.md)**: Common issues and solutions
+
+Your AIM Engine is now running in Minikube with full recipe support and monitoring capabilities! 

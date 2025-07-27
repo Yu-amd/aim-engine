@@ -1,487 +1,462 @@
-# AIM Engine Architecture Diagrams
+# System Architecture Diagrams
 
-## 🏗️ **System Architecture Diagrams**
+This document provides comprehensive architecture diagrams for the AIM Engine system, showing the relationships between components, data flow, and deployment patterns.
 
-### **1. High-Level System Architecture**
+## **High-Level System Architecture**
 
-```mermaid
-graph TB
-    subgraph "User Interface Layer"
-        A[CLI Commands] --> B[Web Interface]
-        C[API Endpoints] --> B
-        D[Kubernetes Operator] --> B
-    end
-    
-    subgraph "AIM Engine Core"
-        E[Recipe Selector] --> F[Config Generator]
-        G[Cache Manager] --> F
-        H[Resource Detector] --> E
-        I[Performance Monitor] --> E
-    end
-    
-    subgraph "Backend Runtime Layer"
-        J[vLLM Runtime] --> K[Model Serving]
-        L[SGLang Runtime] --> K
-        M[Custom Backends] --> K
-    end
-    
-    subgraph "Hardware Abstraction Layer"
-        N[AMD GPUs] --> O[ROCm Runtime]
-        P[System Memory] --> O
-        Q[Storage Cache] --> O
-    end
-    
-    subgraph "Infrastructure Layer"
-        R[Kubernetes Cluster] --> S[Helm Charts]
-        T[KServe] --> S
-        U[Monitoring Stack] --> S
-    end
-    
-    B --> E
-    F --> J
-    F --> L
-    J --> N
-    L --> N
-    S --> B
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        AIM Engine System                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
+│  │   User Input    │    │  Model Cache    │    │   Recipes    │ │
+│  │                 │    │                 │    │              │ │
+│  │ • Model ID      │    │ • Downloaded    │    │ • GPU Config │ │
+│  │ • GPU Count     │    │   Models        │    │ • Precision  │ │
+│  │ • Precision     │    │ • Shared Cache  │    │ • vLLM Args  │ │
+│  │ • Backend       │    │ • Fast Loading  │    │ • Resources  │ │
+│  └─────────────────┘    └─────────────────┘    └──────────────┘ │
+│           │                       │                       │     │
+│           ▼                       ▼                       ▼     │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │              AIM Recipe Selector                            │ │
+│  │                                                             │ │
+│  │ • GPU Detection                                             │ │
+│  │ • Model Analysis                                            │ │
+│  │ • Recipe Matching                                           │ │
+│  │ • Fallback Strategy                                         │ │
+│  │ • Configuration Generation                                  │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+│                              │                                   │
+│                              ▼                                   │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │              vLLM/TGI Server                                │ │
+│  │                                                             │ │
+│  │ • Model Loading                                             │ │
+│  │ • Inference Engine                                          │ │
+│  │ • API Endpoints                                             │ │
+│  │ • Performance Monitoring                                    │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+│                              │                                   │
+│                              ▼                                   │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │              Output & Monitoring                            │ │
+│  │                                                             │ │
+│  │ • API Responses                                             │ │
+│  │ • Performance Metrics                                       │ │
+│  │ • Health Checks                                             │ │
+│  │ • Resource Utilization                                      │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### **2. Container Architecture**
+## **Component Interaction Flow**
 
-```mermaid
-graph LR
-    subgraph "AIM-vLLM Container"
-        A[AIM Engine Tools] --> B[vLLM Runtime]
-        C[Model Cache] --> B
-        D[Recipe Database] --> A
-        E[Resource Monitor] --> A
-        F[Performance Analytics] --> A
-    end
-    
-    subgraph "Host System"
-        G[AMD GPUs] --> H[ROCm Drivers]
-        I[Model Storage] --> J[Cache Volume]
-        K[System Resources] --> H
-    end
-    
-    subgraph "Network Layer"
-        L[Load Balancer] --> M[API Gateway]
-        N[Service Mesh] --> M
-    end
-    
-    B --> G
-    C --> I
-    M --> A
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Client    │────▶│ AIM Engine  │────▶│   vLLM      │
+│             │     │             │     │   Server    │
+└─────────────┘     └─────────────┘     └─────────────┘
+                           │                     │
+                           ▼                     ▼
+                    ┌─────────────┐     ┌─────────────┐
+                    │ Recipe      │     │ Model       │
+                    │ Selector    │     │ Cache       │
+                    └─────────────┘     └─────────────┘
+                           │                     │
+                           ▼                     ▼
+                    ┌─────────────┐     ┌─────────────┐
+                    │ Recipe      │     │ Performance │
+                    │ Database    │     │ Monitor     │
+                    └─────────────┘     └─────────────┘
 ```
 
-### **3. Data Flow Architecture**
+## **Recipe Selection Process**
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant A as AIM Engine
-    participant C as Cache Manager
-    participant R as Recipe Selector
-    participant V as vLLM Runtime
-    participant G as GPU Hardware
-    participant M as Monitoring
-    
-    U->>A: Deploy Model Request
-    A->>M: Log Request
-    A->>C: Check Cache Status
-    C-->>A: Cache Hit/Miss
-    
-    alt Cache Miss
-        A->>C: Download & Cache Model
-        C-->>A: Model Cached
-        A->>M: Log Cache Miss
-    else Cache Hit
-        A->>M: Log Cache Hit
-    end
-    
-    A->>R: Select Optimal Recipe
-    R->>R: Detect GPU Resources
-    R-->>A: Optimal Configuration
-    A->>M: Log Configuration
-    
-    A->>V: Generate vLLM Command
-    V->>G: Initialize GPU Resources
-    G-->>V: GPU Ready
-    V-->>A: Server Started
-    A->>M: Log Deployment Success
-    A-->>U: Deployment Complete
+```
+┌─────────────────┐
+│   Start         │
+└─────────┬───────┘
+          │
+          ▼
+┌─────────────────┐
+│ Detect GPUs     │
+│ • Available     │
+│ • Type          │
+│ • Memory        │
+└─────────┬───────┘
+          │
+          ▼
+┌─────────────────┐
+│ Analyze Model   │
+│ • Size          │
+│ • Requirements  │
+│ • Constraints   │
+└─────────┬───────┘
+          │
+          ▼
+┌─────────────────┐
+│ Select Recipe   │
+│ • GPU Count     │
+│ • Precision     │
+│ • Backend       │
+└─────────┬───────┘
+          │
+          ▼
+┌─────────────────┐
+│ Validate        │
+│ • Resources     │
+│ • Compatibility │
+│ • Performance   │
+└─────────┬───────┘
+          │
+          ▼
+┌─────────────────┐
+│ Generate Config │
+│ • vLLM Args     │
+│ • Environment   │
+│ • Resources     │
+└─────────┬───────┘
+          │
+          ▼
+┌─────────────────┐
+│ Deploy          │
+└─────────────────┘
 ```
 
-### **4. Cache Architecture**
+## **Data Flow Architecture**
 
-```mermaid
-graph TB
-    subgraph "Cache Manager"
-        A[Cache Index] --> B[Cache Operations]
-        C[Cache Statistics] --> B
-        D[Cache Cleanup] --> B
-        E[Cache Analytics] --> B
-    end
-    
-    subgraph "Cache Storage"
-        F[Model Files] --> G[Tokenizer Files]
-        H[Config Files] --> G
-        I[Dataset Files] --> G
-        J[Metadata Files] --> G
-    end
-    
-    subgraph "Cache Metadata"
-        K[Model Info] --> L[Size Tracking]
-        M[Version Control] --> L
-        N[Access Patterns] --> L
-        O[Performance Metrics] --> L
-    end
-    
-    subgraph "Cache Distribution"
-        P[Local Cache] --> Q[Distributed Cache]
-        R[CDN Integration] --> Q
-        S[Peer-to-Peer] --> Q
-    end
-    
-    B --> F
-    B --> K
-    F --> L
-    Q --> B
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Input Data    │    │  Processing     │    │   Output Data   │
+│                 │    │                 │    │                 │
+│ • Model ID      │───▶│ • Recipe        │───▶│ • vLLM Command  │
+│ • GPU Count     │    │   Selection     │    │ • Environment   │
+│ • Precision     │    │ • Configuration │    │   Variables     │
+│ • Backend       │    │   Generation    │    │ • Resource      │
+│                 │    │ • Validation    │    │   Allocation    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Cache Layer   │    │   Validation    │    │   Monitoring    │
+│                 │    │   Layer         │    │   Layer         │
+│ • Model Cache   │    │ • Resource      │    │ • Performance   │
+│ • Recipe Cache  │    │   Validation    │    │   Metrics       │
+│ • Config Cache  │    │ • Compatibility │    │ • Health Checks │
+│                 │    │   Check         │    │ • Resource      │
+└─────────────────┘    └─────────────────┘    │   Utilization   │
+                                              └─────────────────┘
 ```
 
-### **5. Recipe Selection Flow**
+## **Deployment Architecture**
 
-```mermaid
-flowchart TD
-    A[Model ID Input] --> B[Resource Detection]
-    B --> C[Model Analysis]
-    C --> D[GPU Count Optimization]
-    D --> E[Precision Selection]
-    E --> F[Recipe Matching]
-    F --> G{Recipe Found?}
-    G -->|Yes| H[Return Recipe]
-    G -->|No| I[Fallback Strategy]
-    I --> J[Try Lower GPU Count]
-    J --> K[Try Different Precision]
-    K --> L[Try Alternative Backend]
-    L --> M[Try Different Hardware]
-    M --> F
-    
-    subgraph "Optimization Engine"
-        N[Performance Predictor] --> O[Cost Optimizer]
-        P[Resource Scheduler] --> O
-        Q[Load Balancer] --> O
-    end
-    
-    H --> N
-    O --> H
+### **Single Container Deployment**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Docker Container                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
+│  │   AIM Engine    │    │   vLLM/TGI      │    │   Monitoring │ │
+│  │   Tools         │    │   Server        │    │   & Metrics  │ │
+│  │                 │    │                 │    │              │ │
+│  │ • Recipe        │    │ • Model         │    │ • Prometheus │ │
+│  │   Selector      │    │   Loading       │    │   Metrics    │ │
+│  │ • Config        │    │ • Inference     │    │ • Health     │ │
+│  │   Generator     │    │   Engine        │    │   Checks     │ │
+│  │ • Cache         │    │ • API           │    │ • Logging     │ │
+│  │   Manager       │    │   Endpoints     │    │              │ │
+│  └─────────────────┘    └─────────────────┘    └──────────────┘ │
+│           │                       │                       │     │
+│           └───────────────────────┼───────────────────────┘     │
+│                                   │                             │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │              Shared Model Cache                             │ │
+│  │                                                             │ │
+│  │ • Downloaded Models                                         │ │
+│  │ • Shared Storage                                            │ │
+│  │ • Fast Access                                               │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### **6. Kubernetes Deployment Architecture**
+### **Kubernetes Deployment**
 
-```mermaid
-graph TB
-    subgraph "Kubernetes Cluster"
-        subgraph "Namespace: aim-engine"
-            A[AIM Engine Operator] --> B[AIM Engine Controller]
-            B --> C[AIM Engine CRD]
-            C --> D[AIM Engine Pods]
-        end
-        
-        subgraph "Namespace: monitoring"
-            E[Prometheus] --> F[Grafana]
-            G[Alert Manager] --> F
-        end
-        
-        subgraph "Namespace: ingress"
-            H[NGINX Ingress] --> I[Cert Manager]
-        end
-    end
-    
-    subgraph "Storage Layer"
-        J[Persistent Volumes] --> K[Model Cache PVC]
-        L[Config Maps] --> M[Secrets]
-    end
-    
-    subgraph "Network Layer"
-        N[Service Mesh] --> O[Load Balancer]
-        P[API Gateway] --> O
-    end
-    
-    D --> J
-    D --> E
-    H --> D
-    N --> D
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Kubernetes Cluster                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
+│  │   Namespace     │    │   Namespace     │    │   Namespace  │ │
+│  │   aim-engine    │    │   monitoring    │    │   storage    │ │
+│  │                 │    │                 │    │              │ │
+│  │ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌──────────┐ │ │
+│  │ │ Deployment  │ │    │ │ Prometheus  │ │    │ │ PVC      │ │ │
+│  │ │             │ │    │ │             │ │    │ │          │ │ │
+│  │ │ • AIM       │ │    │ │ • Metrics   │ │    │ │ • Model  │ │ │
+│  │ │   Engine    │ │    │ │ • Alerts    │ │    │ │   Cache  │ │ │
+│  │ │ • vLLM      │ │    │ │ • Rules     │ │    │ │ • Shared │ │ │
+│  │ │   Server    │ │    │ │             │ │    │ │   Data   │ │ │
+│  │ └─────────────┘ │    │ └─────────────┘ │    │ └──────────┘ │ │
+│  │                 │    │                 │    │              │ │
+│  │ ┌─────────────┐ │    │ ┌─────────────┐ │    │              │ │
+│  │ │ Service     │ │    │ │ Grafana     │ │    │              │ │
+│  │ │             │ │    │ │             │ │    │              │ │
+│  │ │ • Load      │ │    │ │ • Dashboards│ │    │              │ │
+│  │ │   Balancer  │ │    │ │ • Visualize │ │    │              │ │
+│  │ │ • NodePort  │ │    │ │ • Monitor   │ │    │              │ │
+│  │ └─────────────┘ │    │ └─────────────┘ │    │              │ │
+│  │                 │    │                 │    │              │ │
+│  │ ┌─────────────┐ │    │ ┌─────────────┐ │    │              │ │
+│  │ │ ConfigMap   │ │    │ │ Service     │ │    │              │ │
+│  │ │             │ │    │ │ Monitor     │ │    │              │ │
+│  │ │ • Recipe    │ │    │ │             │ │    │              │ │
+│  │ │   Config    │ │    │ │ • Metrics   │ │    │              │ │
+│  │ │ • Env Vars  │ │    │ │   Scraping  │ │    │              │ │
+│  │ └─────────────┘ │    │ └─────────────┘ │    │              │ │
+│  └─────────────────┘    └─────────────────┘    └──────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### **7. Performance Monitoring Architecture**
+## **Performance Architecture**
 
-```mermaid
-graph LR
-    subgraph "Application Layer"
-        A[AIM Engine] --> B[Custom Metrics]
-        C[vLLM Runtime] --> B
-        D[Cache Manager] --> B
-    end
-    
-    subgraph "Monitoring Stack"
-        E[Prometheus] --> F[Grafana]
-        G[Alert Manager] --> F
-        H[Node Exporter] --> E
-    end
-    
-    subgraph "Logging Stack"
-        I[Fluentd] --> J[Elasticsearch]
-        K[Kibana] --> J
-    end
-    
-    subgraph "Tracing Stack"
-        L[Jaeger] --> M[OpenTelemetry]
-    end
-    
-    B --> E
-    A --> I
-    A --> L
+### **Resource Allocation Flow**
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Hardware      │    │   Recipe        │    │   Kubernetes    │
+│   Detection     │    │   Selection     │    │   Resources     │
+│                 │    │                 │    │                 │
+│ • GPU Count     │───▶│ • GPU Mapping   │───▶│ • amd.com/gpu   │
+│ • GPU Type      │    │ • Memory Calc   │    │ • Memory        │
+│ • Memory        │    │ • CPU Calc      │    │ • CPU           │
+│ • CPU Cores     │    │ • Storage Calc  │    │ • Storage       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Validation    │    │   Optimization  │    │   Monitoring    │
+│                 │    │                 │    │                 │
+│ • Resource      │    │ • Performance   │    │ • Utilization   │
+│   Availability  │    │   Tuning        │    │ • Efficiency    │
+│ • Compatibility │    │ • Load          │    │ • Bottlenecks   │
+│ • Constraints   │    │   Balancing     │    │ • Scaling       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### **8. Security Architecture**
+### **Performance Monitoring Flow**
 
-```mermaid
-graph TB
-    subgraph "Security Layer"
-        A[RBAC] --> B[Network Policies]
-        C[Pod Security] --> B
-        D[Secrets Management] --> B
-    end
-    
-    subgraph "Authentication"
-        E[OIDC] --> F[Service Accounts]
-        G[Certificate Auth] --> F
-    end
-    
-    subgraph "Authorization"
-        H[Policy Engine] --> I[Admission Controllers]
-        J[OPA Gatekeeper] --> I
-    end
-    
-    subgraph "Audit"
-        K[Audit Logs] --> L[Compliance Engine]
-        M[SIEM Integration] --> L
-    end
-    
-    B --> E
-    F --> H
-    I --> K
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   vLLM Server   │    │   Metrics       │    │   Prometheus    │
+│                 │    │   Collection    │    │                 │
+│ • Inference     │───▶│ • Performance   │───▶│ • Time Series   │
+│   Requests      │    │   Counters      │    │   Database      │
+│ • Model         │    │ • Resource      │    │ • Query Engine  │
+│   Loading       │    │   Usage         │    │ • Alerting      │
+│ • API Calls     │    │ • Latency       │    │ • Visualization │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Health        │    │   Alerting      │    │   Grafana       │
+│   Checks        │    │                 │    │                 │
+│                 │    │ • Performance   │    │ • Dashboards    │
+│ • Liveness      │    │   Alerts        │    │ • Charts        │
+│ • Readiness     │    │ • Resource      │    │ • Panels        │
+│ • Startup       │    │   Alerts        │    │ • Reports       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### **9. Scalability Architecture**
+## **Deployment Workflows**
 
-```mermaid
-graph TB
-    subgraph "Auto Scaling"
-        A[HPA] --> B[VPA]
-        C[Cluster Autoscaler] --> B
-    end
-    
-    subgraph "Load Distribution"
-        D[Load Balancer] --> E[Service Mesh]
-        F[API Gateway] --> E
-    end
-    
-    subgraph "Resource Management"
-        G[Resource Quotas] --> H[Limit Ranges]
-        I[Priority Classes] --> H
-    end
-    
-    subgraph "Storage Scaling"
-        J[Storage Classes] --> K[Dynamic Provisioning]
-        L[Volume Snapshots] --> K
-    end
-    
-    B --> D
-    E --> G
-    H --> J
+### **Development Workflow**
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Development   │    │   Testing       │    │   Deployment    │
+│                 │    │                 │    │                 │
+│ • Code Changes  │───▶│ • Unit Tests    │───▶│ • Build Image   │
+│ • Recipe        │    │ • Integration   │    │ • Push to       │
+│   Updates       │    │   Tests         │    │   Registry      │
+│ • Configuration │    │ • Performance   │    │ • Deploy to     │
+│   Changes       │    │   Tests         │    │   Minikube      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Validation    │    │   Monitoring    │    │   Iteration     │
+│                 │    │                 │    │                 │
+│ • Recipe        │    │ • Performance   │    │ • Feedback      │
+│   Validation    │    │   Metrics       │    │ • Optimization  │
+│ • Resource      │    │ • Error         │    │ • Updates       │
+│   Validation    │    │   Tracking      │    │ • Redeployment  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### **10. Disaster Recovery Architecture**
+### **Production Workflow**
 
-```mermaid
-graph TB
-    subgraph "Primary Cluster"
-        A[AIM Engine] --> B[Primary Storage]
-        C[Primary Cache] --> B
-    end
-    
-    subgraph "Backup Cluster"
-        D[Backup AIM Engine] --> E[Backup Storage]
-        F[Backup Cache] --> E
-    end
-    
-    subgraph "Recovery Process"
-        G[Backup Scheduler] --> H[Data Replication]
-        I[Failover Controller] --> H
-        J[Health Checker] --> I
-    end
-    
-    subgraph "Monitoring"
-        K[Recovery Monitor] --> L[Alert System]
-        M[Compliance Checker] --> L
-    end
-    
-    B --> H
-    H --> E
-    I --> D
-    J --> K
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Planning      │    │   Deployment    │    │   Monitoring    │
+│                 │    │                 │    │                 │
+│ • Resource      │───▶│ • Infrastructure│───▶│ • Performance   │
+│   Planning      │    │   Setup         │    │   Monitoring    │
+│ • Capacity      │    │ • Recipe        │    │ • Resource      │
+│   Planning      │    │   Selection     │    │   Monitoring    │
+│ • Scaling       │    │ • Service       │    │ • Alerting      │
+│   Strategy      │    │   Deployment    │    │ • Optimization  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Validation    │    │   Testing       │    │   Maintenance   │
+│                 │    │                 │    │                 │
+│ • Recipe        │    │ • Load Testing  │    │ • Updates       │
+│   Validation    │    │ • Performance   │    │ • Scaling       │
+│ • Resource      │    │   Testing       │    │ • Optimization  │
+│   Validation    │    │ • Integration   │    │ • Troubleshooting│
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 📊 **Performance Architecture**
+## **Security Architecture**
 
-### **Throughput Optimization**
-
-```mermaid
-graph LR
-    subgraph "Input Processing"
-        A[Request Queue] --> B[Batch Scheduler]
-        C[Tokenizer] --> B
-    end
-    
-    subgraph "Model Inference"
-        D[GPU Scheduler] --> E[Tensor Parallelism]
-        F[Memory Manager] --> E
-    end
-    
-    subgraph "Output Processing"
-        G[Response Generator] --> H[Streaming Output]
-        I[Cache Writer] --> H
-    end
-    
-    B --> D
-    E --> G
-    H --> A
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Security Layers                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
+│  │   Network       │    │   Application   │    │   Data       │ │
+│  │   Security      │    │   Security      │    │   Security   │ │
+│  │                 │    │                 │    │              │ │
+│  │ • Firewall      │    │ • Authentication│    │ • Encryption │ │
+│  │ • VPN           │    │ • Authorization │    │ • Access      │ │
+│  │ • Load          │    │ • Input         │    │   Control    │ │
+│  │   Balancer      │    │   Validation    │    │ • Audit      │ │
+│  │ • DDoS          │    │ • Rate          │    │   Logging    │ │
+│  │   Protection    │    │   Limiting      │    │ • Backup     │ │
+│  └─────────────────┘    └─────────────────┘    └──────────────┘ │
+│           │                       │                       │     │
+│           ▼                       ▼                       ▼     │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │              Monitoring & Alerting                          │ │
+│  │                                                             │ │
+│  │ • Security Events                                           │ │
+│  │ • Performance Alerts                                        │ │
+│  │ • Resource Alerts                                           │ │
+│  │ • Compliance Monitoring                                     │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### **Memory Management**
+## **Scalability Architecture**
 
-```mermaid
-graph TB
-    subgraph "Memory Layers"
-        A[GPU Memory] --> B[System Memory]
-        C[Cache Memory] --> B
-        D[Swap Memory] --> B
-    end
-    
-    subgraph "Memory Management"
-        E[Memory Allocator] --> F[Garbage Collector]
-        G[Memory Monitor] --> F
-    end
-    
-    subgraph "Optimization"
-        H[Memory Pinning] --> I[Zero-Copy]
-        J[Memory Pooling] --> I
-    end
-    
-    A --> E
-    B --> E
-    F --> H
+### **Horizontal Scaling**
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Load          │    │   AIM Engine    │    │   AIM Engine    │
+│   Balancer      │    │   Instance 1    │    │   Instance 2    │
+│                 │    │                 │    │                 │
+│ • Request       │───▶│ • Recipe        │    │ • Recipe        │
+│   Distribution  │    │   Selection     │    │   Selection     │ │
+│ • Health        │    │ • vLLM Server   │    │ • vLLM Server   │ │
+│   Checks        │    │ • Model Cache   │    │ • Model Cache   │ │
+│ • Failover      │    │ • Monitoring    │    │ • Monitoring    │ │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Shared        │    │   Shared        │    │   Shared        │
+│   Storage       │    │   Monitoring    │    │   Configuration │
+│                 │    │                 │    │                 │
+│ • Model Cache   │    │ • Prometheus    │    │ • ConfigMaps    │
+│ • Recipe        │    │ • Grafana       │    │ • Secrets       │
+│   Database      │    │ • Alerting      │    │ • Policies      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 🔄 **Deployment Workflows**
+### **Vertical Scaling**
 
-### **Standard Deployment Flow**
-
-```mermaid
-graph TD
-    A[User Request] --> B[Validate Input]
-    B --> C[Check Cache]
-    C --> D{Cache Hit?}
-    D -->|Yes| E[Load from Cache]
-    D -->|No| F[Download Model]
-    F --> G[Cache Model]
-    G --> E
-    E --> H[Select Recipe]
-    H --> I[Generate Config]
-    I --> J[Deploy Container]
-    J --> K[Start vLLM]
-    K --> L[Health Check]
-    L --> M{Healthy?}
-    M -->|Yes| N[Return Success]
-    M -->|No| O[Retry/Fallback]
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Small         │    │   Medium        │    │   Large         │
+│   Instance      │    │   Instance      │    │   Instance      │
+│                 │    │                 │    │                 │
+│ • 1 GPU         │───▶│ • 4 GPUs        │───▶│ • 8 GPUs        │
+│ • 16GB RAM      │    │ • 64GB RAM      │    │ • 128GB RAM     │
+│ • 4 CPU Cores   │    │ • 16 CPU Cores  │    │ • 32 CPU Cores  │
+│ • 100GB Storage │    │ • 500GB Storage │    │ • 1TB Storage   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Model Size    │    │   Model Size    │    │   Model Size    │
+│                 │    │                 │    │                 │
+│ • 7B-8B Models  │    │ • 13B-32B       │    │ • 70B+ Models   │
+│ • Single GPU    │    │   Models        │    │ • Multi-GPU     │
+│ • Basic         │    │ • Multi-GPU     │    │ • High          │
+│   Performance   │    │ • Good          │    │   Performance   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### **Kubernetes Deployment Flow**
+## **Integration Architecture**
 
-```mermaid
-graph TD
-    A[Helm Install] --> B[Create Namespace]
-    B --> C[Deploy CRDs]
-    C --> D[Deploy Operator]
-    D --> E[Create AIM Engine CR]
-    E --> F[Operator Reconciler]
-    F --> G[Validate Resources]
-    G --> H[Create PVCs]
-    H --> I[Deploy Pods]
-    I --> J[Setup Networking]
-    J --> K[Configure Monitoring]
-    K --> L[Health Checks]
-    L --> M[Ready State]
+### **API Integration**
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   External      │    │   AIM Engine    │    │   Internal      │
+│   Applications  │    │   API Gateway   │    │   Services      │
+│                 │    │                 │    │                 │
+│ • Web Apps      │───▶│ • Authentication│───▶│ • Recipe        │
+│ • Mobile Apps   │    │ • Rate Limiting │    │   Service       │
+│ • CLI Tools     │    │ • Request       │    │ • Model         │
+│ • SDKs          │    │   Routing       │    │   Service       │
+│ • Third-party   │    │ • Response      │    │ • Cache         │
+│   Services      │    │   Caching       │    │   Service       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Monitoring    │    │   Logging       │    │   Analytics     │
+│                 │    │                 │    │                 │
+│ • Performance   │    │ • Request Logs  │    │ • Usage         │
+│   Metrics       │    │ • Error Logs    │    │   Analytics     │
+│ • Health        │    │ • Access Logs   │    │ • Performance   │
+│   Checks        │    │ • Audit Logs    │    │   Analytics     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 📈 **Monitoring Architecture**
+### **CI/CD Integration**
 
-### **Metrics Collection**
-
-```mermaid
-graph LR
-    subgraph "Application Metrics"
-        A[AIM Engine] --> B[Custom Metrics]
-        C[vLLM Runtime] --> B
-        D[Cache Manager] --> B
-    end
-    
-    subgraph "System Metrics"
-        E[Node Exporter] --> F[System Metrics]
-        G[GPU Exporter] --> F
-    end
-    
-    subgraph "Business Metrics"
-        H[Deployment Counter] --> I[Success Rate]
-        J[Cache Hit Rate] --> I
-        K[Performance Metrics] --> I
-    end
-    
-    B --> L[Prometheus]
-    F --> L
-    I --> L
-    L --> M[Grafana]
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Source        │    │   Build & Test  │    │   Deployment    │
+│   Control       │    │                 │    │                 │
+│                 │    │                 │    │                 │
+│ • Git           │───▶│ • Docker Build  │───▶│ • Kubernetes    │
+│ • Code Review   │    │ • Unit Tests    │    │   Deployment    │
+│ • Branch        │    │ • Integration   │    │ • Service       │
+│   Management    │    │   Tests         │    │   Configuration │
+│ • Version       │    │ • Security      │    │ • Monitoring    │
+│   Control       │    │   Scanning      │    │   Setup         │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Validation    │    │   Quality       │    │   Verification  │
+│                 │    │   Assurance     │    │                 │
+│ • Code Quality  │    │ • Performance   │    │ • Health        │
+│ • Security      │    │   Testing       │    │ • Checks        │
+│   Scanning      │    │ • Load Testing  │    │ • Integration   │
+│ • Compliance    │    │ • Stress        │    │   Testing       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### **Alerting Architecture**
-
-```mermaid
-graph TB
-    subgraph "Alert Sources"
-        A[Prometheus] --> B[Alert Manager]
-        C[Grafana] --> B
-        D[Custom Alerts] --> B
-    end
-    
-    subgraph "Alert Processing"
-        E[Alert Rules] --> F[Alert Grouping]
-        G[Alert Inhibition] --> F
-        H[Alert Routing] --> F
-    end
-    
-    subgraph "Notification Channels"
-        I[Email] --> J[Slack]
-        K[PagerDuty] --> J
-        L[Webhook] --> J
-    end
-    
-    B --> E
-    F --> I
-    F --> K
-    F --> L
-```
-
----
-
-*These diagrams provide a comprehensive view of the AIM Engine architecture, from high-level system design to detailed component interactions and deployment workflows.* 
+These architecture diagrams provide a comprehensive view of the AIM Engine system, showing how different components interact, how data flows through the system, and how the system can be deployed and scaled in different environments. 
