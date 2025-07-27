@@ -1,119 +1,114 @@
 # AIM Engine Kubernetes Directory Structure
 
-## **Clean Organization**
-
-The `k8s` directory has been reorganized for clarity and maintainability. Here's the new structure:
+This directory contains production-ready Kubernetes deployment configurations for AIM Engine.
 
 ```
 k8s/
-├── common/                 # Shared resources for all environments
-│   ├── namespace.yaml     # Namespace definitions
-│   ├── configmap.yaml     # Configuration settings
-│   └── kustomization.yaml # Kustomize configuration
-├── minikube/              # Minikube development environment
-│   ├── deploy.sh          # Minikube deployment script
-│   ├── deployment.yaml    # Minikube-specific deployment
-│   ├── service.yaml       # NodePort service
-│   ├── storage.yaml       # 10Gi storage
-│   ├── rbac.yaml          # Simplified RBAC
-│   └── monitoring.yaml    # Basic monitoring
-├── production/            # Production environment
-│   ├── deploy.sh          # Production deployment script
-│   ├── deployment.yaml    # Full GPU-enabled deployment
-│   ├── service.yaml       # LoadBalancer service
-│   ├── storage.yaml       # 500Gi storage
-│   ├── rbac.yaml          # Full RBAC with PSP
-│   ├── ingress.yaml       # Ingress configuration
-│   ├── hpa.yaml           # Horizontal Pod Autoscaler
-│   └── monitoring.yaml    # Monitoring setup
-├── helm/                  # Helm chart (alternative deployment)
-│   ├── Chart.yaml         # Helm chart definition
-│   ├── values.yaml        # Default values
-│   └── templates/         # Helm templates
+├── helm/                   # Helm chart for production deployment
+│   ├── Chart.yaml         # Helm chart metadata
+│   ├── values.yaml        # Default configuration values
+│   └── templates/         # Kubernetes resource templates
+│       ├── deployment.yaml
+│       ├── service.yaml
+│       ├── pvc.yaml
+│       ├── serviceaccount.yaml
+│       └── _helpers.tpl
+├── scripts/               # Deployment and management scripts
+│   ├── setup-complete-kubernetes.sh    # Complete cluster setup
+│   ├── deploy-aim-engine.sh            # Production deployment
+│   ├── cleanup-kubernetes.sh           # Cleanup utilities
+│   └── helpers/                        # Helper scripts
+├── docs/                  # Documentation
+│   ├── README.md          # Main documentation
+│   ├── PRODUCTION.md      # Production deployment guide
+│   ├── amd-gpu-setup.md   # AMD GPU configuration
+│   └── recipe-kubernetes-mapping.md
+├── production/            # Production-specific configurations
+├── monitoring/            # Monitoring and observability
+├── admission-controller/  # Kubernetes admission controllers
+├── common/                # Shared configurations
 ├── patches/               # Kustomize patches
-│   ├── development.yaml   # Development overrides
-│   └── production.yaml    # Production overrides
-├── scripts/               # Helper scripts
-│   └── helpers/           # Deployment helper scripts
-└── docs/                  # Documentation
-    ├── README.md          # Main documentation
-    ├── DEVELOPMENT.md     # Development guide
-    ├── PRODUCTION.md      # Production guide
-    └── amd-gpu-setup.md   # AMD GPU setup
+├── KUBERNETES_DEPLOYMENT.md  # Main deployment guide
+├── README.md              # Quick start guide
+└── STRUCTURE.md           # This file
 ```
 
-## **Quick Deployment**
+## **Deployment Options**
 
-### **Minikube (Development)**
+### **Production (Helm)**
+
+The recommended approach for production deployments:
+
 ```bash
-cd k8s/minikube
-./deploy.sh
+# Complete setup (fresh node)
+sudo ./k8s/scripts/setup-complete-kubernetes.sh
+
+# Deploy to existing cluster
+sudo ./k8s/scripts/deploy-aim-engine.sh
 ```
 
-### **Production (Full Kubernetes)**
+**Features:**
+- **Production-ready**: Optimized for real workloads
+- **GPU support**: Full AMD GPU integration
+- **Scalability**: Multi-node cluster support
+- **Monitoring**: Built-in observability
+- **Security**: RBAC and network policies
+
+## **Quick Start**
+
+### **1. Choose Your Approach**
+
+- **Complete Setup**: Fresh node with full cluster setup
+- **Existing Cluster**: Deploy to existing Kubernetes cluster
+
+### **2. Deploy AIM Engine**
+
 ```bash
-cd k8s/production
-./deploy.sh
+# Complete setup
+sudo ./k8s/scripts/setup-complete-kubernetes.sh
+
+# Or deploy to existing cluster
+sudo ./k8s/scripts/deploy-aim-engine.sh
 ```
 
-### **Helm Chart**
+### **3. Verify Deployment**
+
 ```bash
-cd k8s/helm
-helm install aim-engine . --values values.yaml
+# Check status
+kubectl get pods -n aim-engine
+
+# Test endpoint
+curl http://localhost:<NODEPORT>/health
 ```
 
-### **Kustomize**
-```bash
-# Development
-kubectl apply -k ./common --env=development
+## **Configuration**
 
-# Production
-kubectl apply -k ./common --env=production
-```
+### **Environment-Specific Configurations**
 
-## **Benefits**
+- **Production**: Optimized for real workloads with GPU support
+- **Custom**: Tailored configurations for specific requirements
 
-### **Clear Separation**
-- **Development**: Minikube-specific configurations
-- **Production**: Full Kubernetes configurations
-- **Shared**: Common resources used by both
+### **Resource Management**
 
-### **Easy Navigation**
-- **Logical grouping**: Related files are together
-- **Clear naming**: Files indicate their purpose
-- **Consistent structure**: Same pattern across environments
-
-### **Simple Migration**
-- **Development to Production**: Clear migration path
-- **Environment-specific**: Each environment has its own directory
-- **Shared resources**: Common configurations are reusable
-
-### **Maintainable**
-- **Modular design**: Easy to modify individual components
-- **Version control**: Clear change tracking
-- **Documentation**: Each directory has its own documentation
-
-## **Migration Path**
-
-### **From Old Structure**
-1. **Backup**: Save your current configurations
-2. **Choose Environment**: Select minikube or production
-3. **Deploy**: Use the new deployment scripts
-4. **Verify**: Test the deployment
-5. **Cleanup**: Remove old configurations
-
-### **Environment Migration**
-1. **Development**: Start with minikube for testing
-2. **Staging**: Use production configs with limited resources
-3. **Production**: Full deployment with monitoring
+- **GPU allocation**: Automatic or manual GPU assignment
+- **Memory limits**: Model-specific memory requirements
+- **CPU allocation**: Optimized for inference workloads
 
 ## **Documentation**
 
-- **README.md**: Main documentation and quick start
-- **DEVELOPMENT.md**: Detailed development guide
-- **PRODUCTION.md**: Detailed production guide
-- **amd-gpu-setup.md**: AMD GPU configuration
+- **[Kubernetes Deployment Guide](KUBERNETES_DEPLOYMENT.md)** - Complete production deployment
+- **[Production Guide](docs/PRODUCTION.md)** - Production best practices
+- **[AMD GPU Setup](docs/amd-gpu-setup.md)** - GPU configuration
+- **[Recipe System](docs/recipe-kubernetes-mapping.md)** - Recipe integration
 
-## **Success!**
+## **Scripts Overview**
 
-The `k8s` directory is now clean, organized, and easy to use! 
+### **Setup Scripts**
+
+- **`setup-complete-kubernetes.sh`**: Complete cluster setup with AMD GPU support
+- **`deploy-aim-engine.sh`**: Deploy to existing cluster with flexible configuration
+
+### **Management Scripts**
+
+- **`cleanup-kubernetes.sh`**: Comprehensive cleanup utilities
+- **Helper scripts**: Additional utilities for specific tasks

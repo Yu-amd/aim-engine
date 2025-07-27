@@ -88,8 +88,48 @@ log_info "Step 2: Installing containerd..."
     exit 1
 }
 
-# Step 3: Install Kubernetes components
-log_info "Step 3: Installing Kubernetes components..."
+# Step 3: Setup local container registry
+log_info "Step 3: Setting up local container registry..."
+{
+    # Start local registry
+    docker run -d -p ${REGISTRY_PORT}:${REGISTRY_PORT} --name local-registry registry:2
+    
+    # Wait for registry to be ready
+    sleep 10
+    
+    # Test registry
+    curl -s http://localhost:${REGISTRY_PORT}/v2/_catalog || {
+        log_error "Registry not responding"
+        exit 1
+    }
+    
+    log_success "Local container registry setup completed"
+} || {
+    log_error "Local registry setup failed"
+    exit 1
+}
+
+# Step 4: Build and push AIM Engine image
+log_info "Step 4: Building and pushing AIM Engine image..."
+{
+    # Change to project directory
+    cd /root/aim-engine
+    
+    # Build the image
+    ./scripts/build-aim-vllm.sh
+    
+    # Tag and push to local registry
+    docker tag aim-vllm:latest localhost:${REGISTRY_PORT}/aim-vllm:latest
+    docker push localhost:${REGISTRY_PORT}/aim-vllm:latest
+    
+    log_success "AIM Engine image built and pushed to local registry"
+} || {
+    log_error "Image build/push failed"
+    exit 1
+}
+
+# Step 5: Install Kubernetes components
+log_info "Step 5: Installing Kubernetes components..."
 {
     # Add Kubernetes repository
     curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
@@ -106,8 +146,8 @@ log_info "Step 3: Installing Kubernetes components..."
     exit 1
 }
 
-# Step 4: Initialize Kubernetes cluster
-log_info "Step 4: Initializing Kubernetes cluster..."
+# Step 6: Initialize Kubernetes cluster
+log_info "Step 6: Initializing Kubernetes cluster..."
 {
     # Initialize cluster
     kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-advertise-address=$(hostname -I | awk '{print $1}')
@@ -135,8 +175,8 @@ log_info "Step 4: Initializing Kubernetes cluster..."
     exit 1
 }
 
-# Step 5: Install Calico CNI
-log_info "Step 5: Installing Calico CNI..."
+# Step 7: Install Calico CNI
+log_info "Step 7: Installing Calico CNI..."
 {
     kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml
     
@@ -149,8 +189,8 @@ log_info "Step 5: Installing Calico CNI..."
     exit 1
 }
 
-# Step 6: Install metrics server
-log_info "Step 6: Installing metrics server..."
+# Step 8: Install metrics server
+log_info "Step 8: Installing metrics server..."
 {
     kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
     
@@ -163,8 +203,8 @@ log_info "Step 6: Installing metrics server..."
     exit 1
 }
 
-# Step 7: Install local storage provisioner
-log_info "Step 7: Installing local storage provisioner..."
+# Step 9: Install local storage provisioner
+log_info "Step 9: Installing local storage provisioner..."
 {
     kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
     
@@ -177,8 +217,8 @@ log_info "Step 7: Installing local storage provisioner..."
     exit 1
 }
 
-# Step 8: Setup AMD GPU support
-log_info "Step 8: Setting up AMD GPU support..."
+# Step 10: Setup AMD GPU support
+log_info "Step 10: Setting up AMD GPU support..."
 {
     # Install ROCm packages
     apt install -y rocm-hip-sdk rocm-opencl-sdk
@@ -240,54 +280,14 @@ EOF
     exit 1
 }
 
-# Step 9: Setup local container registry
-log_info "Step 9: Setting up local container registry..."
-{
-    # Start local registry
-    docker run -d -p ${REGISTRY_PORT}:${REGISTRY_PORT} --name local-registry registry:2
-    
-    # Wait for registry to be ready
-    sleep 10
-    
-    # Test registry
-    curl -s http://localhost:${REGISTRY_PORT}/v2/_catalog || {
-        log_error "Registry not responding"
-        exit 1
-    }
-    
-    log_success "Local container registry setup completed"
-} || {
-    log_error "Local registry setup failed"
-    exit 1
-}
-
-# Step 10: Create AIM Engine namespace
-log_info "Step 10: Creating AIM Engine namespace..."
+# Step 11: Create AIM Engine namespace
+log_info "Step 11: Creating AIM Engine namespace..."
 {
     kubectl create namespace ${AIM_ENGINE_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
     
     log_success "AIM Engine namespace created"
 } || {
     log_error "Namespace creation failed"
-    exit 1
-}
-
-# Step 11: Build and push AIM Engine image
-log_info "Step 11: Building and pushing AIM Engine image..."
-{
-    # Change to project directory
-    cd /root/aim-engine
-    
-    # Build the image
-    ./scripts/build-aim-vllm.sh
-    
-    # Tag and push to local registry
-    docker tag aim-vllm:latest localhost:${REGISTRY_PORT}/aim-vllm:latest
-    docker push localhost:${REGISTRY_PORT}/aim-vllm:latest
-    
-    log_success "AIM Engine image built and pushed to local registry"
-} || {
-    log_error "Image build/push failed"
     exit 1
 }
 

@@ -1,212 +1,254 @@
-# AIM Engine Kubernetes Deployment
+# AIM Engine Kubernetes Documentation
 
-## **Overview**
+This directory contains comprehensive documentation for deploying AIM Engine in production Kubernetes environments with AMD GPU support.
 
-AIM Engine provides optimized recipe selection for large language model inference, automatically choosing the best configuration based on available GPU resources, precision requirements, and performance KPIs. This guide covers deploying AIM Engine in both development (Minikube) and production (Helm) environments.
+## **Documentation Overview**
+
+### **Core Guides**
+
+- **[Production Deployment](PRODUCTION.md)** - Complete production deployment guide
+- **[AMD GPU Setup](amd-gpu-setup.md)** - AMD GPU configuration and troubleshooting
+- **[Recipe System](recipe-kubernetes-mapping.md)** - Recipe integration with Kubernetes
+
+### **Specialized Topics**
+
+- **[Recipe Implications](recipe-implications-summary.md)** - Impact of recipe system on deployment
 
 ## **Quick Start**
 
-### **Choose Your Deployment Approach**
+### **Production Deployment**
 
-| Environment     | Use Case                       | GPU Support        | Complexity | Setup Time    |
-|-----------------|--------------------------------|--------------------|------------|---------------|
-| **Development** | Testing, learning, development | Mock server or TGI | Simple     | 5-10 minutes  |
-| **Production**  | Real workloads, GPU inference  | Full AMD GPU vLLM  | Advanced   | 30-60 minutes |
+For production Kubernetes clusters:
 
-### **For Development (Minikube)**
 ```bash
-# Start Minikube
-minikube start --driver=docker --cpus=4 --memory=8192
+# Complete setup (fresh node)
+sudo ../scripts/setup-complete-kubernetes.sh
 
-# Deploy AIM Engine
-cd k8s/minikube
-./deploy.sh
-
-# Test deployment
-./test-recipe.sh
+# Deploy to existing cluster
+sudo ../scripts/deploy-aim-engine.sh
 ```
 
-### **For Production (Helm)**
-```bash
-# Install GPU plugin
-kubectl create -f https://raw.githubusercontent.com/RadeonOpenCompute/k8s-device-plugin/master/k8s-ds-amdgpu-dp.yaml
+### **Prerequisites**
 
-# Build and push image
-docker build -f Dockerfile.aim-vllm -t your-registry.com/aim-vllm:latest .
-docker push your-registry.com/aim-vllm:latest
-
-# Deploy with recipe support
-cd k8s
-./scripts/deploy-with-recipe-support.sh auto your-registry.com latest
-```
-
-## **Prerequisites**
-
-### **Development Requirements**
-- Minikube installed
-- kubectl configured
-- Docker installed
-- 4GB RAM minimum (8GB recommended)
-
-### **Production Requirements**
-- Kubernetes cluster (1.20+)
-- AMD GPU nodes with ROCm support
-- AMD GPU device plugin installed
-- Helm 3.x installed
-- Container registry access
-
-## **Recipe Selection**
-
-AIM Engine automatically selects optimal configurations based on:
-
-- **Model size** and requirements
-- **Available GPU count** and memory
-- **Precision requirements** (bf16, fp16, fp8)
-- **Performance targets** and KPIs
-
-### **Example Recipe Configuration**
-```yaml
-recipe_id: qwen3-32b-4gpu-bf16
-model_id: Qwen/Qwen3-32B
-gpu_count: 4
-precision: bf16
-backend: vllm
-hardware:
-  type: MI300X
-  rocm_arch: gfx90a
-performance:
-  expected_tokens_per_second: 150
-  expected_latency_ms: 100
-```
-
-## **Features**
-
-### **Recipe Selection**
-- **Automatic optimization** based on available resources
-- **Configuration overrides** for custom deployments
-- **Fallback mechanisms** for optimal performance
-- **Recipe validation** through admission controllers
-
-### **Monitoring & Observability**
-- **Prometheus metrics** collection and alerting
-- **Grafana dashboards** for performance visualization
-- **Custom alerts** for recipe-specific issues
-- **Performance optimization** recommendations
-
-### **Development Features**
-- **Mock server** for quick testing
-- **TGI server** for real inference testing
-- **Recipe validation** without GPU hardware
-- **Easy testing** with included scripts
-
-### **Production Features**
-- **AMD GPU support** with ROCm
-- **High availability** with multiple replicas
-- **Auto-scaling** based on demand
-- **Enterprise-grade** monitoring and security
+- **Hardware**: AMD GPU with ROCm support (MI300X, MI325X, etc.)
+- **OS**: Ubuntu 22.04+ or compatible Linux distribution
+- **Resources**: Minimum 16GB RAM (32GB+ recommended for large models)
+- **Network**: Internet access for package downloads
+- **Permissions**: Root access required
 
 ## **Deployment Options**
 
-### **Development Environment (Minikube)**
+### **1. Complete Setup (Recommended)**
 
-**Use Case**: Local development, testing, learning
-**GPU Support**: Mock server or TGI (no real GPU required)
-**Complexity**: Simple
+Best for fresh nodes or when you want everything set up automatically:
 
-#### **Quick Start**
 ```bash
-# Start Minikube
-minikube start --driver=docker --cpus=4 --memory=8192
-
-# Deploy with mock server
-cd k8s/minikube
-./deploy.sh
-
-# Deploy with TGI for real inference
-./deploy.sh tgi
-
-# Test deployment
-./test-recipe.sh
+sudo ../scripts/setup-complete-kubernetes.sh
 ```
 
-#### **Features**
-- Recipe selection with mock data
-- Monitoring endpoints
-- Easy testing and validation
-- No GPU hardware required
+**What this does:**
+- Sets up complete Kubernetes cluster
+- Configures AMD GPU support
+- Builds and pushes AIM Engine image to local registry
+- Deploys AIM Engine with optimal settings
 
-### **Production Environment (Helm)**
+### **2. Existing Cluster Deployment**
 
-**Use Case**: Real production workloads with GPU inference
-**GPU Support**: Full AMD GPU support with ROCm
-**Complexity**: Advanced
+For existing Kubernetes clusters:
 
-#### **Quick Start**
 ```bash
-# Prepare cluster
-kubectl create -f https://raw.githubusercontent.com/RadeonOpenCompute/k8s-device-plugin/master/k8s-ds-amdgpu-dp.yaml
-
-# Build and deploy
-docker build -f Dockerfile.aim-vllm -t your-registry.com/aim-vllm:latest .
-docker push your-registry.com/aim-vllm:latest
-
-# Deploy with recipe support
-cd k8s
-./scripts/deploy-with-recipe-support.sh auto your-registry.com latest
+sudo ../scripts/deploy-aim-engine.sh
 ```
 
-#### **Features**
-- Real GPU inference with AMD ROCm
-- Comprehensive monitoring and alerting
-- High availability and auto-scaling
-- Enterprise-grade security
+**What this does:**
+- Checks cluster health
+- Sets up local registry if needed
+- Builds and pushes AIM Engine image
+- Deploys AIM Engine with custom configuration
 
-## **Migration Path**
+## **Configuration**
 
-### **From Development to Production**
-1. **Complete testing** in Minikube environment
-2. **Set up production cluster** with AMD GPUs
-3. **Deploy using production scripts**
-4. **Configure monitoring** and alerting
+### **Model Selection**
 
-## **Documentation**
+```bash
+# Default model (7B)
+sudo ../scripts/deploy-aim-engine.sh
 
-### **Essential Guides**
-- **[Development Guide](DEVELOPMENT.md)** - Complete Minikube development guide
-- **[Production Guide](PRODUCTION.md)** - Complete Helm production guide
+# Large model (32B)
+sudo ../scripts/deploy-aim-engine.sh --model Qwen/Qwen3-32B --memory-limit 80Gi
 
-### **Specialized Resources**
-- **[AMD GPU Setup](amd-gpu-setup.md)** - AMD GPU configuration guide
+# Custom model
+sudo ../scripts/deploy-aim-engine.sh --model "your-model/name"
+```
+
+### **Resource Allocation**
+
+```bash
+# GPU allocation
+sudo ../scripts/deploy-aim-engine.sh --gpu-count 2
+
+# Memory allocation
+sudo ../scripts/deploy-aim-engine.sh --memory-limit 64Gi --memory-request 32Gi
+
+# Precision selection
+sudo ../scripts/deploy-aim-engine.sh --precision bfloat16
+```
+
+## **Verification**
+
+### **Check Deployment Status**
+
+```bash
+# Check pod status
+kubectl get pods -n aim-engine
+
+# Check service
+kubectl get svc -n aim-engine
+
+# Check logs
+kubectl logs -f -n aim-engine -l app.kubernetes.io/name=aim-engine
+```
+
+### **Test Endpoints**
+
+```bash
+# Get NodePort
+NODEPORT=$(kubectl get svc -n aim-engine aim-engine-service -o jsonpath='{.spec.ports[0].nodePort}')
+
+# Health check
+curl http://localhost:${NODEPORT}/health
+
+# List models
+curl http://localhost:${NODEPORT}/v1/models
+
+# Test inference
+curl -X POST http://localhost:${NODEPORT}/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "max_tokens": 10
+  }'
+```
 
 ## **Troubleshooting**
 
 ### **Common Issues**
 
-#### **Development Issues**
-```bash
-# Minikube not starting
-minikube status
-minikube start --driver=docker --cpus=6 --memory=12288
+| Issue | Solution |
+|-------|----------|
+| Image pull fails | Check local registry: `curl http://localhost:5000/v2/_catalog` |
+| Pod stuck in Pending | Check GPU labels: `kubectl get nodes --show-labels` |
+| Container crashes | Check logs: `kubectl logs -n aim-engine <pod-name>` |
+| Service not accessible | Check NodePort: `kubectl get svc -n aim-engine` |
 
-# Service not accessible
-kubectl get pods -n aim-engine
-kubectl logs -n aim-engine deployment/aim-engine
+### **Useful Commands**
+
+```bash
+# Check cluster status
+kubectl cluster-info
+
+# Check GPU availability
+kubectl get nodes -o json | jq '.items[].status.allocatable'
+
+# Check pod events
+kubectl describe pod -n aim-engine <pod-name>
+
+# Check service endpoints
+kubectl get endpoints -n aim-engine
 ```
 
-#### **Production Issues**
-```bash
-# GPU not available
-kubectl get nodes -l amd.com/gpu=true
-kubectl get pods -n kube-system | grep amd-device-plugin
+## **Advanced Topics**
 
-# Recipe selection fails
-kubectl logs -n aim-engine job/aim-engine-recipe-selector-hook
+### **Production Considerations**
+
+- **High Availability**: Deploy multiple replicas
+- **Load Balancing**: Use LoadBalancer or Ingress
+- **Monitoring**: Deploy Prometheus and Grafana
+- **Logging**: Configure centralized logging
+- **Security**: Use RBAC and network policies
+- **Backup**: Regular etcd backups
+
+### **Multi-Node Clusters**
+
+For multi-node clusters:
+
+1. **Master node**: Run setup script
+2. **Worker nodes**: Join cluster using provided join command
+3. **GPU nodes**: Ensure AMD GPU support on each GPU node
+4. **Deployment**: Use node selectors for GPU allocation
+
+### **Custom Helm Values**
+
+Create a custom `values.yaml`:
+
+```yaml
+image:
+  repository: localhost:5000/aim-vllm
+  tag: latest
+  pullPolicy: IfNotPresent
+
+aim_engine:
+  recipe:
+    auto_select: false
+    model_id: "Qwen/Qwen3-32B"
+    precision: bfloat16
+    gpu_count: 2
+
+resources:
+  requests:
+    memory: 64Gi
+    cpu: "4"
+    amd.com/gpu: 2
+  limits:
+    memory: 80Gi
+    cpu: "8"
+    amd.com/gpu: 2
+
+service:
+  type: NodePort
+  port: 8000
+  targetPort: 8000
 ```
 
-## **Next Steps**
+Deploy with custom values:
 
-1. **Choose your deployment approach** based on your needs
-2. **Follow the detailed guide** for your chosen environment
-3. **Test thoroughly** before production deployment
-4. **Set up monitoring** for production environments
-5. **Plan for scaling** and high availability
+```bash
+helm install aim-engine ../helm -f custom-values.yaml -n aim-engine
+```
+
+## **Cleanup**
+
+### **Remove Deployment**
+
+```bash
+# Basic cleanup (removes Kubernetes resources + registry)
+sudo ../scripts/cleanup-kubernetes.sh
+
+# Remove images too
+sudo ../scripts/cleanup-kubernetes.sh --images
+
+# Complete cleanup (everything)
+sudo ../scripts/cleanup-kubernetes.sh --all
+```
+
+### **Manual Cleanup**
+
+```bash
+# Remove Helm release
+helm uninstall aim-engine -n aim-engine
+
+# Remove namespace
+kubectl delete namespace aim-engine
+
+# Stop registry
+docker stop local-registry
+docker rm local-registry
+```
+
+## **Support**
+
+For issues and questions:
+- Check the troubleshooting sections in the documentation
+- Review the production deployment guide
+- Verify GPU setup and resource allocation
