@@ -40,26 +40,24 @@ echo ""
 print_status "1. Checking container status..."
 if docker ps | grep -q aim-engine; then
     print_success "Container is running"
+elif docker ps | grep -q aim-vllm; then
+    print_success "Found aim-vllm container"
+    CONTAINER_NAME=$(docker ps --format "table {{.Names}}" | grep aim-vllm | head -1)
+    print_status "Container name: $CONTAINER_NAME"
 else
-    print_warning "No AIM Engine container found with name 'aim-engine'"
-    print_status "Checking for any aim-vllm containers..."
-    if docker ps | grep -q aim-vllm; then
-        print_success "Found aim-vllm container"
-    else
-        print_error "No AIM Engine containers found"
-        print_status "Start AIM Engine with:"
-        echo "docker run --rm -d \\"
-        echo "  --name aim-engine \\"
-        echo "  --device=/dev/kfd \\"
-        echo "  --device=/dev/dri \\"
-        echo "  --group-add=video \\"
-        echo "  --group-add=render \\"
-        echo "  -v /workspace/model-cache:/workspace/model-cache \\"
-        echo "  -p $PORT:8000 \\"
-        echo "  aim-vllm:latest \\"
-        echo "  aim-serve Qwen/Qwen3-32B"
-        exit 1
-    fi
+    print_error "No AIM Engine containers found"
+    print_status "Start AIM Engine with:"
+    echo "docker run --rm -d \\"
+    echo "  --name aim-engine \\"
+    echo "  --device=/dev/kfd \\"
+    echo "  --device=/dev/dri \\"
+    echo "  --group-add=video \\"
+    echo "  --group-add=render \\"
+    echo "  -v /workspace/model-cache:/workspace/model-cache \\"
+    echo "  -p $PORT:8000 \\"
+    echo "  aim-vllm:latest \\"
+    echo "  aim-serve Qwen/Qwen3-32B"
+    exit 1
 fi
 
 # Test health endpoint

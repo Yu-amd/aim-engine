@@ -109,14 +109,14 @@ check_port() {
     fi
 }
 
-# Check if port 8001 is available
-if check_port 8001; then
-    print_warning "Port 8001 is already in use. Checking if it's AIM Engine..."
-    if curl -s http://localhost:8001/v1/models >/dev/null 2>&1; then
-        print_success "AIM Engine is already running on port 8001"
+# Check if port 8000 is available
+if check_port 8000; then
+    print_warning "Port 8000 is already in use. Checking if it's AIM Engine..."
+    if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
+        print_success "AIM Engine is already running on port 8000"
         AIM_ENGINE_RUNNING=true
     else
-        print_error "Port 8001 is in use by another service. Please free it up."
+        print_error "Port 8000 is in use by another service. Please free it up."
         exit 1
     fi
 else
@@ -134,7 +134,7 @@ if [ "$AIM_ENGINE_RUNNING" = false ]; then
         --group-add=video \
         --group-add=render \
         -v /workspace/model-cache:/workspace/model-cache \
-        -p 8001:8000 \
+        -p 8000:8000 \
         aim-vllm:latest \
         aim-serve Qwen/Qwen3-32B)
     
@@ -143,7 +143,7 @@ if [ "$AIM_ENGINE_RUNNING" = false ]; then
     # Wait for the service to be ready
     print_status "Waiting for AIM Engine to be ready..."
     for i in {1..300}; do
-        if curl -s http://localhost:8001/v1/models >/dev/null 2>&1; then
+        if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
             print_success "AIM Engine is ready!"
             break
         fi
@@ -202,10 +202,10 @@ run_web_agent() {
 # Function to check status
 check_status() {
     print_status "Checking AIM Engine status..."
-    if curl -s http://localhost:8001/v1/models >/dev/null 2>&1; then
+    if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
         print_success "AIM Engine is running and responding"
         print_status "Available models:"
-        curl -s http://localhost:8001/v1/models | python3 -m json.tool
+        curl -s http://localhost:8000/v1/models | python3 -m json.tool
     else
         print_error "AIM Engine is not responding"
     fi
