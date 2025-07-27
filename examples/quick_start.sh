@@ -142,16 +142,20 @@ if [ "$AIM_ENGINE_RUNNING" = false ]; then
     
     # Wait for the service to be ready
     print_status "Waiting for AIM Engine to be ready..."
-    for i in {1..30}; do
+    for i in {1..300}; do
         if curl -s http://localhost:8001/v1/models >/dev/null 2>&1; then
             print_success "AIM Engine is ready!"
             break
         fi
-        if [ $i -eq 30 ]; then
-            print_error "AIM Engine failed to start within 30 seconds"
+        if [ $i -eq 300 ]; then
+            print_error "AIM Engine failed to start within 5 minutes"
             print_status "Container logs:"
             docker logs $CONTAINER_ID
             exit 1
+        fi
+        # Show progress every 30 seconds
+        if [ $((i % 30)) -eq 0 ]; then
+            print_status "Still waiting... ($((i/60))m $((i%60))s elapsed)"
         fi
         sleep 1
     done
