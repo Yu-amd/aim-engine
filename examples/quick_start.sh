@@ -115,8 +115,14 @@ if check_port 8000; then
     if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
         print_success "AIM Engine is already running on port 8000"
         AIM_ENGINE_RUNNING=true
+    elif curl -s http://localhost:8000/health >/dev/null 2>&1; then
+        print_warning "Health endpoint responding but models endpoint not ready yet"
+        print_status "This might be a container starting up. Waiting for model to load..."
+        AIM_ENGINE_RUNNING=false
     else
         print_error "Port 8000 is in use by another service. Please free it up."
+        print_status "Current containers using port 8000:"
+        docker ps | grep 8000 || echo "No containers found with port 8000"
         exit 1
     fi
 else
