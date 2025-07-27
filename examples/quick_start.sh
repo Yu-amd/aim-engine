@@ -99,73 +99,32 @@ else
     print_success "Python dependencies are installed"
 fi
 
-# Function to check if port is available
-check_port() {
-    local port=$1
-    if netstat -tlnp 2>/dev/null | grep -q ":$port "; then
-        return 1  # Port is in use
-    else
-        return 0  # Port is available
-    fi
-}
-
-# Check if port 8000 is available
-if ! check_port 8000; then
-    print_warning "Port 8000 is already in use. Checking if it's AIM Engine..."
-    if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
-        print_success "AIM Engine is already running on port 8000"
-        AIM_ENGINE_RUNNING=true
-    elif curl -s http://localhost:8000/health >/dev/null 2>&1; then
-        print_warning "Health endpoint responding but models endpoint not ready yet"
-        print_status "This might be a container starting up. Waiting for model to load..."
-        AIM_ENGINE_RUNNING=false
-    else
-        print_error "Port 8000 is in use by another service. Please free it up."
-        print_status "Current containers using port 8000:"
-        docker ps | grep 8000 || echo "No containers found with port 8000"
-        exit 1
-    fi
+# Check if AIM Engine endpoint is ready
+print_status "Checking AIM Engine endpoint..."
+if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
+    print_success "AIM Engine endpoint is ready!"
+elif curl -s http://localhost:8000/health >/dev/null 2>&1; then
+    print_warning "Health endpoint responding but models endpoint not ready yet"
+    print_status "Please wait for the model to finish loading..."
+    print_status "You can check progress with: docker logs <container_name>"
+    exit 1
 else
-    AIM_ENGINE_RUNNING=false
+    print_error "AIM Engine endpoint is not responding"
+    print_status "Please start AIM Engine first:"
+    echo "docker run --rm -d \\"
+    echo "  --name aim-engine \\"
+    echo "  --device=/dev/kfd \\"
+    echo "  --device=/dev/dri \\"
+    echo "  --group-add=video \\"
+    echo "  --group-add=render \\"
+    echo "  -v /workspace/model-cache:/workspace/model-cache \\"
+    echo "  -p 8000:8000 \\"
+    echo "  aim-vllm:latest \\"
+    echo "  aim-serve Qwen/Qwen3-32B"
+    exit 1
 fi
 
-# Start AIM Engine if not running
-if [ "$AIM_ENGINE_RUNNING" = false ]; then
-    print_status "Starting AIM Engine..."
-    
-    # Start the container in the background
-    CONTAINER_ID=$(docker run -d \
-        --device=/dev/kfd \
-        --device=/dev/dri \
-        --group-add=video \
-        --group-add=render \
-        -v /workspace/model-cache:/workspace/model-cache \
-        -p 8000:8000 \
-        aim-vllm:latest \
-        aim-serve Qwen/Qwen3-32B)
-    
-    print_success "AIM Engine container started (ID: $CONTAINER_ID)"
-    
-    # Wait for the service to be ready
-    print_status "Waiting for AIM Engine to be ready..."
-    for i in {1..300}; do
-        if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
-            print_success "AIM Engine is ready!"
-            break
-        fi
-        if [ $i -eq 300 ]; then
-            print_error "AIM Engine failed to start within 5 minutes"
-            print_status "Container logs:"
-            docker logs $CONTAINER_ID
-            exit 1
-        fi
-        # Show progress every 30 seconds
-        if [ $((i % 30)) -eq 0 ]; then
-            print_status "Still waiting... ($((i/60))m $((i%60))s elapsed)"
-        fi
-        sleep 1
-    done
-fi
+print_success "Ready to run agent examples!"
 
 # Function to show menu
 show_menu() {
