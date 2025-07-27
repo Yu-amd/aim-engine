@@ -16,23 +16,15 @@ netstat -tlnp | grep 8000
 # 2. Use a different port for AIM Engine (update examples accordingly)
 ```
 
-### 1. AIM Engine Setup
-First, make sure your AIM Engine is running:
+### 1. AIM Engine Endpoint
+Ensure your AIM Engine endpoint is running and ready on port 8000:
 
 ```bash
-# Build the combined container
-./build-aim-vllm.sh
+# Test if the endpoint is responding
+curl -f http://localhost:8000/health
 
-# Start the vLLM server with a model
-docker run --rm -d \
-  --device=/dev/kfd \
-  --device=/dev/dri \
-  --group-add=video \
-  --group-add=render \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -p 8000:8000 \
-  aim-vllm:latest \
-  aim-serve Qwen/Qwen3-32B
+# Test if models are loaded and ready
+curl -f http://localhost:8000/v1/models
 ```
 
 ### 2. Python Dependencies
