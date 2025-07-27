@@ -272,7 +272,7 @@ if __name__ == '__main__':
     local_ip = socket.gethostbyname(hostname)
     
     print("Starting Web Agent Interface (with Streaming)...")
-    print("Make sure your AIM Engine endpoint is running on http://localhost:8000")
+    print("Make sure your AIM Engine endpoint is running on http://localhost:8001")
     print("Web interface will be available at:")
     print(f"   - Local: http://localhost:5001")
     print(f"   - Network: http://{local_ip}:5001")

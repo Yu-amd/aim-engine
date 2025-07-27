@@ -114,7 +114,7 @@ def test_web_agent():
     
     # Test AIM Engine endpoint
     try:
-        response = requests.get('http://localhost:8000/v1/models', timeout=5)
+        response = requests.get('http://localhost:8001/v1/models', timeout=5)
         if response.status_code == 200:
             print(" AIM Engine endpoint is accessible")
         else:

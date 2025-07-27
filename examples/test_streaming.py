@@ -25,7 +25,7 @@ def test_simple_agent_streaming():
     
     try:
         response = requests.post(
-            "http://localhost:8000/v1/chat/completions",
+            "http://localhost:8001/v1/chat/completions",
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=30,
@@ -115,7 +115,7 @@ def main():
     print(" AIM Engine Streaming Test Suite")
     print("=" * 60)
     print("This script tests the streaming functionality of AIM Engine agents.")
-    print("Make sure your AIM Engine endpoint is running on http://localhost:8000")
+    print("Make sure your AIM Engine endpoint is running on http://localhost:8001")
     print("and optionally the web agent on http://localhost:5000")
     print()
     
