@@ -1,51 +1,55 @@
-# AIM Engine + vLLM ROCm Combined Container
+# AIM Engine + vLLM Combined Container
 FROM rocm/vllm:latest
 
-# Set environment variables for AMD/ROCm
+# Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-ENV PYTORCH_ROCM_ARCH=gfx90a
-ENV VLLM_USE_ROCM=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONPATH="/workspace/aim-engine/src"
+ENV HF_HOME="/workspace/model-cache"
+ENV TRANSFORMERS_CACHE="/workspace/model-cache"
+ENV HF_DATASETS_CACHE="/workspace/model-cache"
+ENV HF_HUB_DISABLE_TELEMETRY="1"
 
-# Install additional dependencies for AIM Engine
-RUN pip install --no-cache-dir \
+# Install additional dependencies
+RUN pip3 install --no-cache-dir \
     pyyaml \
     pathlib \
-    typing-extensions
+    typing-extensions \
+    requests \
+    numpy \
+    scipy \
+    psutil \
+    huggingface-hub
 
 # Create workspace directory
 WORKDIR /workspace
 
 # Copy AIM Engine source code
-COPY . /workspace/aim-engine/
+COPY src/ /workspace/aim-engine/src/
+COPY config/ /workspace/aim-engine/config/
+COPY setup.py /workspace/aim-engine/
+COPY requirements.txt /workspace/aim-engine/
+COPY README.md /workspace/aim-engine/
 
 # Install AIM Engine in development mode
 RUN cd /workspace/aim-engine && \
-    pip install -e .
+    pip3 install -e .
 
 # Create cache directories
 RUN mkdir -p /workspace/model-cache /tmp/.cache /root/.cache/huggingface
-
-# Set up environment
-ENV PYTHONPATH="/workspace/aim-engine"
-ENV HF_HOME="/workspace/model-cache"
-ENV TRANSFORMERS_CACHE="/workspace/model-cache"
-ENV HF_DATASETS_CACHE="/workspace/model-cache"
-ENV VLLM_CACHE_DIR="/workspace/model-cache"
-ENV HF_HUB_DISABLE_TELEMETRY="1"
 
 # Create convenience scripts
 RUN echo '#!/bin/bash\n\
 # Generate optimal vLLM command using AIM Engine\n\
 cd /workspace/aim-engine\n\
-python3 aim_generate_command.py "$@"\n\
+python3 -m aim_engine.aim_generate_command "$@"\n\
 ' > /usr/local/bin/aim-generate && \
     chmod +x /usr/local/bin/aim-generate
 
 RUN echo '#!/bin/bash\n\
 # Run vLLM server with generated configuration\n\
 cd /workspace/aim-engine\n\
-python3 aim_generate_command.py "$@" --serve\n\
+python3 -m aim_engine.aim_generate_command "$@" --serve\n\
 ' > /usr/local/bin/aim-serve && \
     chmod +x /usr/local/bin/aim-serve
 
@@ -58,7 +62,7 @@ if [ $# -eq 0 ]; then\n\
     echo "Current directory: $(pwd)"\n\
     exec /bin/bash\n\
 else\n\
-    exec "$@"\n\
+    exec /bin/bash "$@"\n\
 fi\n\
 ' > /usr/local/bin/aim-shell && \
     chmod +x /usr/local/bin/aim-shell

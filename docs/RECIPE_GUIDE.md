@@ -215,5 +215,3 @@ aim-engine launch Model/Name 8
 2. **Batch Sizes**: Optimize batch sizes for your use case
 3. **Sequence Lengths**: Choose appropriate sequence lengths
 4. **Precision**: Use the highest precision that fits in memory
-
-This guide provides comprehensive information for developing and maintaining AIM recipes. Follow these guidelines to create robust, performant, and maintainable recipes for your AI models.

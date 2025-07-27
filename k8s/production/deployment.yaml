@@ -1,0 +1,176 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aim-engine
+  namespace: aim-engine
+  labels:
+    app: aim-engine
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aim-engine
+  template:
+    metadata:
+      labels:
+        app: aim-engine
+        version: v1
+    spec:
+      # Node selector for AMD GPU nodes
+      nodeSelector:
+        amd.com/gpu: "true"
+        kubernetes.io/os: linux
+      
+      # Tolerations for GPU nodes
+      tolerations:
+      - key: amd.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      
+      # Security context for GPU access
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 0
+      
+      containers:
+      - name: aim-engine
+        image: aim-vllm:latest
+        imagePullPolicy: IfNotPresent
+        
+        # Port configuration
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        
+        # Environment variables from ConfigMap
+        env:
+        - name: AIM_CACHE_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: aim_cache_dir
+        - name: AIM_CACHE_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: aim_cache_enabled
+        - name: HF_HOME
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: hf_home
+        - name: TRANSFORMERS_CACHE
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: transformers_cache
+        - name: HF_DATASETS_CACHE
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: hf_datasets_cache
+        - name: VLLM_CACHE_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: vllm_cache_dir
+        - name: HF_HUB_DISABLE_TELEMETRY
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: hf_hub_disable_telemetry
+        - name: HIP_VISIBLE_DEVICES
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: hip_visible_devices
+        - name: PYTORCH_ROCM_ARCH
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: pytorch_rocm_arch
+        - name: VLLM_USE_ROCM
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: vllm_use_rocm
+        - name: PYTORCH_CUDA_ALLOC_CONF
+          valueFrom:
+            configMapKeyRef:
+              name: aim-engine-config
+              key: pytorch_cuda_alloc_conf
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        
+        # Resource limits and requests
+        resources:
+          requests:
+            memory: "32Gi"
+            cpu: "8"
+            # AMD GPU resource request
+            amd.com/gpu: "4"
+          limits:
+            memory: "64Gi"
+            cpu: "16"
+            # AMD GPU resource limit
+            amd.com/gpu: "4"
+        
+        # Volume mounts
+        volumeMounts:
+        - name: model-cache
+          mountPath: /workspace/model-cache
+        - name: kfd-device
+          mountPath: /dev/kfd
+        - name: dri-device
+          mountPath: /dev/dri
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Startup probe for slow-starting containers
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+        
+        # Command to start the service
+        command: ["/bin/bash"]
+        args: ["-c", "cd /workspace/aim-engine && aim-shell"]
+      
+      # Volumes
+      volumes:
+      - name: model-cache
+        persistentVolumeClaim:
+          claimName: aim-engine-cache-pvc
+      - name: kfd-device
+        hostPath:
+          path: /dev/kfd
+      - name: dri-device
+        hostPath:
+          path: /dev/dri
+      
+      # Restart policy
+      restartPolicy: Always 

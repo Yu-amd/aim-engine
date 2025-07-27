@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aim-engine
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: aim-engine
+        resources:
+          requests:
+            memory: "64Gi"
+            cpu: "16"
+            amd.com/gpu: "8"
+          limits:
+            memory: "128Gi"
+            cpu: "32"
+            amd.com/gpu: "8"
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: MAX_CONCURRENT_REQUESTS
+          value: "200"
+        - name: ENABLE_METRICS
+          value: "true"
+        - name: ENABLE_PROFILING
+          value: "false" 

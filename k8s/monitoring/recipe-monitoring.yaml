@@ -1,0 +1,329 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: aim-engine-recipe-monitor
+  namespace: aim-engine-monitoring
+  labels:
+    app: aim-engine
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: aim-engine
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'aim_recipe_(.+)'
+      targetLabel: recipe_metric
+      replacement: '${1}'
+    - sourceLabels: [__name__]
+      regex: 'aim_gpu_(.+)'
+      targetLabel: gpu_metric
+      replacement: '${1}'
+    - sourceLabels: [__name__]
+      regex: 'aim_performance_(.+)'
+      targetLabel: performance_metric
+      replacement: '${1}'
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: aim-engine-recipe-alerts
+  namespace: aim-engine-monitoring
+  labels:
+    app: aim-engine
+    component: monitoring
+spec:
+  groups:
+  - name: aim-engine.recipe.rules
+    rules:
+    # Recipe-specific alerts
+    - alert: AIMEngineRecipeNotFound
+      expr: aim_recipe_selection_failed_total > 0
+      for: 1m
+      labels:
+        severity: critical
+        component: recipe
+      annotations:
+        summary: "AIM Engine recipe not found"
+        description: "No suitable recipe found for model {{ $labels.model_id }} with {{ $labels.gpu_count }} GPUs"
+    
+    - alert: AIMEngineRecipeFallback
+      expr: aim_recipe_fallback_used_total > 0
+      for: 1m
+      labels:
+        severity: warning
+        component: recipe
+      annotations:
+        summary: "AIM Engine using fallback recipe"
+        description: "Using fallback recipe for {{ $labels.model_id }} due to resource constraints"
+    
+    - alert: AIMEngineRecipeMismatch
+      expr: aim_recipe_config_mismatch_total > 0
+      for: 1m
+      labels:
+        severity: warning
+        component: recipe
+      annotations:
+        summary: "AIM Engine recipe configuration mismatch"
+        description: "Recipe configuration doesn't match available resources"
+    
+    # Performance alerts based on recipe targets
+    - alert: AIMEngineLowThroughput
+      expr: aim_performance_tokens_per_second < aim_recipe_target_throughput * 0.8
+      for: 5m
+      labels:
+        severity: warning
+        component: performance
+      annotations:
+        summary: "AIM Engine low throughput"
+        description: "Throughput is {{ $value }} tokens/sec, target is {{ $labels.target_throughput }}"
+    
+    - alert: AIMEngineHighLatency
+      expr: aim_performance_first_token_latency_ms > 200
+      for: 5m
+      labels:
+        severity: warning
+        component: performance
+      annotations:
+        summary: "AIM Engine high latency"
+        description: "First token latency is {{ $value }}ms"
+    
+    - alert: AIMEngineGPUUnderutilized
+      expr: aim_gpu_memory_utilization < 0.7
+      for: 10m
+      labels:
+        severity: info
+        component: gpu
+      annotations:
+        summary: "AIM Engine GPU underutilized"
+        description: "GPU memory utilization is {{ $value | humanizePercentage }}"
+    
+    - alert: AIMEngineGPUOverutilized
+      expr: aim_gpu_memory_utilization > 0.95
+      for: 5m
+      labels:
+        severity: warning
+        component: gpu
+      annotations:
+        summary: "AIM Engine GPU overutilized"
+        description: "GPU memory utilization is {{ $value | humanizePercentage }}"
+    
+    # Resource alerts
+    - alert: AIMEngineInsufficientGPUs
+      expr: aim_resource_gpu_available < aim_recipe_required_gpus
+      for: 1m
+      labels:
+        severity: critical
+        component: resources
+      annotations:
+        summary: "AIM Engine insufficient GPUs"
+        description: "Required {{ $labels.required_gpus }} GPUs, available {{ $value }}"
+    
+    - alert: AIMEngineInsufficientMemory
+      expr: aim_resource_memory_available_gb < aim_recipe_required_memory_gb
+      for: 1m
+      labels:
+        severity: critical
+        component: resources
+      annotations:
+        summary: "AIM Engine insufficient memory"
+        description: "Required {{ $labels.required_memory_gb }}GB, available {{ $value }}GB"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aim-engine-grafana-dashboard
+  namespace: aim-engine-monitoring
+  labels:
+    app: aim-engine
+    component: monitoring
+data:
+  aim-engine-recipe-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "AIM Engine Recipe Dashboard",
+        "tags": ["aim-engine", "recipe", "gpu"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Recipe Selection Overview",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "aim_recipe_selection_total",
+                "legendFormat": "Total Recipe Selections"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "displayMode": "list"
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Recipe Performance by GPU Count",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "aim_performance_tokens_per_second by (gpu_count)",
+                "legendFormat": "{{gpu_count}} GPUs"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear"
+                }
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "GPU Memory Utilization by Recipe",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "aim_gpu_memory_utilization by (recipe_id)",
+                "legendFormat": "{{recipe_id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear"
+                },
+                "unit": "percent"
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Recipe Fallback Usage",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "aim_recipe_fallback_used_total by (model_id)",
+                "legendFormat": "{{model_id}}"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Resource Requirements vs Available",
+            "type": "bargraph",
+            "targets": [
+              {
+                "expr": "aim_recipe_required_gpus",
+                "legendFormat": "Required GPUs"
+              },
+              {
+                "expr": "aim_resource_gpu_available",
+                "legendFormat": "Available GPUs"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Performance KPIs by Recipe",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "aim_performance_tokens_per_second by (recipe_id, gpu_count, precision)",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "Time": true,
+                    "__name__": true,
+                    "job": true,
+                    "instance": true
+                  },
+                  "renameByName": {
+                    "recipe_id": "Recipe",
+                    "gpu_count": "GPUs",
+                    "precision": "Precision",
+                    "Value": "Tokens/sec"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aim-engine-prometheus-rules
+  namespace: aim-engine-monitoring
+  labels:
+    app: aim-engine
+    component: monitoring
+data:
+  recipe-recording-rules.yaml: |
+    groups:
+    - name: aim-engine.recipe.recording
+      rules:
+      # Recipe selection metrics
+      - record: aim_recipe_selection_rate
+        expr: rate(aim_recipe_selection_total[5m])
+      
+      - record: aim_recipe_fallback_rate
+        expr: rate(aim_recipe_fallback_used_total[5m])
+      
+      # Performance metrics by recipe
+      - record: aim_performance_avg_tokens_per_second
+        expr: avg(aim_performance_tokens_per_second) by (recipe_id, gpu_count)
+      
+      - record: aim_performance_avg_latency
+        expr: avg(aim_performance_first_token_latency_ms) by (recipe_id, gpu_count)
+      
+      # Resource utilization by recipe
+      - record: aim_gpu_avg_memory_utilization
+        expr: avg(aim_gpu_memory_utilization) by (recipe_id, gpu_count)
+      
+      - record: aim_gpu_avg_compute_utilization
+        expr: avg(aim_gpu_compute_utilization) by (recipe_id, gpu_count)
+      
+      # Recipe efficiency metrics
+      - record: aim_recipe_efficiency_score
+        expr: (aim_performance_tokens_per_second / aim_recipe_target_throughput) * (aim_gpu_memory_utilization / 0.9)
+      
+      # Resource availability metrics
+      - record: aim_resource_gpu_availability_ratio
+        expr: aim_resource_gpu_available / aim_recipe_required_gpus
+      
+      - record: aim_resource_memory_availability_ratio
+        expr: aim_resource_memory_available_gb / aim_recipe_required_memory_gb 

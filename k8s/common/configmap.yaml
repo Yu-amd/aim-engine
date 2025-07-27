@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aim-engine-config
+  namespace: aim-engine
+data:
+  # AIM Engine configuration
+  aim_cache_dir: "/workspace/model-cache"
+  aim_cache_enabled: "1"
+  
+  # Hugging Face configuration
+  hf_home: "/workspace/model-cache"
+  transformers_cache: "/workspace/model-cache"
+  hf_datasets_cache: "/workspace/model-cache"
+  vllm_cache_dir: "/workspace/model-cache"
+  hf_hub_disable_telemetry: "1"
+  
+  # ROCm/AMD GPU configuration
+  hip_visible_devices: "0,1,2,3,4,5,6,7"
+  pytorch_rocm_arch: "gfx90a"
+  vllm_use_rocm: "1"
+  
+  # Performance optimization
+  pytorch_cuda_alloc_conf: "max_split_size_mb:512"
+  
+  # Default model configuration
+  default_model: "Qwen/Qwen3-32B"
+  default_gpu_count: "4"
+  default_precision: "fp16"
+  default_port: "8000"
+  
+  # Health check configuration
+  health_check_path: "/health"
+  readiness_timeout: "30"
+  liveness_timeout: "60" 

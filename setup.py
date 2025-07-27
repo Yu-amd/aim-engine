@@ -4,55 +4,32 @@ Setup script for AIM Engine
 """
 
 from setuptools import setup, find_packages
-from pathlib import Path
+import os
 
 # Read the README file
-this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text()
+def read_readme():
+    with open("README.md", "r", encoding="utf-8") as fh:
+        return fh.read()
+
+# Read requirements
+def read_requirements():
+    with open("requirements.txt", "r", encoding="utf-8") as fh:
+        return [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
     name="aim-engine",
-    version="1.0.0",
-    description="AIM Engine - AI Model Deployment Engine for Single Node Deployment",
-    long_description=long_description,
+    version="0.1.0",
+    author="AMD",
+    author_email="your-email@amd.com",
+    description="AMD Inference Microservice - AI Model Deployment Made Simple",
+    long_description=read_readme(),
     long_description_content_type="text/markdown",
-    author="AIM Engine Team",
-    author_email="team@aim-engine.com",
-    url="https://github.com/your-org/aim-engine",
-    packages=find_packages(),
-    include_package_data=True,
-    install_requires=[
-        "requests>=2.31.0",
-        "PyYAML>=6.0",
-        "jsonschema>=4.17.0",
-    ],
-    extras_require={
-        "dev": [
-            "pytest>=7.0.0",
-            "black>=22.0.0",
-            "flake8>=4.0.0",
-        ],
-        "docker": [
-            "docker>=6.0.0",
-        ],
-        "kubernetes": [
-            "kubernetes>=26.0.0",
-        ],
-        "monitoring": [
-            "prometheus-client>=0.16.0",
-            "psutil>=5.9.0",
-        ],
-    },
-    entry_points={
-        "console_scripts": [
-            "aim-generate=aim_recipe_selector:main",
-        ],
-    },
-    python_requires=">=3.8",
+    url="https://github.com/Yu-amd/aim-engine",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
-        "Intended Audience :: System Administrators",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
@@ -60,15 +37,24 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Topic :: Scientific/Engineering :: Artificial Intelligence",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: System :: Distributed Computing",
     ],
-    keywords="ai machine-learning model-serving inference vllm rocm docker",
-    project_urls={
-        "Bug Reports": "https://github.com/your-org/aim-engine/issues",
-        "Source": "https://github.com/your-org/aim-engine",
-        "Documentation": "https://github.com/your-org/aim-engine/docs",
+    python_requires=">=3.8",
+    install_requires=read_requirements(),
+    entry_points={
+        "console_scripts": [
+            "aim-generate=aim_engine.aim_generate_command:main",
+            "aim-recipe-selector=aim_engine.aim_recipe_selector:main",
+            "aim-config-generator=aim_engine.aim_config_generator:main",
+            "aim-cache-manager=aim_engine.aim_cache_manager:main",
+        ],
+    },
+    include_package_data=True,
+    package_data={
+        "aim_engine": [
+            "config/*.json",
+            "config/models/*.yaml",
+            "config/recipes/*.yaml",
+            "config/templates/*.yaml",
+        ],
     },
 ) 

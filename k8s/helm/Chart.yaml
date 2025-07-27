@@ -1,0 +1,23 @@
+apiVersion: v2
+name: aim-engine
+description: AMD Inference Microservice - AI Model Deployment Made Simple
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ai
+  - machine-learning
+  - amd
+  - gpu
+  - inference
+  - vllm
+home: https://github.com/Yu-amd/aim-engine
+sources:
+  - https://github.com/Yu-amd/aim-engine
+maintainers:
+  - name: AIM Engine Team
+    email: support@aim-engine.com
+icon: https://raw.githubusercontent.com/Yu-amd/aim-engine/main/docs/logo.png
+annotations:
+  category: AI/ML
+  licenses: MIT 

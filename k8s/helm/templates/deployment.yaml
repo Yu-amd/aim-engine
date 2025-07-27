@@ -1,0 +1,224 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aim-engine.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "aim-engine.labels" . | nindent 4 }}
+    app.kubernetes.io/component: deployment
+spec:
+  replicas: {{ .Values.replicaCount.production | default .Values.replicaCount.development | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "aim-engine.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "aim-engine.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podAnnotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
+    spec:
+      {{- if .Values.aim_engine.recipe.auto_select }}
+      # Wait for recipe selection to complete
+      initContainers:
+      - name: recipe-wait
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          echo "Waiting for recipe selection to complete..."
+          while ! kubectl get job {{ include "aim-engine.fullname" . }}-recipe-selector -o jsonpath='{.status.succeeded}' | grep -q "1"; do
+            echo "Recipe selection job not completed yet, waiting..."
+            sleep 10
+          done
+          echo "Recipe selection completed!"
+        env:
+        - name: KUBECONFIG
+          value: "/root/.kube/config"
+        volumeMounts:
+        - name: kubeconfig
+          mountPath: /root/.kube
+          readOnly: true
+      volumes:
+      - name: kubeconfig
+        secret:
+          secretName: {{ include "aim-engine.fullname" . }}-kubeconfig
+          defaultMode: 0400
+      {{- end }}
+      
+      serviceAccountName: {{ include "aim-engine.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        {{- if .Values.aim_engine.recipe.auto_select }}
+        # Dynamic command generation based on recipe
+        command: 
+        - "python"
+        - "-m"
+        - "vllm.entrypoints.openai.api_server"
+        args:
+        {{- if .Values.aim_engine.vllm.args }}
+        {{- range $key, $value := .Values.aim_engine.vllm.args }}
+        - {{ $key | quote }}
+        - {{ $value | quote }}
+        {{- end }}
+        {{- else }}
+        # Default args (will be overridden by recipe)
+        - "--model"
+        - {{ .Values.aim_engine.recipe.model_id | quote }}
+        - "--dtype"
+        - {{ .Values.aim_engine.hardware.precision | quote }}
+        - "--host"
+        - "0.0.0.0"
+        - "--port"
+        - "8000"
+        {{- end }}
+        {{- else }}
+        # Static command based on values
+        command: 
+        - "python"
+        - "-m"
+        - "vllm.entrypoints.openai.api_server"
+        args:
+        - "--model"
+        - {{ .Values.aim_engine.recipe.model_id | quote }}
+        - "--dtype"
+        - {{ .Values.aim_engine.hardware.precision | quote }}
+        - "--tensor-parallel-size"
+        - {{ .Values.aim_engine.resources.gpu_count | quote }}
+        - "--max-num-batched-tokens"
+        - {{ mul .Values.aim_engine.resources.gpu_count 8192 | quote }}
+        - "--max-model-len"
+        - {{ .Values.aim_engine.performance.max_model_len | quote }}
+        - "--gpu-memory-utilization"
+        - {{ .Values.aim_engine.performance.gpu_memory_utilization | quote }}
+        - "--host"
+        - "0.0.0.0"
+        - "--port"
+        - "8000"
+        {{- end }}
+        
+        {{- if .Values.aim_engine.recipe.auto_select }}
+        # Dynamic resource allocation based on recipe
+        resources:
+          requests:
+            amd.com/gpu: {{ .Values.aim_engine.resources.gpu_count | quote }}
+            memory: {{ mul .Values.aim_engine.resources.gpu_count .Values.aim_engine.resources.memory_multiplier }}Gi
+            cpu: {{ mul .Values.aim_engine.resources.gpu_count .Values.aim_engine.resources.cpu_multiplier }}
+          limits:
+            amd.com/gpu: {{ .Values.aim_engine.resources.gpu_count | quote }}
+            memory: {{ mul .Values.aim_engine.resources.gpu_count .Values.aim_engine.resources.memory_multiplier 2 }}Gi
+            cpu: {{ mul .Values.aim_engine.resources.gpu_count .Values.aim_engine.resources.cpu_multiplier 2 }}
+        {{- else }}
+        # Static resource allocation
+        resources:
+          {{- toYaml .Values.resources.production | default .Values.resources.development | nindent 10 }}
+        {{- end }}
+        
+        # Environment variables
+        env:
+        {{- if .Values.aim_engine.recipe.auto_select }}
+        {{- if .Values.aim_engine.vllm.env }}
+        {{- range $key, $value := .Values.aim_engine.vllm.env }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+        {{- else }}
+        # Default environment variables
+        - name: HIP_VISIBLE_DEVICES
+          value: "0,1,2,3,4,5,6,7"
+        - name: PYTORCH_ROCM_ARCH
+          value: {{ .Values.aim_engine.hardware.rocm_arch | quote }}
+        - name: VLLM_USE_ROCM
+          value: "1"
+        - name: RECIPE_ID
+          value: {{ .Values.aim_engine.recipe.model_id | replace "/" "-" | lower | quote }}
+        {{- end }}
+        {{- else }}
+        # Static environment variables
+        {{- range .Values.env }}
+        - name: {{ .name | quote }}
+          value: {{ .value | quote }}
+        {{- end }}
+        {{- end }}
+        
+        # Volume mounts
+        volumeMounts:
+        {{- range .Values.volumeMounts }}
+        - name: {{ .name | quote }}
+          mountPath: {{ .mountPath | quote }}
+        {{- end }}
+        
+        # Health checks
+        {{- if .Values.healthChecks.livenessProbe.enabled }}
+        livenessProbe:
+          {{- toYaml .Values.healthChecks.livenessProbe | nindent 10 }}
+        {{- end }}
+        
+        {{- if .Values.healthChecks.readinessProbe.enabled }}
+        readinessProbe:
+          {{- toYaml .Values.healthChecks.readinessProbe | nindent 10 }}
+        {{- end }}
+        
+        {{- if .Values.healthChecks.startupProbe.enabled }}
+        startupProbe:
+          {{- toYaml .Values.healthChecks.startupProbe | nindent 10 }}
+        {{- end }}
+        
+        {{- with .Values.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      
+      # Volumes
+      volumes:
+      {{- range .Values.volumes }}
+      - name: {{ .name | quote }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      # Node selector
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      # Tolerations
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      # Affinity
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      # Update strategy
+      {{- with .Values.updateStrategy }}
+      strategy:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      # Termination grace period
+      {{- if .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- end }} 

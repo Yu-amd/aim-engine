@@ -1,0 +1,136 @@
+# ServiceMonitor for Prometheus monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: aim-engine-monitor
+  namespace: aim-engine-monitoring
+  labels:
+    app: aim-engine
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: aim-engine
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    honorLabels: true
+  namespaceSelector:
+    matchNames:
+    - aim-engine
+---
+# PrometheusRule for alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: aim-engine-alerts
+  namespace: aim-engine-monitoring
+  labels:
+    app: aim-engine
+    release: prometheus
+spec:
+  groups:
+  - name: aim-engine.rules
+    rules:
+    - alert: AIMEngineDown
+      expr: up{app="aim-engine"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "AIM Engine is down"
+        description: "AIM Engine has been down for more than 1 minute"
+    
+    - alert: AIMEngineHighCPU
+      expr: container_cpu_usage_seconds_total{container="aim-engine"} > 80
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "AIM Engine high CPU usage"
+        description: "AIM Engine CPU usage is above 80% for 5 minutes"
+    
+    - alert: AIMEngineHighMemory
+      expr: container_memory_usage_bytes{container="aim-engine"} / container_spec_memory_limit_bytes{container="aim-engine"} > 0.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "AIM Engine high memory usage"
+        description: "AIM Engine memory usage is above 80% for 5 minutes"
+    
+    - alert: AIMEngineGPUError
+      expr: aim_engine_gpu_errors_total > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "AIM Engine GPU errors detected"
+        description: "GPU errors detected in AIM Engine"
+---
+# Grafana Dashboard ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aim-engine-dashboard
+  namespace: aim-engine-monitoring
+  labels:
+    app: aim-engine
+data:
+  dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "AIM Engine Dashboard",
+        "tags": ["aim-engine", "ai", "gpu"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "AIM Engine Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{app=\"aim-engine\"}",
+                "legendFormat": "{{pod}}"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "CPU Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{container=\"aim-engine\"}[5m])",
+                "legendFormat": "{{pod}}"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{container=\"aim-engine\"}",
+                "legendFormat": "{{pod}}"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "GPU Utilization",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "aim_engine_gpu_utilization",
+                "legendFormat": "GPU {{gpu_id}}"
+              }
+            ]
+          }
+        ]
+      }
+    } 

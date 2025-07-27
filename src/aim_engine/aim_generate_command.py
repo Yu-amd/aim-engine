@@ -8,7 +8,7 @@ import sys
 import subprocess
 import os
 from pathlib import Path
-from aim_recipe_selector import AIMRecipeSelector
+from .aim_recipe_selector import AIMRecipeSelector
 
 def detect_available_gpus():
     """Detect the actual number of GPUs available in the container"""
@@ -107,8 +107,8 @@ def main():
     serve_mode = "--serve" in sys.argv
     
     try:
-        # Initialize selector
-        selector = AIMRecipeSelector(Path("."))
+        # Initialize selector with config directory
+        selector = AIMRecipeSelector(Path("config"))
         
         # Detect actual available GPUs in container
         available_gpus = detect_available_gpus()

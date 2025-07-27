@@ -1,0 +1,371 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aim-engine-recipe-performance-dashboard
+  namespace: aim-engine-monitoring
+  labels:
+    app: aim-engine
+    component: monitoring
+    grafana_dashboard: "1"
+data:
+  recipe-performance-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "AIM Engine Recipe Performance Dashboard",
+        "description": "Comprehensive monitoring of AIM Engine recipe performance, resource utilization, and optimization opportunities",
+        "tags": ["aim-engine", "recipe", "performance", "gpu", "optimization"],
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Recipe Selection Overview",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "aim_recipe_selection_total",
+                "legendFormat": "Total Selections"
+              },
+              {
+                "expr": "aim_recipe_fallback_used_total",
+                "legendFormat": "Fallback Used"
+              },
+              {
+                "expr": "aim_recipe_selection_failed_total",
+                "legendFormat": "Selection Failed"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {"displayMode": "list"},
+                "mappings": [
+                  {
+                    "options": {"0": {"text": "Healthy"}},
+                    "type": "value"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Active Recipes by GPU Count",
+            "type": "piechart",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "aim_recipe_active_total by (gpu_count)",
+                "legendFormat": "{{gpu_count}} GPUs"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "hideFrom": {"legend": false, "tooltip": false, "vis": false}
+                }
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "Performance Throughput by Recipe",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "aim_performance_tokens_per_second by (recipe_id, gpu_count)",
+                "legendFormat": "{{recipe_id}} ({{gpu_count}} GPUs)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "tokens/sec"
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "GPU Memory Utilization by Recipe",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "aim_gpu_memory_utilization by (recipe_id)",
+                "legendFormat": "{{recipe_id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "percent",
+                "min": 0,
+                "max": 100
+              }
+            },
+            "thresholds": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 90}
+            ]
+          },
+          {
+            "id": 5,
+            "title": "GPU Compute Utilization by Recipe",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "aim_gpu_compute_utilization by (recipe_id)",
+                "legendFormat": "{{recipe_id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "percent",
+                "min": 0,
+                "max": 100
+              }
+            },
+            "thresholds": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 60},
+              {"color": "red", "value": 80}
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Latency Performance by Recipe",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+            "targets": [
+              {
+                "expr": "aim_performance_first_token_latency_ms by (recipe_id)",
+                "legendFormat": "{{recipe_id}} - First Token"
+              },
+              {
+                "expr": "aim_performance_end_to_end_latency_ms by (recipe_id)",
+                "legendFormat": "{{recipe_id}} - End to End"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "ms"
+              }
+            }
+          },
+          {
+            "id": 7,
+            "title": "Recipe Efficiency Score",
+            "type": "gauge",
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 32},
+            "targets": [
+              {
+                "expr": "aim_recipe_efficiency_score by (recipe_id)",
+                "legendFormat": "{{recipe_id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "displayMode": "gauge"
+                },
+                "min": 0,
+                "max": 1,
+                "unit": "short"
+              }
+            },
+            "thresholds": [
+              {"color": "red", "value": 0},
+              {"color": "yellow", "value": 0.5},
+              {"color": "green", "value": 0.8}
+            ]
+          },
+          {
+            "id": 8,
+            "title": "Resource Availability Ratio",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 8, "x": 8, "y": 32},
+            "targets": [
+              {
+                "expr": "aim_resource_gpu_availability_ratio",
+                "legendFormat": "GPU Availability"
+              },
+              {
+                "expr": "aim_resource_memory_availability_ratio",
+                "legendFormat": "Memory Availability"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {"displayMode": "list"},
+                "unit": "short",
+                "min": 0,
+                "max": 2
+              }
+            },
+            "thresholds": [
+              {"color": "red", "value": 0},
+              {"color": "yellow", "value": 0.5},
+              {"color": "green", "value": 1}
+            ]
+          },
+          {
+            "id": 9,
+            "title": "Recipe Performance Comparison",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 8, "x": 16, "y": 32},
+            "targets": [
+              {
+                "expr": "aim_performance_tokens_per_second by (recipe_id, gpu_count, precision)",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "Time": true,
+                    "__name__": true,
+                    "job": true,
+                    "instance": true
+                  },
+                  "renameByName": {
+                    "recipe_id": "Recipe",
+                    "gpu_count": "GPUs",
+                    "precision": "Precision",
+                    "Value": "Tokens/sec"
+                  }
+                }
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "custom": {
+                  "align": "auto",
+                  "displayMode": "auto"
+                }
+              }
+            }
+          },
+          {
+            "id": 10,
+            "title": "Recipe Fallback Analysis",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40},
+            "targets": [
+              {
+                "expr": "rate(aim_recipe_fallback_used_total[5m]) by (model_id, reason)",
+                "legendFormat": "{{model_id}} - {{reason}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                }
+              }
+            }
+          },
+          {
+            "id": 11,
+            "title": "Optimization Recommendations",
+            "type": "text",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 48},
+            "content": "# Recipe Optimization Recommendations\n\n## Performance Insights\n- **High GPU Utilization**: Recipes with >90% GPU memory usage may benefit from additional GPUs\n- **Low Throughput**: Recipes below target throughput should be reviewed for optimization\n- **High Latency**: First token latency >200ms indicates potential bottlenecks\n\n## Resource Optimization\n- **GPU Underutilization**: <70% GPU memory usage suggests over-provisioning\n- **Memory Pressure**: High memory usage may require model optimization or additional memory\n- **CPU Bottlenecks**: High CPU usage with low GPU usage indicates CPU-bound operations\n\n## Recipe Selection\n- **Fallback Usage**: Frequent fallbacks suggest resource constraints\n- **Failed Selections**: Indicates missing or incompatible recipes\n- **Efficiency Score**: <0.8 efficiency score suggests suboptimal configuration",
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "text"},
+                "custom": {
+                  "align": "left"
+                }
+              }
+            }
+          }
+        ],
+        "templating": {
+          "list": [
+            {
+              "name": "recipe_id",
+              "type": "query",
+              "query": "label_values(aim_recipe_active_total, recipe_id)",
+              "refresh": 2,
+              "includeAll": true,
+              "multi": true
+            },
+            {
+              "name": "gpu_count",
+              "type": "query",
+              "query": "label_values(aim_recipe_active_total, gpu_count)",
+              "refresh": 2,
+              "includeAll": true,
+              "multi": true
+            },
+            {
+              "name": "precision",
+              "type": "query",
+              "query": "label_values(aim_recipe_active_total, precision)",
+              "refresh": 2,
+              "includeAll": true,
+              "multi": true
+            }
+          ]
+        },
+        "annotations": {
+          "list": [
+            {
+              "name": "Recipe Changes",
+              "datasource": "Prometheus",
+              "expr": "changes(aim_recipe_active_total[5m]) > 0",
+              "titleFormat": "Recipe Configuration Changed",
+              "textFormat": "Recipe {{ $labels.recipe_id }} configuration changed"
+            },
+            {
+              "name": "Performance Alerts",
+              "datasource": "Prometheus",
+              "expr": "aim_performance_tokens_per_second < aim_recipe_target_throughput * 0.8",
+              "titleFormat": "Low Performance Alert",
+              "textFormat": "{{ $labels.recipe_id }} performance below target"
+            }
+          ]
+        }
+      }
+    } 

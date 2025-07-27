@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aim-engine-recipes
+  namespace: aim-engine
+  labels:
+    app: aim-engine
+    component: recipes
+data:
+  # Sample recipe for DialoGPT-medium with 1 GPU (Minikube TGI development)
+  dialogpt-medium-1gpu-float16.yaml: |
+    recipe_id: dialogpt-medium-1gpu-float16
+    model_id: microsoft/DialoGPT-medium
+    gpu_count: 1
+    precision: float16
+    backend: tgi
+    hardware:
+      type: CPU
+      arch: x86_64
+    config:
+      args:
+        model_id: microsoft/DialoGPT-medium
+        dtype: float16
+        port: 8000
+        hostname: 0.0.0.0
+        max_batch_total_tokens: 8192
+        max_batch_prefill_tokens: 4096
+        max_input_length: 4096
+        max_total_tokens: 8192
+      env:
+        HF_HUB_DISABLE_TELEMETRY: "1"
+    performance:
+      expected_tokens_per_second: 50
+      expected_latency_ms: 200
+    resources:
+      memory_gb: 4
+      cpu_cores: 2
+  
+  # Sample recipe for Qwen3-32B with 2 GPUs (if available)
+  qwen3-32b-2gpu-bf16.yaml: |
+    recipe_id: qwen3-32b-2gpu-bf16
+    model_id: Qwen/Qwen3-32B
+    gpu_count: 2
+    precision: bf16
+    backend: vllm
+    hardware:
+      type: MI300X
+      rocm_arch: gfx90a
+    config:
+      args:
+        model: Qwen/Qwen3-32B
+        dtype: bf16
+        tensor_parallel_size: 2
+        max_model_len: 16384
+        gpu_memory_utilization: 0.8
+        max_num_batched_tokens: 16384
+        host: 0.0.0.0
+        port: 8000
+      env:
+        HIP_VISIBLE_DEVICES: "0,1"
+        PYTORCH_ROCM_ARCH: "gfx90a"
+        VLLM_USE_ROCM: "1"
+    performance:
+      expected_tokens_per_second: 300
+      expected_latency_ms: 80
+    resources:
+      memory_gb: 4
+      cpu_cores: 2
+  
+  # Sample recipe for smaller model (7B) for development
+  qwen3-7b-1gpu-bf16.yaml: |
+    recipe_id: qwen3-7b-1gpu-bf16
+    model_id: Qwen/Qwen3-7B
+    gpu_count: 1
+    precision: bf16
+    backend: vllm
+    hardware:
+      type: MI300X
+      rocm_arch: gfx90a
+    config:
+      args:
+        model: Qwen/Qwen3-7B
+        dtype: bf16
+        tensor_parallel_size: 1
+        max_model_len: 16384
+        gpu_memory_utilization: 0.8
+        max_num_batched_tokens: 16384
+        host: 0.0.0.0
+        port: 8000
+      env:
+        HIP_VISIBLE_DEVICES: "0"
+        PYTORCH_ROCM_ARCH: "gfx90a"
+        VLLM_USE_ROCM: "1"
+    performance:
+      expected_tokens_per_second: 200
+      expected_latency_ms: 60
+    resources:
+      memory_gb: 2
+      cpu_cores: 1 

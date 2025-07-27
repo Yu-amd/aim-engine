@@ -1,0 +1,57 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: aim-engine
+  namespace: aim-engine
+
+resources:
+- namespace.yaml
+- configmap.yaml
+- storage.yaml
+- rbac.yaml
+- deployment.yaml
+- service.yaml
+- ingress.yaml
+- hpa.yaml
+- monitoring.yaml
+
+commonLabels:
+  app: aim-engine
+  managed-by: kustomize
+  version: v1.0.0
+
+commonAnnotations:
+  description: AIM Engine - AMD Inference Microservice for AI Model Deployment
+
+# Patches for different environments
+patches:
+- path: patches/development.yaml
+  target:
+    kind: Deployment
+    name: aim-engine
+- path: patches/production.yaml
+  target:
+    kind: Deployment
+    name: aim-engine
+
+# ConfigMap generator for environment-specific values
+configMapGenerator:
+- literals:
+  - ENVIRONMENT=production
+  - LOG_LEVEL=INFO
+  - MAX_CONCURRENT_REQUESTS=100
+  name: aim-engine-env-config
+
+# Secret generator for sensitive data
+secretGenerator:
+- literals:
+  - API_KEY=your-api-key-here
+  - HF_TOKEN=your-huggingface-token-here
+  name: aim-engine-secrets
+
+# Images to use
+images:
+- name: aim-vllm
+  newName: localhost:5000/aim-vllm
+  newTag: latest

@@ -1,0 +1,134 @@
+{{- if .Values.aim_engine.recipe.auto_select }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "aim-engine.fullname" . }}-recipe-selector
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "aim-engine.labels" . | nindent 4 }}
+    app.kubernetes.io/component: recipe-selector
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ include "aim-engine.fullname" . }}
+      containers:
+      - name: recipe-selector
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Recipe selection command
+        command: ["python", "-c"]
+        args:
+        - |
+          import os
+          import json
+          import sys
+          from pathlib import Path
+          
+          # Add AIM Engine to path
+          sys.path.append('/workspace/aim-engine')
+          
+          from aim_recipe_selector import AIMRecipeSelector
+          
+          # Initialize selector
+          selector = AIMRecipeSelector(Path('/workspace/aim-engine'))
+          
+          # Get model ID from environment
+          model_id = os.environ.get('MODEL_ID', '{{ .Values.aim_engine.recipe.model_id }}')
+          gpu_count = os.environ.get('GPU_COUNT')
+          precision = os.environ.get('PRECISION', '{{ .Values.aim_engine.hardware.precision }}')
+          
+          # Convert GPU count to int if provided
+          if gpu_count:
+              gpu_count = int(gpu_count)
+          
+          print(f"Selecting recipe for model: {model_id}")
+          print(f"GPU count: {gpu_count}")
+          print(f"Precision: {precision}")
+          
+          # Get optimal configuration
+          config = selector.get_optimal_configuration(
+              model_id=model_id,
+              customer_gpu_count=gpu_count,
+              customer_precision=precision,
+              backend='vllm'
+          )
+          
+          if not config:
+              print("ERROR: No suitable recipe found")
+              sys.exit(1)
+          
+          # Output configuration as environment variables
+          print(f"RECIPE_ID={config['recipe_id']}")
+          print(f"GPU_COUNT={config['gpu_count']}")
+          print(f"PRECISION={config['precision']}")
+          print(f"MODEL_ID={config['model_id']}")
+          
+          # Output vLLM command arguments
+          vllm_args = config['config'].get('args', {})
+          for key, value in vllm_args.items():
+              print(f"VLLM_ARG_{key.upper().replace('-', '_')}={value}")
+          
+          # Output resource requirements
+          memory_gb = config['gpu_count'] * {{ .Values.aim_engine.resources.memory_multiplier }}
+          cpu_cores = config['gpu_count'] * {{ .Values.aim_engine.resources.cpu_multiplier }}
+          print(f"REQUIRED_MEMORY_GB={memory_gb}")
+          print(f"REQUIRED_CPU_CORES={cpu_cores}")
+          
+          print("Recipe selection completed successfully")
+        
+        env:
+        - name: MODEL_ID
+          value: {{ .Values.aim_engine.recipe.model_id | quote }}
+        - name: GPU_COUNT
+          value: {{ .Values.aim_engine.recipe.gpu_count | default "" | quote }}
+        - name: PRECISION
+          value: {{ .Values.aim_engine.hardware.precision | quote }}
+        - name: HIP_VISIBLE_DEVICES
+          value: "all"
+        - name: PYTORCH_ROCM_ARCH
+          value: {{ .Values.aim_engine.hardware.rocm_arch | quote }}
+        - name: VLLM_USE_ROCM
+          value: "1"
+        
+        # Resource requirements for recipe selection
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        
+        # Volume mounts for recipes
+        volumeMounts:
+        - name: recipes
+          mountPath: /workspace/aim-engine/recipes
+        - name: aim-engine-code
+          mountPath: /workspace/aim-engine
+      
+      volumes:
+      - name: recipes
+        configMap:
+          name: {{ include "aim-engine.fullname" . }}-recipes
+      - name: aim-engine-code
+        emptyDir: {}
+      
+      restartPolicy: Never
+      backoffLimit: 3
+---
+# ConfigMap for recipes
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aim-engine.fullname" . }}-recipes
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "aim-engine.labels" . | nindent 4 }}
+    app.kubernetes.io/component: recipes
+data:
+{{- range $path, $content := .Files.Glob "recipes/*.yaml" }}
+  {{ base $path }}: |
+{{ $content | indent 4 }}
+{{- end }}
+{{- end }} 

@@ -1,0 +1,171 @@
+{{- if .Values.aim_engine.recipe.auto_select }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "aim-engine.fullname" . }}-recipe-selector-hook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "aim-engine.labels" . | nindent 4 }}
+    app.kubernetes.io/component: recipe-selector
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ include "aim-engine.fullname" . }}
+      containers:
+      - name: recipe-selector
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Recipe selection with override support
+        command: ["python", "-c"]
+        args:
+        - |
+          import os
+          import json
+          import sys
+          from pathlib import Path
+          
+          # Add AIM Engine to path
+          sys.path.append('/workspace/aim-engine')
+          
+          from aim_recipe_selector import AIMRecipeSelector
+          
+          # Initialize selector
+          selector = AIMRecipeSelector(Path('/workspace/aim-engine'))
+          
+          # Get configuration from environment
+          model_id = os.environ.get('MODEL_ID', '{{ .Values.aim_engine.recipe.model_id }}')
+          gpu_count = os.environ.get('GPU_COUNT')
+          precision = os.environ.get('PRECISION')
+          backend = os.environ.get('BACKEND', 'vllm')
+          
+          # Handle configuration overrides
+          if gpu_count and gpu_count.lower() != 'null':
+              gpu_count = int(gpu_count)
+          else:
+              gpu_count = None
+          
+          if precision and precision.lower() == 'null':
+              precision = None
+          
+          print(f"Recipe Selection Configuration:")
+          print(f"  Model ID: {model_id}")
+          print(f"  GPU Count: {gpu_count}")
+          print(f"  Precision: {precision}")
+          print(f"  Backend: {backend}")
+          
+          # Get optimal configuration with overrides
+          config = selector.get_optimal_configuration(
+              model_id=model_id,
+              customer_gpu_count=gpu_count,
+              customer_precision=precision,
+              backend=backend
+          )
+          
+          if not config:
+              print("ERROR: No suitable recipe found")
+              print("Available configurations:")
+              configs = selector.get_supported_configurations(model_id)
+              for config_key, config_info in configs.items():
+                  print(f"  - {config_key}: {config_info}")
+              sys.exit(1)
+          
+          print(f"Selected Recipe: {config['recipe_id']}")
+          print(f"Configuration: {config['gpu_count']} GPUs, {config['precision']} precision")
+          
+          # Output configuration as environment variables for Helm
+          output_vars = {
+              "RECIPE_ID": config['recipe_id'],
+              "GPU_COUNT": str(config['gpu_count']),
+              "PRECISION": config['precision'],
+              "MODEL_ID": config['model_id'],
+              "BACKEND": config['backend']
+          }
+          
+          # Add vLLM arguments
+          vllm_args = config['config'].get('args', {})
+          for key, value in vllm_args.items():
+              env_key = f"VLLM_ARG_{key.upper().replace('-', '_')}"
+              output_vars[env_key] = str(value)
+          
+          # Add resource requirements
+          memory_gb = config['gpu_count'] * {{ .Values.aim_engine.resources.memory_multiplier }}
+          cpu_cores = config['gpu_count'] * {{ .Values.aim_engine.resources.cpu_multiplier }}
+          output_vars["REQUIRED_MEMORY_GB"] = str(memory_gb)
+          output_vars["REQUIRED_CPU_CORES"] = str(cpu_cores)
+          
+          # Output to file for Helm to read
+          with open('/tmp/recipe_config.json', 'w') as f:
+              json.dump(output_vars, f, indent=2)
+          
+          # Also output as environment variables
+          for key, value in output_vars.items():
+              print(f"{key}={value}")
+          
+          print("Recipe selection completed successfully")
+          print(f"Configuration saved to /tmp/recipe_config.json")
+        
+        env:
+        - name: MODEL_ID
+          value: {{ .Values.aim_engine.recipe.model_id | quote }}
+        - name: GPU_COUNT
+          value: {{ .Values.aim_engine.recipe.gpu_count | default "null" | quote }}
+        - name: PRECISION
+          value: {{ .Values.aim_engine.recipe.precision | default "null" | quote }}
+        - name: BACKEND
+          value: {{ .Values.aim_engine.recipe.backend | default "vllm" | quote }}
+        - name: HIP_VISIBLE_DEVICES
+          value: "all"
+        - name: PYTORCH_ROCM_ARCH
+          value: {{ .Values.aim_engine.hardware.rocm_arch | quote }}
+        - name: VLLM_USE_ROCM
+          value: "1"
+        
+        # Resource requirements for recipe selection
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        
+        # Volume mounts for recipes and output
+        volumeMounts:
+        - name: recipes
+          mountPath: /workspace/aim-engine/recipes
+        - name: aim-engine-code
+          mountPath: /workspace/aim-engine
+        - name: recipe-output
+          mountPath: /tmp
+      
+      volumes:
+      - name: recipes
+        configMap:
+          name: {{ include "aim-engine.fullname" . }}-recipes
+      - name: aim-engine-code
+        emptyDir: {}
+      - name: recipe-output
+        emptyDir: {}
+      
+      restartPolicy: Never
+      backoffLimit: 3
+---
+# ConfigMap for recipes
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aim-engine.fullname" . }}-recipes
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "aim-engine.labels" . | nindent 4 }}
+    app.kubernetes.io/component: recipes
+data:
+{{- range $path, $content := .Files.Glob "recipes/*.yaml" }}
+  {{ base $path }}: |
+{{ $content | indent 4 }}
+{{- end }}
+{{- end }} 

@@ -1,320 +1,68 @@
-# AIM Engine - Complete Documentation
+# AIM Engine Documentation
 
-## 🎯 **Overview**
+This directory contains the main documentation for the AIM Engine project.
 
-AIM Engine is an intelligent AI model deployment system that automatically selects optimal configurations and manages inference endpoints using Docker containers. It combines the power of vLLM ROCm with intelligent orchestration tools.
+## Documentation Structure
 
-## 🚀 **Quick Start**
+### **Core Documentation**
+- **`README.md`** - Main documentation overview
+- **`ARCHITECTURE.md`** - System architecture and design
+- **`API.md`** - API reference and usage
+- **`RECIPE_GUIDE.md`** - Recipe system documentation
+- **`TROUBLESHOOTING.md`** - Common issues and solutions
 
-### **Installation**
-```bash
-# Clone the repository
-git clone <repository-url>
-cd aim-engine
+### **Technical Documentation**
+- **`AIM_ENGINE_OVERVIEW.md`** - High-level project overview
+- **`AIM_ENGINE_DETAIL.md`** - Detailed technical specifications
+- **`AIM_Engine_BOM.md`** - Bill of Materials and dependencies
+- **`architecture-diagrams.md`** - Visual architecture diagrams
 
-# Install dependencies
-./install.sh
+### **Deployment Documentation**
+- **`docker/docs/`** - Single-node Docker deployment guides
+- **`k8s/docs/`** - Kubernetes deployment guides
 
-# Or install manually
-pip install -e .
-```
+## Quick Navigation
 
-### **Basic Usage**
-```bash
-# Launch model with auto-detection
-aim-engine launch Qwen/Qwen3-32B
+### **For Docker Deployments**
+- **Single-node Docker**: See `../docker/docs/DEPLOYMENT.md`
+- **vLLM Integration**: See `../docker/docs/AIM_VLLM_USAGE.md`
 
-# Launch with specific configuration
-aim-engine launch Qwen/Qwen3-32B 4 --precision bf16 --backend vllm
+### **For Kubernetes Deployments**
+- **Development (Minikube)**: See `../k8s/docs/DEVELOPMENT.md`
+- **Production (Helm)**: See `../k8s/docs/PRODUCTION.md`
+- **Quick Start**: See `../k8s/docs/README.md`
 
-# List running endpoints
-aim-engine list
+### **For Development**
+- **Architecture**: See `ARCHITECTURE.md`
+- **API Reference**: See `API.md`
+- **Recipe System**: See `RECIPE_GUIDE.md`
+- **Troubleshooting**: See `TROUBLESHOOTING.md`
 
-# Stop an endpoint
-aim-engine stop aim-engine-qwen-qwen3-32b-4gpu-bf16-vllm
-```
-
-## 📚 **Documentation Structure**
-
-### **Guides**
-- [Installation Guide](guides/installation.md) - Setup and installation instructions
-- [User Guide](guides/user-guide.md) - How to use AIM Engine
-- [Recipe Selection Guide](guides/recipe-selection.md) - Understanding recipe selection
-- [Container Management](guides/container-management.md) - Working with containers
-
-### **Architecture**
-- [System Architecture](architecture/system-architecture.md) - Overall system design
-- [Workflow](architecture/workflow.md) - Complete deployment workflow
-- [Unified Container](architecture/unified-container.md) - Unified container approach
--- [AIM Engine BOM](AIM_Engine_BOM.md) - Complete container composition and dependencies
-- [Production Deployment](architecture/production.md) - Production deployment guide
-
-### **Examples**
-- [Basic Examples](examples/basic-usage.md) - Simple usage examples
-- [Advanced Examples](examples/advanced-usage.md) - Complex deployment scenarios
-- [Troubleshooting](examples/troubleshooting.md) - Common issues and solutions
-
-## 🔧 **Key Features**
-
-### **1. Intelligent Auto-Detection**
-- **GPU Detection**: Automatically detects available GPUs
-- **Optimal Selection**: Chooses best configuration based on model size
-- **Smart Fallback**: Tries alternatives if primary choice fails
-
-### **2. Model-Specific Recipe Loading**
-- **Efficient Loading**: Only loads recipes for the target model
-- **Fast Startup**: Optimized for quick deployment
-- **Memory Efficient**: Minimal memory footprint
-
-### **3. Single Container Deployment**
-- **Unified Container**: Single container with AIM Engine and vLLM
-- **Subprocess Execution**: vLLM runs as child process for efficiency
-- **Shared Resources**: All components share GPU access and memory
-
-### **4. Production Ready**
-- **Health Checks**: Comprehensive endpoint validation
-- **Resource Management**: Efficient GPU and memory usage
-- **Monitoring**: Built-in metrics and logging
-- **Scalability**: Support for multiple concurrent models
-
-## 🏗️ **System Architecture**
-
-
-### Architecture Overview
+## Project Structure
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    AIM Engine Container                     │
-│   (aim-engine:latest - Unified vLLM + AIM Engine)           │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │                 AIM Engine Core                         │ │
-│ │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │ │
-│ │  │   Launcher  │  │   Recipe    │  │     Cache       │  │ │
-│ │  │             │  │  Selector   │  │    Manager      │  │ │
-│ │  └─────────────┘  └─────────────┘  └─────────────────┘  │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                              │                              │
-│  ┌───────────────────────────▼────────────────────────────┐ │
-│  │              Process Management                        │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │ │
-│  │  │   Config    │  │   Docker    │  │    Endpoint     │ │ │
-│  │  │ Generator   │  │   Manager   │  │    Manager      │ │ │
-│  │  └─────────────┘  └─────────────┘  └─────────────────┘ │ │
-│  └────────────────────────────────────────────────────────┘ │
-│                              │                              │
-│  ┌───────────────────────────▼────────────────────────────┐ │
-│  │              Model Serving Process                     │ │
-│  │  ┌─────────────────┐  ┌─────────────────┐              │ │
-│  │  │     vLLM        │  │    SGLang       │              │ │
-│  │  │   (Subprocess)  │  │   (Subprocess)  │              │ │
-│  │  └─────────────────┘  └─────────────────┘              │ │
-│  └────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────▼───────────────────────────────┐
-│                    AMD Hardware                             │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
-│  │   MI300X GPU    │  │   MI325X GPU    │ │
-│  │                 │  │                 │  │              │ │
-│  └─────────────────┘  └─────────────────┘  └──────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+aim-engine/
+├── docs/                   # General documentation (this directory)
+├── docker/
+│   ├── docs/              # Docker deployment documentation
+│   ├── Dockerfile.aim-vllm
+│   └── Dockerfile.aim-tgi
+├── k8s/
+│   └── docs/              # Kubernetes deployment documentation
+├── src/aim_engine/        # Core Python package
+├── config/                # Configuration files
+├── scripts/               # Build and deployment scripts
+└── examples/              # Usage examples
 ```
 
-### Container Components
+## Getting Started
 
-**Base Image**: `rocm/vllm:latest`
-- **vLLM Runtime**: High-performance inference engine
-- **ROCm Support**: AMD GPU acceleration
-- **Python Environment**: PyTorch, transformers, and ML libraries
+1. **Choose your deployment method**:
+   - **Docker**: For single-node deployments
+   - **Kubernetes**: For cluster deployments
 
-**Added Components**:
-- **AIM Engine Tools**: Orchestration and management modules
-- **Docker CLI**: Container management capabilities
-- **Cache System**: Model caching and storage
-- **Process Management**: Subprocess execution for model serving
+2. **Read the appropriate documentation**:
+   - Docker: `../docker/docs/`
+   - Kubernetes: `../k8s/docs/`
 
-### Key Design Principles
-
-1. **Unified Container**: Single container with all components
-2. **Subprocess Execution**: vLLM/SGLang run as child processes
-3. **Shared Resources**: All components share GPU access and memory
-4. **Docker CLI Available**: For container management if needed
-5. **Efficient Deployment**: No Docker-in-Docker overhead
-
-
-## 🔄 **Complete Workflow**
-
-### **Phase 1: Input Processing**
-- Parse user command and validate inputs
-- Initialize AIM Engine components
-
-### **Phase 2: Auto-Detection & Resource Analysis**
-- Detect available GPUs using `rocm-smi`
-- Auto-select optimal GPU count based on model size
-- Auto-select optimal precision based on model characteristics
-
-### **Phase 3: Recipe Selection & Loading**
-- Load ONLY recipes for the specific model
-- Filter by precision, backend, GPU count
-- Select best matching recipe
-
-### **Phase 4: Configuration Generation**
-- Generate Docker command arguments from recipe
-- Create environment variables and volume mounts
-- Configure networking and port mapping
-
-### **Phase 5: Docker Container Management**
-- Generate unique container name
-- Pull `rocm/vllm:latest` image if needed
-- Launch container with GPU access and configuration
-
-### **Phase 6: Endpoint Readiness & Health Checks**
-- Wait for container to start and vLLM to initialize
-- Perform health checks on endpoint
-- Verify model loading and GPU memory allocation
-
-### **Phase 7: Validation & Testing**
-- Send test inference request
-- Verify response quality and performance
-- Validate endpoint is ready for production use
-
-### **Phase 8: Success Response & Monitoring**
-- Return deployment information
-- Setup monitoring and health check endpoints
-- Provide usage instructions
-
-## 🐳 **Container Deployment Models**
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    AIM Engine Unified Container             │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │   AIM Engine    │  │   vLLM ROCm     │  │   Docker    │ │
-│  │ Orchestration   │  │   Base Image    │  │   CLI       │ │
-│  │   Tools         │  │                 │  │             │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Benefits:**
-- Single container deployment
-- Self-contained environment
-- Single container operation (orchestration + direct serving)
-- Easy distribution and deployment
-
-
-## 📊 **Performance Benefits**
-
-### **Memory Efficiency**
-- **Before**: Loads all recipes (could be hundreds)
-- **After**: Loads only model-specific recipes (typically 1-5)
-
-### **Startup Time**
-- **Before**: ~100-500ms to load all recipes
-- **After**: ~10-50ms to load model-specific recipes
-
-### **Scalability**
-- **Before**: Performance degrades with recipe count
-- **After**: Consistent performance regardless of total recipe count
-
-## 🎯 **Usage Examples**
-
-### **Example 1: Full Auto-Detection**
-```bash
-# Launch model with complete auto-detection
-aim-engine launch Qwen/Qwen3-32B
-
-# What happens:
-# 1. Detects available GPUs (e.g., 4 GPUs)
-# 2. Auto-selects optimal GPU count (32B → 4 GPUs)
-# 3. Auto-selects optimal precision (32B → bf16)
-# 4. Loads only Qwen/Qwen3-32B recipes
-# 5. Selects best matching recipe
-# 6. Deploys with optimal configuration
-```
-
-### **Example 2: Customer Specified Configuration**
-```bash
-# Launch with specific GPU count and precision
-aim-engine launch Qwen/Qwen3-32B 4 --precision bf16
-
-# What happens:
-# 1. Uses customer specified GPU count (4 GPUs)
-# 2. Uses customer specified precision (bf16)
-# 3. Loads only Qwen/Qwen3-32B recipes
-# 4. Selects best matching recipe for 4 GPUs + bf16
-# 5. Deploys with customer configuration
-```
-
-### **Example 3: Unified Container Deployment**
-```bash
-
-## 🔍 **Configuration Selection Logic**
-
-### **GPU Count Selection Priority**
-1. **Customer specified** (if within available GPUs)
-2. **Model size heuristic**:
-   - 7B/8B models: 1 GPU
-   - 13B/14B models: 2 GPUs
-   - 32B/34B models: 4 GPUs
-   - 70B/72B models: 8 GPUs
-3. **Maximum available** (if heuristic exceeds available)
-
-### **Precision Selection Priority**
-1. **Customer specified**
-2. **Model size heuristic**:
-   - 7B/8B models: fp16 (faster, sufficient accuracy)
-   - 13B+ models: bf16 (better numerical stability)
-3. **Fallback alternatives** (if primary choice fails)
-
-## 🛠️ **Development**
-
-### **Project Structure**
-```
-    aim-engine/
-    ├── aim_*.py              # Core AIM Engine modules
-    ├── models/               # Model definitions
-    ├── recipes/              # AIM recipes
-    ├── templates/            # Configuration templates
-    ├── tests/                # Test files
-    ├── scripts/              # Utility scripts
-    ├── docs/                 # Documentation
-    ├── Dockerfile            # Standard container
-    └── requirements.txt      # Python dependencies
-```
-
-### **Running Tests**
-```bash
-# Run all tests
-python -m pytest tests/
-
-# Run specific test
-python tests/test_aim_implementation.py
-
-# Run with coverage
-python -m pytest tests/ --cov=.
-```
-
-### **Building Containers**
-```bash
-# Build standard container
-docker build -t aim-engine:latest .
-
-### **For Users**
-- ✅ **Simple**: Just specify the model, everything else is automatic
-- ✅ **Fast**: Complete deployment in minutes
-- ✅ **Reliable**: Comprehensive validation and testing
-- ✅ **Flexible**: Override any auto-selected option
-
-### **For System Administrators**
-- ✅ **Resource Efficient**: Uses available hardware optimally
-- ✅ **Scalable**: Performance doesn't degrade with more models
-- ✅ **Monitorable**: Detailed logging and health checks
-- ✅ **Maintainable**: Clean, modular architecture
-
-### **For Developers**
-- ✅ **Extensible**: Easy to add new features and optimizations
-- ✅ **Testable**: Each component can be tested independently
-- ✅ **Documented**: Clear workflow and API documentation
-- ✅ **Standards Compliant**: Follows best practices
+3. **For development**: Start with `ARCHITECTURE.md` and `API.md`

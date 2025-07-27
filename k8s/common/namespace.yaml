@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aim-engine
+  labels:
+    name: aim-engine
+    app: aim-engine
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aim-engine-monitoring
+  labels:
+    name: aim-engine-monitoring
+    app: aim-engine 
