@@ -187,11 +187,26 @@ cleanup_registry() {
         return
     fi
     
-    # Stop and remove local registry container
+    # Stop and remove local registry container by name
     if docker ps | grep -q "local-registry"; then
-        log_info "Stopping local registry..."
+        log_info "Stopping local registry by name..."
         docker stop local-registry || true
         docker rm local-registry || true
+    fi
+    
+    # Also check for any registry containers by image
+    REGISTRY_CONTAINERS=$(docker ps -aq --filter "ancestor=registry:2" 2>/dev/null || true)
+    if [[ -n "$REGISTRY_CONTAINERS" ]]; then
+        log_info "Stopping registry containers by image..."
+        docker stop $REGISTRY_CONTAINERS || true
+        docker rm $REGISTRY_CONTAINERS || true
+    fi
+    
+    # Check for any stopped registry containers
+    STOPPED_REGISTRY_CONTAINERS=$(docker ps -aq --filter "ancestor=registry:2" 2>/dev/null || true)
+    if [[ -n "$STOPPED_REGISTRY_CONTAINERS" ]]; then
+        log_info "Removing stopped registry containers..."
+        docker rm $STOPPED_REGISTRY_CONTAINERS || true
     fi
     
     # Remove registry image if requested
@@ -276,9 +291,10 @@ cleanup_system() {
 
 # Main execution
 main() {
-    # Default cleanup (Kubernetes resources only)
+    # Default cleanup (Kubernetes resources + registry)
     if [[ "$CLEANUP_ALL" == "false" && "$CLEANUP_IMAGES" == "false" && "$CLEANUP_REGISTRY" == "false" && "$CLEANUP_CLUSTER" == "false" ]]; then
         cleanup_kubernetes
+        cleanup_registry
         return
     fi
     
