@@ -103,14 +103,14 @@ fi
 check_port() {
     local port=$1
     if netstat -tlnp 2>/dev/null | grep -q ":$port "; then
-        return 0
+        return 1  # Port is in use
     else
-        return 1
+        return 0  # Port is available
     fi
 }
 
 # Check if port 8000 is available
-if check_port 8000; then
+if ! check_port 8000; then
     print_warning "Port 8000 is already in use. Checking if it's AIM Engine..."
     if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
         print_success "AIM Engine is already running on port 8000"
