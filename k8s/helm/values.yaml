@@ -62,8 +62,7 @@ image:
   pullPolicy: IfNotPresent
 
 # Image pull secrets
-imagePullSecrets:
-  - name: ""
+imagePullSecrets: []
 
 # Service account configuration
 serviceAccount:
