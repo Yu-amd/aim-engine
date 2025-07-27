@@ -61,6 +61,33 @@ docker run --rm -it \
   aim-shell
 ```
 
+### **Testing Your Endpoint**
+Once your AIM Engine is running, verify it's ready for inference:
+
+```bash
+# Test if the endpoint is responding
+curl -f http://localhost:8000/health
+
+# Test if models are loaded and ready
+curl -f http://localhost:8000/v1/models
+
+# Test a simple inference request
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen/Qwen3-32B",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "max_tokens": 10
+  }'
+```
+
+**Expected responses:**
+- **Health endpoint**: Returns HTTP 200 (empty response)
+- **Models endpoint**: Returns JSON with available models
+- **Chat endpoint**: Returns JSON with generated text
+
+If all tests pass, your AIM Engine is ready for use with agent examples and other applications!
+
 ### **Production Deployment**
 ```bash
 # Generate deployment command
