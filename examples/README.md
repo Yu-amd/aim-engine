@@ -1,8 +1,8 @@
-# 🤖 AIM Engine Agent Examples
+#  AIM Engine Agent Examples
 
 This directory contains various agent-based applications that use the AIM Engine vLLM endpoint for intelligent interactions.
 
-## 📋 Prerequisites
+##  Prerequisites
 
 ### 1. AIM Engine Setup
 First, make sure your AIM Engine is running:
@@ -30,17 +30,17 @@ Install required packages:
 pip install requests flask
 ```
 
-## 🚀 Available Examples
+##  Available Examples
 
 ### 1. Simple Agent (`simple_agent.py`)
 A basic conversational agent with conversation history and **real-time streaming responses**.
 
 **Features:**
-- ✅ Basic chat functionality
-- ✅ **Real-time streaming responses** 🆕
-- ✅ Conversation history
-- ✅ System prompts
-- ✅ Error handling
+-  Basic chat functionality
+-  **Real-time streaming responses** 
+-  Conversation history
+-  System prompts
+-  Error handling
 
 **Usage:**
 ```bash
@@ -49,7 +49,7 @@ python3 examples/simple_agent.py
 
 **Example Interaction:**
 ```
-🤖 Simple Agent Example
+ Simple Agent Example
 ==================================================
 Type 'quit' to exit, 'clear' to clear history
 
@@ -64,11 +64,11 @@ Agent: Paris is the capital and largest city of France, located in the north-cen
 An agent with tools, memory, structured reasoning, and **real-time streaming responses**.
 
 **Features:**
-- ✅ Tool integration (calculator, file reader, time)
-- ✅ **Real-time streaming responses** 🆕
-- ✅ Memory system with relevance matching
-- ✅ Structured tool calling
-- ✅ Enhanced system prompts
+-  Tool integration (calculator, file reader, time)
+-  **Real-time streaming responses** 
+-  Memory system with relevance matching
+-  Structured tool calling
+-  Enhanced system prompts
 
 **Usage:**
 ```bash
@@ -82,7 +82,7 @@ python3 examples/advanced_agent.py
 
 **Example Interaction:**
 ```
-🤖 Advanced Agent Example
+ Advanced Agent Example
 ==================================================
 Commands: 'quit', 'clear', 'memory', 'history'
 Tools available: calculator, read_file, get_time
@@ -110,12 +110,12 @@ The current time is 2024-01-15 14:30:25.
 A beautiful web interface for the agent with **real-time streaming responses**.
 
 **Features:**
-- ✅ Modern web UI with real-time chat
-- ✅ **Real-time streaming responses** 🆕
-- ✅ Connection status monitoring
-- ✅ Mobile-responsive design
-- ✅ Session management
-- ✅ Remote access support
+-  Modern web UI with real-time chat
+-  **Real-time streaming responses** 
+-  Connection status monitoring
+-  Mobile-responsive design
+-  Session management
+-  Remote access support
 
 **Usage:**
 ```bash
@@ -126,17 +126,17 @@ The web interface will be available at:
 - **Local access**: `http://localhost:5000`
 - **Network access**: `http://<remote-ip>:5000`
 
-## ✨ Streaming Features
+##  Streaming Features
 
 All agent examples now support **real-time streaming responses** for a better user experience:
 
-### 🚀 Benefits of Streaming
+###  Benefits of Streaming
 - **Faster perceived response time**: Users see responses as they're generated
 - **Better engagement**: Real-time feedback keeps users engaged
 - **Improved UX**: No waiting for complete responses before seeing content
 - **Interactive experience**: Users can see the AI "thinking" in real-time
 
-### 🔧 How Streaming Works
+###  How Streaming Works
 1. **Simple Agent**: Uses `chat_stream()` method with real-time console output
 2. **Advanced Agent**: Streams responses and shows tool execution in real-time
 3. **Web Agent**: Uses Server-Sent Events (SSE) for browser-based streaming
@@ -151,7 +151,7 @@ python3 test_streaming.py
 
 This will test both the direct vLLM endpoint and web agent streaming.
 
-## 🌐 Remote Access Methods
+##  Remote Access Methods
 
 ### Method 1: Direct Network Access (Same Network)
 If your local machine and remote node are on the same network:
@@ -204,7 +204,7 @@ cd examples
 # Choose option 3 (Web Agent)
 ```
 
-## 🔍 Network Diagnostics
+##  Network Diagnostics
 
 ### Diagnostic Tool
 Use the included diagnostic tool to troubleshoot network issues:
@@ -215,11 +215,11 @@ python3 check_web_access.py
 ```
 
 This tool will check:
-- ✅ Network configuration
-- ✅ Port accessibility
-- ✅ Firewall status
-- ✅ Web agent connectivity
-- ✅ AIM Engine endpoint status
+-  Network configuration
+-  Port accessibility
+-  Firewall status
+-  Web agent connectivity
+-  AIM Engine endpoint status
 
 ### Manual Network Checks
 
@@ -243,7 +243,7 @@ sudo ufw allow 5000
 curl http://localhost:5000
 ```
 
-## 🔧 Common Remote Access Issues
+##  Common Remote Access Issues
 
 ### Issue: "Connection Refused"
 **Solution:**
@@ -269,7 +269,7 @@ curl http://localhost:5000
 2. Consider adding authentication to the web interface
 3. Use HTTPS in production environments
 
-## 🛠️ Customization
+## 🛠 Customization
 
 ### Adding Custom Tools
 You can easily add custom tools to the advanced agent:
@@ -303,7 +303,7 @@ Change the endpoint URL if needed:
 agent = SimpleAgent("http://your-host:8000/v1")
 ```
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Connection Issues
 If you get connection errors:
@@ -350,7 +350,7 @@ For better performance:
 3. **Consider streaming** for long responses
 4. **Implement caching** for repeated queries
 
-## 🎯 Use Cases
+##  Use Cases
 
 ### 1. Customer Support Agent
 ```python
@@ -427,4 +427,4 @@ To add new agent examples:
 
 ---
 
-**Happy building! 🚀** 
+**Happy building! ** 

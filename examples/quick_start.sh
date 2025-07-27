@@ -14,7 +14,7 @@ cleanup_on_exit() {
 
 trap cleanup_on_exit EXIT
 
-echo "🚀 AIM Engine Agent Examples - Quick Start"
+echo "AIM Engine Agent Examples - Quick Start"
 echo "=========================================="
 echo ""
 
@@ -43,7 +43,7 @@ print_error() {
 }
 
 # Check if we're in the right directory
-if [ ! -f "../build-aim-vllm.sh" ]; then
+if [ ! -f "../scripts/build-aim-vllm.sh" ]; then
     print_error "Please run this script from the examples/ directory"
     exit 1
 fi
@@ -61,7 +61,7 @@ print_status "Checking AIM Engine container..."
 if ! docker images | grep -q "aim-vllm"; then
     print_warning "AIM Engine container not found. Building..."
     cd ..
-    ./build-aim-vllm.sh
+    ./scripts/build-aim-vllm.sh
     cd examples
 else
     print_success "AIM Engine container found"
@@ -160,7 +160,7 @@ fi
 # Function to show menu
 show_menu() {
     echo ""
-    echo "🤖 Choose an agent example to run:"
+    echo " Choose an agent example to run:"
     echo "1. Simple Agent (Command Line)"
     echo "2. Advanced Agent (Command Line with Tools)"
     echo "3. Web Agent (Browser Interface)"

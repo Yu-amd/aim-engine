@@ -233,7 +233,7 @@ class AdvancedAgent:
                 # Extract and execute tool calls
                 tool_calls = self._extract_tool_calls(full_response)
                 if tool_calls:
-                    print("\n\n🔧 Executing tools...")
+                    print("\n\n Executing tools...")
                     tool_results = self._execute_tool_calls(tool_calls)
                     
                     # Add tool results to memory
@@ -241,7 +241,7 @@ class AdvancedAgent:
                         self.add_to_memory(result, "tool_result")
                     
                     # Display tool results
-                    print("\n📋 Tool Results:")
+                    print("\n Tool Results:")
                     for result in tool_results:
                         print(f"  • {result}")
                     
@@ -424,7 +424,7 @@ def main():
     You can perform calculations, read files, and remember previous interactions.
     Use tools when appropriate to help users with their tasks."""
     
-    print("🤖 Advanced Agent Example (with Streaming)")
+    print(" Advanced Agent Example (with Streaming)")
     print("=" * 50)
     print("Commands: 'quit', 'clear', 'memory', 'history'")
     print("Tools available: calculator, read_file, get_time")

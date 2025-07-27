@@ -196,7 +196,7 @@ def main():
     system_prompt = """You are a helpful AI assistant. You provide clear, accurate, and helpful responses to user questions. 
     You can help with various tasks including coding, analysis, writing, and general knowledge questions."""
     
-    print("🤖 Simple Agent Example (with Streaming)")
+    print("Simple Agent Example (with Streaming)")
     print("=" * 50)
     print(f"Using model: {agent.model_name}")
     print("Type 'quit' to exit, 'clear' to clear history")

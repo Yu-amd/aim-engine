@@ -33,7 +33,7 @@ def test_simple_agent_streaming():
         )
         
         if response.status_code == 200:
-            print("🤖 Streaming response:")
+            print(" Streaming response:")
             print("Agent: ", end="", flush=True)
             
             for line in response.iter_lines():
@@ -55,16 +55,16 @@ def test_simple_agent_streaming():
                         except json.JSONDecodeError:
                             continue
             
-            print("\n✅ Streaming test completed successfully!")
+            print("\n Streaming test completed successfully!")
         else:
-            print(f"❌ Error: {response.status_code} - {response.text}")
+            print(f" Error: {response.status_code} - {response.text}")
             
     except requests.exceptions.RequestException as e:
-        print(f"❌ Connection error: {str(e)}")
+        print(f" Connection error: {str(e)}")
 
 def test_web_agent_streaming():
     """Test the web agent streaming endpoint"""
-    print("\n🌐 Testing Web Agent Streaming...")
+    print("\n Testing Web Agent Streaming...")
     print("=" * 50)
     
     payload = {
@@ -83,7 +83,7 @@ def test_web_agent_streaming():
         )
         
         if response.status_code == 200:
-            print("🤖 Web agent streaming response:")
+            print(" Web agent streaming response:")
             print("Agent: ", end="", flush=True)
             
             for line in response.iter_lines():
@@ -103,16 +103,16 @@ def test_web_agent_streaming():
                         except json.JSONDecodeError:
                             continue
             
-            print("\n✅ Web agent streaming test completed successfully!")
+            print("\n Web agent streaming test completed successfully!")
         else:
-            print(f"❌ Error: {response.status_code} - {response.text}")
+            print(f" Error: {response.status_code} - {response.text}")
             
     except requests.exceptions.RequestException as e:
-        print(f"❌ Connection error: {str(e)}")
+        print(f" Connection error: {str(e)}")
 
 def main():
     """Run streaming tests"""
-    print("🚀 AIM Engine Streaming Test Suite")
+    print(" AIM Engine Streaming Test Suite")
     print("=" * 60)
     print("This script tests the streaming functionality of AIM Engine agents.")
     print("Make sure your AIM Engine endpoint is running on http://localhost:8000")
@@ -129,14 +129,14 @@ def main():
         if status_response.status_code == 200:
             test_web_agent_streaming()
         else:
-            print("\n⚠️  Web agent not running on http://localhost:5000")
+            print("\n  Web agent not running on http://localhost:5000")
             print("   Start it with: python3 web_agent.py")
     except:
-        print("\n⚠️  Web agent not running on http://localhost:5000")
+        print("\n  Web agent not running on http://localhost:5000")
         print("   Start it with: python3 web_agent.py")
     
     print("\n🎉 Streaming tests completed!")
-    print("\n📝 Usage:")
+    print("\n Usage:")
     print("   - Simple agent: python3 simple_agent.py")
     print("   - Advanced agent: python3 advanced_agent.py")
     print("   - Web agent: python3 web_agent.py")
