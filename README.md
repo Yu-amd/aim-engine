@@ -227,21 +227,21 @@ See `examples/README.md` for detailed information about each example.
 
 ### **Stopping Running Containers**
 ```bash
-# Stop all AIM Engine containers
-docker stop $(docker ps -q --filter "ancestor=aim-vllm:latest")
+# Stop all AIM Engine containers (handles empty results)
+docker ps -q --filter "ancestor=aim-vllm:latest" | xargs -r docker stop
 
 # Or stop by container name (if you named them)
-docker stop aim-engine
-docker stop nice_montalcini  # Example auto-generated name
+docker stop aim-engine 2>/dev/null || echo "Container 'aim-engine' not found"
+docker stop nice_montalcini 2>/dev/null || echo "Container 'nice_montalcini' not found"
 ```
 
 ### **Removing Containers**
 ```bash
-# Remove stopped containers
-docker rm $(docker ps -aq --filter "ancestor=aim-vllm:latest")
+# Remove stopped containers (handles empty results)
+docker ps -aq --filter "ancestor=aim-vllm:latest" | xargs -r docker rm
 
 # Or remove by container name
-docker rm aim-engine
+docker rm aim-engine 2>/dev/null || echo "Container 'aim-engine' not found"
 ```
 
 ### **Complete Cleanup Script**
@@ -251,15 +251,27 @@ echo "Cleaning up AIM Engine containers..."
 
 # Stop all running AIM Engine containers
 echo "Stopping containers..."
-docker stop $(docker ps -q --filter "ancestor=aim-vllm:latest") 2>/dev/null || echo "No running containers found"
+CONTAINERS=$(docker ps -q --filter "ancestor=aim-vllm:latest")
+if [ -n "$CONTAINERS" ]; then
+    echo "$CONTAINERS" | xargs docker stop
+    echo "Containers stopped"
+else
+    echo "No running AIM Engine containers found"
+fi
 
 # Remove all AIM Engine containers
 echo "Removing containers..."
-docker rm $(docker ps -aq --filter "ancestor=aim-vllm:latest") 2>/dev/null || echo "No containers to remove"
+STOPPED_CONTAINERS=$(docker ps -aq --filter "ancestor=aim-vllm:latest")
+if [ -n "$STOPPED_CONTAINERS" ]; then
+    echo "$STOPPED_CONTAINERS" | xargs docker rm
+    echo "Containers removed"
+else
+    echo "No AIM Engine containers to remove"
+fi
 
 # Optional: Remove AIM Engine images
 echo "Removing AIM Engine images..."
-docker rmi aim-vllm:latest 2>/dev/null || echo "No images to remove"
+docker rmi aim-vllm:latest 2>/dev/null && echo "Images removed" || echo "No images to remove"
 
 # Optional: Clean up dangling resources
 echo "Cleaning up dangling resources..."
@@ -271,10 +283,11 @@ echo "Cleanup complete!"
 ### **Quick Cleanup Commands**
 ```bash
 # Stop and remove all AIM Engine containers in one command
-docker stop $(docker ps -q --filter "ancestor=aim-vllm:latest") 2>/dev/null && docker rm $(docker ps -aq --filter "ancestor=aim-vllm:latest") 2>/dev/null
+docker ps -q --filter "ancestor=aim-vllm:latest" | xargs -r docker stop && \
+docker ps -aq --filter "ancestor=aim-vllm:latest" | xargs -r docker rm
 
 # Nuclear option: Stop and remove ALL containers (use with caution)
-docker stop $(docker ps -q) 2>/dev/null && docker rm $(docker ps -aq) 2>/dev/null
+docker ps -q | xargs -r docker stop && docker ps -aq | xargs -r docker rm
 ```
 
 ## **Documentation**
