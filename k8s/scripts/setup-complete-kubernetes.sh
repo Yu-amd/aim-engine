@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# AIM Engine - Kubernetes Cluster Setup Script
+# AIM Engine - Complete Kubernetes Cluster Setup Script
 # This script sets up a production-ready Kubernetes cluster on AMD GPU nodes
+# Single script that handles everything from system setup to ready-to-deploy
 
 set -e
 
@@ -31,10 +32,7 @@ log_error() {
 
 # Configuration
 KUBERNETES_VERSION="1.28.0"
-CONTAINERD_VERSION="1.7.0"
 HELM_VERSION="3.12.0"
-KUBECTL_VERSION="1.28.0"
-NVIDIA_CONTAINER_RUNTIME_VERSION="3.8.0"
 
 # Check if running as root
 check_root() {
@@ -204,7 +202,7 @@ install_containerd() {
     log_success "Containerd installed and configured"
 }
 
-# Install Kubernetes components
+# Install Kubernetes components (with reliable repository method)
 install_kubernetes() {
     log_info "Installing Kubernetes components..."
     
@@ -212,12 +210,10 @@ install_kubernetes() {
     rm -f /etc/apt/sources.list.d/kubernetes.list
     rm -f /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     
-    # Use the official Kubernetes installation method
-    # Add the official Kubernetes repository
+    # Use the proven working method
     mkdir -p /etc/apt/keyrings
     curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     
-    # Add the repository
     echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
     
     # Update package list
@@ -263,10 +259,25 @@ initialize_cluster() {
     cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
     chown $(id -u):$(id -g) $HOME/.kube/config
     
-    # Create kubeconfig for regular users
-    mkdir -p /home/ubuntu/.kube
-    cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
-    chown -R ubuntu:ubuntu /home/ubuntu/.kube
+    # Create kubeconfig for regular users (only if they exist)
+    if id "ubuntu" &>/dev/null; then
+        mkdir -p /home/ubuntu/.kube
+        cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
+        chown -R ubuntu:ubuntu /home/ubuntu/.kube
+        log_info "Created kubeconfig for ubuntu user"
+    else
+        log_warning "ubuntu user not found, skipping ubuntu kubeconfig creation"
+    fi
+    
+    # Try to create kubeconfig for other common users
+    for user in $(getent passwd | grep -E ":/home/[^/]+:" | cut -d: -f1 | grep -v ubuntu); do
+        if [[ -d "/home/$user" ]]; then
+            mkdir -p "/home/$user/.kube"
+            cp -i /etc/kubernetes/admin.conf "/home/$user/.kube/config"
+            chown -R "$user:$user" "/home/$user/.kube"
+            log_info "Created kubeconfig for $user user"
+        fi
+    done
     
     log_success "Kubernetes cluster initialized"
 }
@@ -371,31 +382,35 @@ verify_installation() {
 
 # Print next steps
 print_next_steps() {
-    log_success "Kubernetes cluster setup completed!"
+    log_success "Complete Kubernetes cluster setup finished!"
+    echo
+    echo "Your cluster is ready for AIM Engine deployment!"
     echo
     echo "Next steps:"
-    echo "1. Join worker nodes (if any):"
-    echo "   kubeadm token create --print-join-command"
-    echo
-    echo "2. Deploy AIM Engine:"
+    echo "1. Deploy AIM Engine:"
     echo "   cd k8s"
     echo "   helm install aim-engine ./helm"
     echo
-    echo "3. Check cluster status:"
+    echo "2. Check cluster status:"
     echo "   kubectl get nodes"
     echo "   kubectl get pods --all-namespaces"
     echo
-    echo "4. Access cluster:"
+    echo "3. Access cluster:"
     echo "   kubectl cluster-info"
     echo
-    echo "5. GPU verification:"
+    echo "4. GPU verification:"
     echo "   kubectl get nodes -o json | jq '.items[].status.allocatable'"
+    echo
+    echo "5. Test GPU allocation:"
+    echo "   kubectl run gpu-test --image=rocm/dev-ubuntu-22.04 --rm -it --restart=Never --overrides='{\"spec\":{\"containers\":[{\"name\":\"gpu-test\",\"resources\":{\"limits\":{\"amd.com/gpu\":1}}}]}}' -- bash -c 'rocm-smi && exit'"
     echo
 }
 
 # Main execution
 main() {
-    log_info "Starting Kubernetes cluster setup for AMD GPU node..."
+    log_info "Starting complete Kubernetes cluster setup for AMD GPU node..."
+    echo "This script will set up everything from system preparation to ready-to-deploy cluster."
+    echo
     
     check_root
     check_system_requirements
@@ -416,7 +431,7 @@ main() {
     verify_installation
     print_next_steps
     
-    log_success "Kubernetes cluster setup completed successfully!"
+    log_success "Complete Kubernetes cluster setup completed successfully!"
 }
 
 # Run main function
