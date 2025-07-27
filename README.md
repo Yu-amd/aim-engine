@@ -173,175 +173,55 @@ aim-engine/
 └── tests/                 # Test files
 ```
 
-### **Running Tests**
-```bash
-# Run all tests
-python -m pytest tests/
-
-# Run specific test
-python tests/test_aim_implementation.py
-
-# Run with coverage
-python -m pytest tests/ --cov=.
-```
-
-### **Building Containers**
-```bash
-# Build standard container
-./scripts/build-aim-vllm.sh
-
-# Build TGI container for development
-docker build -f docker/Dockerfile.aim-tgi -t aim-tgi:latest .
-```
-
-### **Cleanup Script**
-```bash
-#!/bin/bash
-# Cleanup script for development
-
-echo "Cleaning up Docker resources..."
-
-# Stop and remove containers
-docker stop $(docker ps -q --filter "ancestor=aim-vllm:latest") 2>/dev/null || true
-docker rm $(docker ps -aq --filter "ancestor=aim-vllm:latest") 2>/dev/null || true
-
-# Remove images
-echo "Removing unused images..."
-docker rmi aim-vllm:latest 2>/dev/null || true
-docker rmi aim-tgi:latest 2>/dev/null || true
-
-# Clean up dangling images
-docker image prune -f
-
-# Clean up build cache
-docker builder prune -f
-
-# Optional: Clean up model cache
-# echo "Cleaning up model cache..."
-# rm -rf /workspace/model-cache/*
-
-echo "Cleanup complete!"
-```
-
-## **Troubleshooting**
-
-### **Common Issues**
-
-#### **1. GPU Not Detected**
-```bash
-# Check GPU availability
-rocm-smi
-
-# Check Docker GPU access
-docker run --rm --device=/dev/kfd rocm/vllm:latest rocm-smi
-```
-
-#### **2. Memory Issues**
-```bash
-# Check available memory
-free -h
-
-# Reduce GPU memory utilization
-aim-generate Qwen/Qwen3-32B --gpu-memory-utilization 0.7
-```
-
-#### **3. Model Download Issues**
-```bash
-# Check network connectivity
-curl -I https://huggingface.co/Qwen/Qwen3-32B
-
-# Use local model cache
-docker run -v /path/to/models:/workspace/model-cache aim-vllm:latest
-```
-
-#### **4. Port Conflicts**
-```bash
-# Check port usage
-netstat -tlnp | grep 8000
-
-# Use different port
-docker run -p 8001:8000 aim-vllm:latest
-```
-
-### **Debug Mode**
-```bash
-# Enable debug logging
-export VLLM_LOGGING_LEVEL=DEBUG
-
-# Run with verbose output
-aim-generate Qwen/Qwen3-32B --verbose
-```
-
 ### **Health Checks**
+
+#### **Basic Health Check**
 ```bash
-# Check container health
+# Check if container is running
 docker ps | grep aim-engine
 
-# Check logs
+# Check container logs
 docker logs <container-name>
 
-# Check endpoint
+# Test health endpoint
 curl http://localhost:8000/health
 ```
 
-### **Performance Monitoring**
+#### **Testing Before Running Agent Examples**
+Before running any agent examples in the `examples/` directory, ensure your AIM Engine endpoint is healthy:
+
 ```bash
-# Monitor resource usage
-docker stats
-
-# Check GPU utilization
-rocm-smi
-
-# Monitor model performance
-curl http://localhost:8000/metrics
+# Quick health check for examples
+curl -f http://localhost:8000/health && \
+curl -f http://localhost:8000/v1/models && \
+echo "✓ AIM Engine is ready for agent examples" || \
+echo "✗ AIM Engine needs attention before running examples"
 ```
 
-### **Complete Diagnostic Script**
+**Note**: If you're using a different port (e.g., 8001), replace `8000` with your port number in all the above commands.
+
+## **Agent Examples**
+
+### **Running Examples**
 ```bash
-#!/bin/bash
-echo "=== AIM Engine Diagnostic Report ==="
-echo "Date: $(date)"
-echo ""
+cd examples
 
-echo "=== System Information ==="
-uname -a
-echo ""
+# Use the quick start script (recommended)
+./quick_start.sh
 
-echo "=== Docker Information ==="
-docker version
-docker ps -a
-echo ""
-
-echo "=== GPU Information ==="
-rocm-smi 2>/dev/null || echo "ROCm not available"
-echo ""
-
-echo "=== Memory Information ==="
-free -h
-echo ""
-
-echo "=== Disk Space ==="
-df -h
-echo ""
-
-echo "=== Network Information ==="
-ip addr show | grep inet
-echo ""
-
-echo "=== AIM Engine Status ==="
-docker ps | grep aim-engine || echo "No AIM Engine containers running"
-echo ""
-
-echo "=== Model Cache Status ==="
-ls -la /workspace/model-cache 2>/dev/null || echo "Model cache not found"
-echo ""
-
-echo "=== Recent Logs ==="
-docker logs --tail 20 $(docker ps -q --filter "ancestor=aim-vllm:latest") 2>/dev/null || echo "No AIM Engine logs found"
-echo ""
-
-echo "=== Diagnostic Complete ==="
+# Or run individual examples
+python3 simple_agent.py      # Basic chat agent
+python3 advanced_agent.py    # Agent with tools
+python3 web_agent.py         # Web interface
 ```
+
+### **Available Examples**
+- **Simple Agent**: Basic conversational agent with streaming responses
+- **Advanced Agent**: Agent with tools, memory, and structured reasoning
+- **Web Agent**: Modern web interface with real-time chat
+- **Test Scripts**: Various testing and diagnostic tools
+
+See `examples/README.md` for detailed information about each example.
 
 ## **Documentation**
 
@@ -351,21 +231,3 @@ echo "=== Diagnostic Complete ==="
 - **Troubleshooting**: See `docs/TROUBLESHOOTING.md`
 - **Docker Deployment**: See `docker/docs/`
 - **Kubernetes Deployment**: See `k8s/docs/`
-
-## **Contributing**
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## **License**
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## **Support**
-
-- **Issues**: [GitHub Issues](https://github.com/Yu-amd/aim-engine/issues)
-- **Documentation**: [Project Wiki](https://github.com/Yu-amd/aim-engine/wiki)
-- **Discussions**: [GitHub Discussions](https://github.com/Yu-amd/aim-engine/discussions)
