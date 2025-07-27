@@ -98,109 +98,29 @@ docker run --rm -it \
   --group-add=render \
   aim-vllm:latest \
   aim-generate Qwen/Qwen3-32B
-
-# Use the generated command to deploy
-docker run --rm -d \
-  --name aim-qwen-32b \
-  --device=/dev/kfd \
-  --device=/dev/dri \
-  --group-add=video \
-  --group-add=render \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -p 8000:8000 \
-  rocm/vllm:latest \
-  python3 -m vllm.entrypoints.openai.api_server \
-  --model Qwen/Qwen3-32B --dtype bfloat16 --max-num-batched-tokens 8192 --max-model-len 32768 --gpu-memory-utilization 0.9 --trust-remote-code --port 8000
 ```
 
-## **How to Use AIM Engine**
+## **Kubernetes Deployment**
 
-### **1. Auto-Detection Mode (Recommended)**
+### **Quick Setup (Complete Cluster)**
 ```bash
-# Just specify the model - everything else is automatic
-aim-generate Qwen/Qwen3-32B
+# Set up complete Kubernetes cluster with AMD GPU support
+sudo ./k8s/scripts/setup-complete-kubernetes.sh
 ```
 
-**What happens:**
-1. Detects available GPUs (e.g., 4 GPUs)
-2. Auto-selects optimal GPU count (32B → 4 GPUs)
-3. Auto-selects optimal precision (32B → bf16)
-4. Loads only Qwen/Qwen3-32B recipes
-5. Selects best matching recipe
-6. Deploys with optimal configuration
-
-### **2. Customer Specified Configuration**
+### **Deploy to Existing Cluster**
 ```bash
-# Override auto-selection with specific parameters
-aim-generate Qwen/Qwen3-32B 4 --precision bf16
+# Deploy with default settings
+sudo ./k8s/scripts/deploy-aim-engine.sh
+
+# Deploy with custom model
+sudo ./k8s/scripts/deploy-aim-engine.sh --model Qwen/Qwen3-32B --memory-limit 80Gi
+
+# Deploy with multiple GPUs
+sudo ./k8s/scripts/deploy-aim-engine.sh --gpu-count 2 --memory-limit 64Gi
 ```
 
-**What happens:**
-1. Uses customer specified GPU count (4 GPUs)
-2. Uses customer specified precision (bf16)
-3. Loads only Qwen/Qwen3-32B recipes
-4. Selects best matching recipe for 4 GPUs + bf16
-5. Deploys with customer configuration
-
-### **3. Unified Container Benefits**
-
-- **Single Container**: No Docker-in-Docker complexity
-- **Shared Environment**: AIM Engine tools and vLLM runtime together
-- **Direct Execution**: Run vLLM commands directly within container
-- **Simplified Deployment**: One container handles everything
-- **Better Resource Management**: No container orchestration overhead
-
-## **Performance Benefits**
-
-### **Memory Efficiency**
-- **Before**: Loads all recipes (could be hundreds)
-- **After**: Loads only model-specific recipes (typically 1-5)
-
-### **Startup Time**
-- **Before**: ~100-500ms to load all recipes
-- **After**: ~10-50ms to load model-specific recipes
-
-### **Scalability**
-- **Before**: Performance degrades with recipe count
-- **After**: Consistent performance regardless of total recipe count
-
-## **Configuration Options**
-
-### **GPU Count Selection Priority**
-1. **Customer specified** (if within available GPUs)
-2. **Model size heuristic**:
-   - 7B/8B models: 1 GPU
-   - 13B/14B models: 2 GPUs
-   - 32B/34B models: 4 GPUs
-   - 70B/72B models: 8 GPUs
-3. **Maximum available** (if heuristic exceeds available)
-
-### **Precision Selection Priority**
-1. **Customer specified**
-2. **Model size heuristic**:
-   - 7B/8B models: fp16 (faster, sufficient accuracy)
-   - 13B+ models: bf16 (better numerical stability)
-3. **Fallback alternatives** (if primary choice fails)
-
-## **Development**
-
-### **Project Structure**
-```
-aim-engine/
-├── src/aim_engine/        # Core Python package
-├── config/                # Configuration files
-│   ├── models/           # Model definitions
-│   ├── recipes/          # AIM recipes
-│   └── templates/        # Configuration templates
-├── scripts/               # Build and deployment scripts
-├── docker/                # Docker-related files
-├── docs/                  # Documentation
-├── k8s/                   # Kubernetes deployment
-├── examples/              # Usage examples
-└── tests/                 # Test files
-```
-
-## **Agent Examples**
+## **Examples**
 
 ### **Running Examples**
 ```bash
@@ -225,69 +145,81 @@ See `examples/README.md` for detailed information about each example.
 
 ## **Cleanup**
 
-### **Stopping Running Containers**
+### **Docker Cleanup (Single-Node Deployment)**
+
+#### **Using the Cleanup Script (Recommended)**
 ```bash
-# Stop all running AIM Engine containers (handles empty results)
+# Basic cleanup (stops and removes containers only)
+./scripts/cleanup-docker.sh
+
+# Remove containers and images
+./scripts/cleanup-docker.sh --images
+
+# Nuclear option: Remove everything
+./scripts/cleanup-docker.sh --all
+```
+
+#### **Manual Cleanup Commands**
+```bash
+# Stop all running AIM Engine containers
 docker ps -q --filter "ancestor=aim-vllm:latest" | xargs -r docker stop
 
-# Or stop by container name (if you named them)
-docker stop aim-engine 2>/dev/null || echo "Container 'aim-engine' not found"
-docker stop nice_montalcini 2>/dev/null || echo "Container 'nice_montalcini' not found"
-```
-
-### **Removing Containers**
-```bash
-# Remove all AIM Engine containers (running, stopped, created, etc.)
+# Remove all AIM Engine containers (any state)
 docker ps -aq --filter "ancestor=aim-vllm:latest" | xargs -r docker rm -f
 
-# Or remove by container name
-docker rm -f aim-engine 2>/dev/null || echo "Container 'aim-engine' not found"
+# Remove AIM Engine images
+docker rmi aim-vllm:latest --force
+
+# Clean up dangling resources
+docker system prune -f
 ```
 
-### **Complete Cleanup Script**
+### **Kubernetes Cleanup (Cluster Deployment)**
+
+#### **Using the Cleanup Script (Recommended)**
 ```bash
-#!/bin/bash
-echo "Cleaning up AIM Engine containers..."
+# Basic cleanup (removes Kubernetes resources only)
+sudo ./k8s/scripts/cleanup-kubernetes.sh
 
-# Stop all running AIM Engine containers
-echo "Stopping running containers..."
-RUNNING_CONTAINERS=$(docker ps -q --filter "ancestor=aim-vllm:latest")
-if [ -n "$RUNNING_CONTAINERS" ]; then
-    echo "$RUNNING_CONTAINERS" | xargs docker stop
-    echo "Running containers stopped"
-else
-    echo "No running AIM Engine containers found"
-fi
+# Remove Kubernetes resources and Docker images
+sudo ./k8s/scripts/cleanup-kubernetes.sh --images
 
-# Remove all AIM Engine containers (any state)
-echo "Removing all AIM Engine containers..."
-ALL_CONTAINERS=$(docker ps -aq --filter "ancestor=aim-vllm:latest")
-if [ -n "$ALL_CONTAINERS" ]; then
-    echo "$ALL_CONTAINERS" | xargs docker rm -f
-    echo "All containers removed"
-else
-    echo "No AIM Engine containers to remove"
-fi
+# Remove everything including local registry
+sudo ./k8s/scripts/cleanup-kubernetes.sh --registry
 
-# Optional: Remove AIM Engine images
-echo "Removing AIM Engine images..."
-docker rmi aim-vllm:latest 2>/dev/null && echo "Images removed" || echo "No images to remove"
+# Nuclear option: Remove entire cluster
+sudo ./k8s/scripts/cleanup-kubernetes.sh --cluster
 
-# Optional: Clean up dangling resources
-echo "Cleaning up dangling resources..."
-docker system prune -f
+# Complete cleanup (everything)
+sudo ./k8s/scripts/cleanup-kubernetes.sh --all
+```
 
-echo "Cleanup complete!"
+#### **Manual Kubernetes Cleanup**
+```bash
+# Remove AIM Engine deployment
+helm uninstall aim-engine -n aim-engine
+
+# Remove namespace
+kubectl delete namespace aim-engine
+
+# Remove local registry
+docker stop local-registry
+docker rm local-registry
+
+# Remove images from registry
+docker rmi localhost:5000/aim-vllm:latest
+docker rmi aim-vllm:latest
 ```
 
 ### **Quick Cleanup Commands**
 ```bash
-# Stop running and remove all AIM Engine containers in one command
+# Docker: Stop and remove all AIM Engine containers
 docker ps -q --filter "ancestor=aim-vllm:latest" | xargs -r docker stop && \
 docker ps -aq --filter "ancestor=aim-vllm:latest" | xargs -r docker rm -f
 
-# Force remove all AIM Engine containers (any state)
-docker ps -aq --filter "ancestor=aim-vllm:latest" | xargs -r docker rm -f
+# Kubernetes: Remove AIM Engine resources
+kubectl delete all -n aim-engine --all
+kubectl delete namespace aim-engine
 
 # Nuclear option: Stop and remove ALL containers (use with caution)
 docker ps -q | xargs -r docker stop && docker ps -aq | xargs -r docker rm -f
