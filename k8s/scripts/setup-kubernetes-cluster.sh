@@ -212,12 +212,13 @@ install_kubernetes() {
     rm -f /etc/apt/sources.list.d/kubernetes.list
     rm -f /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     
-    # Add Kubernetes GPG key (correct modern URL)
+    # Use the official Kubernetes installation method
+    # Add the official Kubernetes repository
     mkdir -p /etc/apt/keyrings
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     
-    # Add Kubernetes repository (correct modern URL)
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
+    # Add the repository
+    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
     
     # Update package list
     apt update
