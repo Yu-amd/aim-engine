@@ -22,11 +22,9 @@
   - MI300X (192GB HBM3)
   - MI325X (192GB HBM3)
   - MI355X (192GB HBM3)
-  - MI250 (128GB HBM2e)
-  - MI210 (64GB HBM2e)
 - **Software Stack**: ROCm, vLLM, SGLang
 - **Deployment**: On-premises, self-hosted
-- **Cloud Support**: Limited (AWS, Azure with AMD instances)
+- **Cloud Support**: Limited (Azure and some NeoClouds with AMD instances)
 
 #### **NVIDIA NIM Operator**
 - **Target Hardware**: NVIDIA GPUs
@@ -41,15 +39,6 @@
 ### **2. Model Ecosystem**
 
 #### **AIM Engine (AIM Operator)**
-```yaml
-# Open-source model support
-models:
-  - "Qwen/Qwen3-32B"
-  - "Qwen/Qwen2.5-7B-Instruct"
-  - "meta-llama/Meta-Llama-3-8B-Instruct"
-  - "microsoft/Phi-3-mini-4k-instruct"
-  - "custom/your-model"
-```
 
 **Advantages:**
 - ✅ **Open-source models**: Full access to HuggingFace ecosystem
@@ -58,20 +47,9 @@ models:
 - ✅ **Community-driven**: Rapid adoption of new models
 
 **Limitations:**
-- ❌ **No pre-optimized models**: Manual optimization required
-- ❌ **Limited model validation**: No NVIDIA-backed testing
 - ❌ **Performance variability**: Depends on community optimization
 
 #### **NVIDIA NIM Operator**
-```yaml
-# NVIDIA-curated models
-models:
-  - "nvidia/llama3-8b-instruct"
-  - "nvidia/llama3-70b-instruct"
-  - "nvidia/codellama-34b-instruct"
-  - "nvidia/mistral-7b-instruct"
-  - "nvidia/phi-3-mini-4k-instruct"
-```
 
 **Advantages:**
 - ✅ **Pre-optimized models**: NVIDIA-tested and optimized
@@ -80,7 +58,6 @@ models:
 - ✅ **NGC integration**: Seamless cloud deployment
 
 **Limitations:**
-- ❌ **Limited model selection**: Only NVIDIA-curated models
 - ❌ **Licensing costs**: Commercial licensing required
 - ❌ **Vendor lock-in**: Tied to NVIDIA ecosystem
 
@@ -186,80 +163,6 @@ graph TB
 - **Triton server**: Production inference server
 - **Model versioning**: NGC model registry integration
 - **Enterprise features**: RBAC, monitoring, security
-
-### **4. Performance & Optimization**
-
-#### **AIM Engine (AIM Operator) Performance**
-```yaml
-# Performance characteristics
-performance:
-  optimization:
-    - "Recipe-based tuning"
-    - "Hardware-specific configurations"
-    - "Dynamic resource allocation"
-    - "Multi-GPU tensor parallelism"
-  
-  metrics:
-    - "Tokens per second"
-    - "Latency (P50, P95, P99)"
-    - "GPU utilization"
-    - "Memory efficiency"
-    - "Throughput scaling"
-  
-  benchmarks:
-    qwen-7b-mi300x:
-      tokens_per_second: 3000-5000
-      latency_p50: 50ms
-      gpu_utilization: 85-95%
-    
-    qwen-32b-mi300x-4gpu:
-      tokens_per_second: 8000-12000
-      latency_p50: 100ms
-      gpu_utilization: 90-95%
-```
-
-**Optimization Features:**
-- **Recipe selection**: Automatic optimal configuration
-- **Precision tuning**: bfloat16, float16, float8 support
-- **Memory optimization**: Efficient GPU memory usage
-- **Batch processing**: Dynamic batch size optimization
-- **Multi-GPU scaling**: Tensor parallelism support
-
-#### **NVIDIA NIM Operator Performance**
-```yaml
-# Performance characteristics
-performance:
-  optimization:
-    - "TensorRT-LLM optimization"
-    - "Kernel fusion"
-    - "Memory pooling"
-    - "Quantization (INT8, FP8)"
-  
-  metrics:
-    - "Tokens per second"
-    - "Latency (P50, P95, P99)"
-    - "GPU utilization"
-    - "Memory efficiency"
-    - "Throughput scaling"
-  
-  benchmarks:
-    llama3-8b-h100:
-      tokens_per_second: 4000-6000
-      latency_p50: 40ms
-      gpu_utilization: 90-95%
-    
-    llama3-70b-h100-8gpu:
-      tokens_per_second: 15000-20000
-      latency_p50: 80ms
-      gpu_utilization: 92-98%
-```
-
-**Optimization Features:**
-- **TensorRT-LLM**: Hardware-specific optimizations
-- **Kernel fusion**: Reduced memory bandwidth
-- **Quantization**: INT8, FP8 precision support
-- **Memory pooling**: Efficient memory management
-- **Multi-GPU scaling**: Tensor and pipeline parallelism
 
 ### **5. Deployment & Operations**
 
