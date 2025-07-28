@@ -43,7 +43,7 @@
 **Advantages:**
 - ✅ **Open-source models**: Full access to HuggingFace ecosystem
 - ✅ **Custom models**: Any model that works with vLLM/SGLang
-- ✅ **No licensing fees**: Free to use any model
+- ✅ **No licensing fees**: Free to use any open-weight model
 - ✅ **Community-driven**: Rapid adoption of new models
 
 **Limitations:**
