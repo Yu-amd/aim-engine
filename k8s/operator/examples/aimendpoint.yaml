@@ -1,0 +1,59 @@
+apiVersion: aim.engine.amd.com/v1alpha1
+kind: AIMEndpoint
+metadata:
+  name: qwen-7b-demo
+  namespace: aim-engine
+spec:
+  model:
+    id: "Qwen/Qwen2.5-7B-Instruct"
+    version: "latest"
+  
+  recipe:
+    autoSelect: true
+  
+  resources:
+    gpuCount: 1
+    memory: "16Gi"
+    cpu: "4"
+    memoryLimit: "32Gi"
+    cpuLimit: "8"
+  
+  scaling:
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  
+  service:
+    type: NodePort
+    port: 8000
+    targetPort: 8000
+  
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      interval: "30s"
+    grafana:
+      enabled: true
+      dashboard: "aim-endpoint-dashboard"
+  
+  cache:
+    enabled: true
+    storageClass: "local-path"
+    size: "50Gi"
+    accessMode: ReadWriteOnce
+  
+  security:
+    serviceAccount:
+      create: true
+      name: "qwen-7b-demo-sa"
+    podSecurityContext:
+      runAsUser: 0
+      runAsGroup: 0
+      fsGroup: 0
+  
+  image:
+    repository: "localhost:5000/aim-vllm"
+    tag: "latest"
+    pullPolicy: IfNotPresent 
