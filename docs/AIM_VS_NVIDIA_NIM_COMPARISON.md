@@ -183,7 +183,7 @@ kubectl apply -f examples/aimendpoint.yaml
 **Deployment Model:**
 - **Self-hosted**: Full control over infrastructure
 - **On-premises**: Data sovereignty and security
-- **Open-source**: No vendor lock-in
+- **Open-source**: Easy to integrate with an open ecosystem
 - **Customizable**: Full recipe customization
 
 **Operational Features:**
