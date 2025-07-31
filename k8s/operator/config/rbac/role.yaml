@@ -1,0 +1,175 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aim-engine-operator-role
+rules:
+- apiGroups:
+  - aim.engine.amd.com
+  resources:
+  - aimendpoints
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - aim.engine.amd.com
+  resources:
+  - aimendpoints/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - aim.engine.amd.com
+  resources:
+  - aimendpoints/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - aim.engine.amd.com
+  resources:
+  - aimrecipes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - aim.engine.amd.com
+  resources:
+  - aimrecipes/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - aim.engine.amd.com
+  resources:
+  - aimrecipes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - aim.engine.amd.com
+  resources:
+  - aimcaches
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - aim.engine.amd.com
+  resources:
+  - aimcaches/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - aim.engine.amd.com
+  resources:
+  - aimcaches/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - core
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - core
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - core
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - core
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - prometheusrules
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch 

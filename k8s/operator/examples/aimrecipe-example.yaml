@@ -1,0 +1,84 @@
+apiVersion: aim.engine.amd.com/v1alpha1
+kind: AIMRecipe
+metadata:
+  name: qwen-32b-mi300x-bf16
+  namespace: aim-engine
+  labels:
+    app.kubernetes.io/name: aim-recipe
+    app.kubernetes.io/component: recipe
+spec:
+  modelId: "Qwen/Qwen3-32B"
+  hardware: "MI300X"
+  precision: "bfloat16"
+  backend: "vllm"
+  description: "Qwen 32B model optimized for MI300X with bfloat16 precision using vLLM backend"
+  
+  configurations:
+    - gpuCount: 1
+      enabled: true
+      args:
+        - "--model"
+        - "Qwen/Qwen3-32B"
+        - "--dtype"
+        - "bfloat16"
+        - "--max-model-len"
+        - "32768"
+        - "--gpu-memory-utilization"
+        - "0.9"
+        - "--trust-remote-code"
+        - "true"
+        - "--port"
+        - "8000"
+      env:
+        - name: "HF_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              name: "huggingface-token"
+              key: "token"
+      resources:
+        requests:
+          amd.com/gpu: "1"
+          memory: "32Gi"
+          cpu: "4"
+        limits:
+          amd.com/gpu: "1"
+          memory: "64Gi"
+          cpu: "8"
+    
+    - gpuCount: 4
+      enabled: true
+      args:
+        - "--model"
+        - "Qwen/Qwen3-32B"
+        - "--dtype"
+        - "bfloat16"
+        - "--tensor-parallel-size"
+        - "4"
+        - "--max-model-len"
+        - "32768"
+        - "--gpu-memory-utilization"
+        - "0.9"
+        - "--trust-remote-code"
+        - "true"
+        - "--port"
+        - "8000"
+      env:
+        - name: "HF_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              name: "huggingface-token"
+              key: "token"
+      resources:
+        requests:
+          amd.com/gpu: "4"
+          memory: "64Gi"
+          cpu: "16"
+        limits:
+          amd.com/gpu: "4"
+          memory: "128Gi"
+          cpu: "32"
+  
+  performance:
+    expectedTokensPerSecond: 5000
+    expectedLatencyMs: 100
+    maxBatchSize: 32 

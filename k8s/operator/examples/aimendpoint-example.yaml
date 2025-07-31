@@ -1,0 +1,96 @@
+apiVersion: aim.engine.amd.com/v1alpha1
+kind: AIMEndpoint
+metadata:
+  name: qwen-32b-production
+  namespace: aim-engine
+  labels:
+    app.kubernetes.io/name: aim-endpoint
+    app.kubernetes.io/component: server
+spec:
+  model:
+    id: "Qwen/Qwen3-32B"
+    version: "latest"
+  
+  # Recipe selection
+  recipe:
+    autoSelect: true  # Let operator select optimal recipe
+    # OR manual selection:
+    # autoSelect: false
+    # gpuCount: 4
+    # precision: "bfloat16"
+    # backend: "vllm"
+  
+  # Resource configuration
+  resources:
+    gpuCount: 4  # Override auto-selection if needed
+    memory: "64Gi"
+    cpu: "16"
+    memoryLimit: "128Gi"
+    cpuLimit: "32"
+  
+  # Scaling configuration
+  scaling:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+    targetGPUUtilization: 85
+    scaleDownDelay: 300
+    scaleUpDelay: 60
+  
+  # Service configuration
+  service:
+    type: "LoadBalancer"
+    port: 8000
+    targetPort: 8000
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+  
+  # Monitoring
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      interval: "30s"
+      path: "/metrics"
+    grafana:
+      enabled: true
+      dashboard: "aim-endpoint-dashboard"
+  
+  # Cache configuration
+  cache:
+    enabled: true
+    storageClass: "fast-ssd"
+    size: "100Gi"
+    accessMode: "ReadWriteOnce"
+  
+  # Security
+  security:
+    serviceAccount:
+      create: true
+      name: "aim-endpoint-sa"
+    podSecurityContext:
+      runAsUser: 0
+      runAsGroup: 0
+      fsGroup: 0
+  
+  # Deployment configuration
+  deployment:
+    strategy:
+      type: "RollingUpdate"
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    canary:
+      enabled: false
+      trafficSplit: 10
+      duration: 300
+  
+  # Image configuration
+  image:
+    repository: "ghcr.io/aim-engine/vllm-server"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+    pullSecrets:
+      - "ghcr-secret" 

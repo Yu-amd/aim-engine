@@ -1,0 +1,40 @@
+apiVersion: aim.engine.amd.com/v1alpha1
+kind: AIMCache
+metadata:
+  name: global-model-cache
+  namespace: aim-engine
+  labels:
+    app.kubernetes.io/name: aim-cache
+    app.kubernetes.io/component: cache
+spec:
+  storage:
+    storageClass: "fast-ssd"
+    size: "500Gi"
+    accessMode: "ReadWriteMany"
+    mountPath: "/workspace/model-cache"
+  
+  models:
+    - id: "Qwen/Qwen3-32B"
+      priority: "high"
+      retention: "30d"
+      maxSize: "100Gi"
+      preload: true
+    
+    - id: "Qwen/Qwen2.5-7B-Instruct"
+      priority: "medium"
+      retention: "7d"
+      maxSize: "50Gi"
+      preload: false
+    
+    - id: "Qwen/Qwen1.5-7B-Chat"
+      priority: "low"
+      retention: "3d"
+      maxSize: "30Gi"
+      preload: false
+  
+  cleanup:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    maxAge: "30d"
+    minFreeSpace: "100Gi"
+    strategy: "lru"  # Least Recently Used 
