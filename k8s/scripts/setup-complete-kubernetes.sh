@@ -268,12 +268,12 @@ log_info "Step 11: Setting up AMD GPU support..."
         curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
     fi
     
-    # Add AMD GPU operator repository
-    helm repo add amd-gpu-operator https://rocm.github.io/amdgpu-operator
+    # Add the correct AMD GPU operator repository
+    helm repo add rocm https://rocm.github.io/gpu-operator
     helm repo update
     
     # Install AMD GPU operator
-    helm install amd-gpu-operator amd-gpu-operator/amdgpu-operator \
+    helm install amd-gpu-operator rocm/gpu-operator \
         --namespace gpu-operator-system \
         --create-namespace \
         --set devicePlugin.enabled=true \
