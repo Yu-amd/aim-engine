@@ -263,27 +263,56 @@ log_info "Step 11: Setting up AMD GPU support..."
     # Install ROCm packages
     apt install -y rocm-hip-sdk rocm-opencl-sdk
     
-    # Install Helm if not already installed
-    if ! command -v helm &> /dev/null; then
-        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-    fi
+    # Create GPU device plugin for AMD MI300X (compatible with K8s 1.28)
+    cat > /tmp/amd-gpu-device-plugin.yaml << 'EOF'
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: amd-gpu-device-plugin
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: amd-gpu-device-plugin
+  template:
+    metadata:
+      labels:
+        name: amd-gpu-device-plugin
+    spec:
+      containers:
+      - name: amd-gpu-device-plugin
+        image: rocm/k8s-device-plugin:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        volumeMounts:
+          - name: device-plugin
+            mountPath: /var/lib/kubelet/device-plugins
+          - name: kfd
+            mountPath: /dev/kfd
+          - name: dri
+            mountPath: /dev/dri
+        env:
+          - name: KUBECONFIG
+            value: /var/lib/kubelet/device-plugins/kubeconfig
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+        - name: kfd
+          hostPath:
+            path: /dev/kfd
+        - name: dri
+          hostPath:
+            path: /dev/dri
+      nodeSelector:
+        kubernetes.io/os: linux
+EOF
     
-    # Add the correct AMD GPU operator repository
-    helm repo add rocm https://rocm.github.io/gpu-operator
-    helm repo update
+    kubectl apply -f /tmp/amd-gpu-device-plugin.yaml
     
-    # Install AMD GPU operator
-    helm install amd-gpu-operator rocm/gpu-operator \
-        --namespace gpu-operator-system \
-        --create-namespace \
-        --set devicePlugin.enabled=true \
-        --set driver.enabled=true \
-        --set nodeSelector."kubernetes\.io/os"=linux
-    
-    # Wait for GPU operator to be ready
-    kubectl wait --for=condition=active namespace/gpu-operator-system --timeout=60s
-    kubectl wait --for=condition=ready pod -l app=amdgpu-operator -n gpu-operator-system --timeout=300s
-    kubectl wait --for=condition=ready pod -l app=amd-gpu-device-plugin -n gpu-operator-system --timeout=300s
+    # Wait for GPU device plugin to be ready
+    kubectl wait --for=condition=ready pod -l name=amd-gpu-device-plugin -n kube-system --timeout=300s
     
     log_success "AMD GPU support configured"
 } || {
