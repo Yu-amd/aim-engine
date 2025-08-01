@@ -72,25 +72,33 @@ EOF
 # Step 2: Install Docker as systemd service
 log_info "Step 2: Installing Docker as systemd service..."
 {
-    # Remove any existing Docker installations
-    apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
-    
-    # Install Docker using apt (creates proper systemd service)
-    apt update
-    apt install -y docker.io docker-compose
-    
-    # Start and enable Docker service
-    systemctl start docker
-    systemctl enable docker
-    
-    # Add current user to docker group
-    usermod -aG docker $USER || true
-    
-    # Verify Docker is working
-    docker --version
-    docker ps
-    
-    log_success "Docker installed and configured as systemd service"
+    # Check if Docker is already running
+    if docker ps > /dev/null 2>&1; then
+        log_info "Docker is already running, skipping installation"
+        docker --version
+        docker ps
+        log_success "Docker is working"
+    else
+        # Remove any existing Docker installations
+        apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+        
+        # Install Docker using apt (creates proper systemd service)
+        apt update
+        apt install -y docker.io docker-compose
+        
+        # Start and enable Docker service
+        systemctl start docker
+        systemctl enable docker
+        
+        # Add current user to docker group
+        usermod -aG docker $USER || true
+        
+        # Verify Docker is working
+        docker --version
+        docker ps
+        
+        log_success "Docker installed and configured as systemd service"
+    fi
 } || {
     log_error "Docker installation failed"
     exit 1
@@ -118,11 +126,16 @@ log_info "Step 3: Installing containerd..."
 # Step 4: Setup local container registry
 log_info "Step 4: Setting up local container registry..."
 {
-    # Start local registry
-    docker run -d -p ${REGISTRY_PORT}:${REGISTRY_PORT} --name local-registry registry:2
-    
-    # Wait for registry to be ready
-    sleep 10
+    # Check if registry is already running
+    if docker ps | grep -q "local-registry"; then
+        log_info "Local registry is already running"
+    else
+        # Start local registry
+        docker run -d -p ${REGISTRY_PORT}:${REGISTRY_PORT} --name local-registry registry:2
+        
+        # Wait for registry to be ready
+        sleep 10
+    fi
     
     # Test registry
     curl -s http://localhost:${REGISTRY_PORT}/v2/_catalog || {
