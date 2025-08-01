@@ -6,6 +6,11 @@ WORKDIR /workspace
 COPY go.mod go.mod
 COPY go.sum go.sum
 
+# Copy the go source
+COPY api/ api/
+COPY cmd/ cmd/
+COPY controllers/ controllers/
+
 # Cache the download of dependencies, disable CGO and set the proper GOOS and GOARCH
 RUN go mod download && \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o manager cmd/operator/main.go

@@ -69,8 +69,35 @@ EOF
     exit 1
 }
 
-# Step 2: Install containerd
-log_info "Step 2: Installing containerd..."
+# Step 2: Install Docker as systemd service
+log_info "Step 2: Installing Docker as systemd service..."
+{
+    # Remove any existing Docker installations
+    apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+    
+    # Install Docker using apt (creates proper systemd service)
+    apt update
+    apt install -y docker.io docker-compose
+    
+    # Start and enable Docker service
+    systemctl start docker
+    systemctl enable docker
+    
+    # Add current user to docker group
+    usermod -aG docker $USER || true
+    
+    # Verify Docker is working
+    docker --version
+    docker ps
+    
+    log_success "Docker installed and configured as systemd service"
+} || {
+    log_error "Docker installation failed"
+    exit 1
+}
+
+# Step 3: Install containerd
+log_info "Step 3: Installing containerd..."
 {
     # Install containerd
     apt install -y containerd
@@ -88,8 +115,8 @@ log_info "Step 2: Installing containerd..."
     exit 1
 }
 
-# Step 3: Setup local container registry
-log_info "Step 3: Setting up local container registry..."
+# Step 4: Setup local container registry
+log_info "Step 4: Setting up local container registry..."
 {
     # Start local registry
     docker run -d -p ${REGISTRY_PORT}:${REGISTRY_PORT} --name local-registry registry:2
@@ -109,8 +136,8 @@ log_info "Step 3: Setting up local container registry..."
     exit 1
 }
 
-# Step 4: Build and push AIM Engine image
-log_info "Step 4: Building and pushing AIM Engine image..."
+# Step 5: Build and push AIM Engine image
+log_info "Step 5: Building and pushing AIM Engine image..."
 {
     # Change to project directory
     cd /root/aim-engine
@@ -128,8 +155,8 @@ log_info "Step 4: Building and pushing AIM Engine image..."
     exit 1
 }
 
-# Step 5: Install Kubernetes components
-log_info "Step 5: Installing Kubernetes components..."
+# Step 6: Install Kubernetes components
+log_info "Step 6: Installing Kubernetes components..."
 {
     # Add Kubernetes repository
     curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
@@ -146,8 +173,8 @@ log_info "Step 5: Installing Kubernetes components..."
     exit 1
 }
 
-# Step 6: Initialize Kubernetes cluster
-log_info "Step 6: Initializing Kubernetes cluster..."
+# Step 7: Initialize Kubernetes cluster
+log_info "Step 7: Initializing Kubernetes cluster..."
 {
     # Initialize cluster
     kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-advertise-address=$(hostname -I | awk '{print $1}')
@@ -175,8 +202,8 @@ log_info "Step 6: Initializing Kubernetes cluster..."
     exit 1
 }
 
-# Step 7: Install Calico CNI
-log_info "Step 7: Installing Calico CNI..."
+# Step 8: Install Calico CNI
+log_info "Step 8: Installing Calico CNI..."
 {
     kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml
     
@@ -189,8 +216,8 @@ log_info "Step 7: Installing Calico CNI..."
     exit 1
 }
 
-# Step 8: Install metrics server
-log_info "Step 8: Installing metrics server..."
+# Step 9: Install metrics server
+log_info "Step 9: Installing metrics server..."
 {
     kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
     
@@ -203,8 +230,8 @@ log_info "Step 8: Installing metrics server..."
     exit 1
 }
 
-# Step 9: Install local storage provisioner
-log_info "Step 9: Installing local storage provisioner..."
+# Step 10: Install local storage provisioner
+log_info "Step 10: Installing local storage provisioner..."
 {
     kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
     
@@ -217,8 +244,8 @@ log_info "Step 9: Installing local storage provisioner..."
     exit 1
 }
 
-# Step 10: Setup AMD GPU support
-log_info "Step 10: Setting up AMD GPU support..."
+# Step 11: Setup AMD GPU support
+log_info "Step 11: Setting up AMD GPU support..."
 {
     # Install ROCm packages
     apt install -y rocm-hip-sdk rocm-opencl-sdk
@@ -280,8 +307,8 @@ EOF
     exit 1
 }
 
-# Step 11: Create AIM Engine namespace
-log_info "Step 11: Creating AIM Engine namespace..."
+# Step 12: Create AIM Engine namespace
+log_info "Step 12: Creating AIM Engine namespace..."
 {
     kubectl create namespace ${AIM_ENGINE_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
     
@@ -291,8 +318,8 @@ log_info "Step 11: Creating AIM Engine namespace..."
     exit 1
 }
 
-# Step 12: Deploy AIM Engine
-log_info "Step 12: Deploying AIM Engine..."
+# Step 13: Deploy AIM Engine
+log_info "Step 13: Deploying AIM Engine..."
 {
     # Change to helm directory
     cd /root/aim-engine/k8s/helm
@@ -321,8 +348,8 @@ log_info "Step 12: Deploying AIM Engine..."
     exit 1
 }
 
-# Step 13: Wait for deployment and verify
-log_info "Step 13: Waiting for deployment to be ready..."
+# Step 14: Wait for deployment and verify
+log_info "Step 14: Waiting for deployment to be ready..."
 {
     # Wait for pod to be ready
     kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=1800s
