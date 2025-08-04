@@ -279,6 +279,10 @@ spec:
       labels:
         name: amd-gpu-device-plugin
     spec:
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
       containers:
       - name: amd-gpu-device-plugin
         image: rocm/k8s-device-plugin:latest
