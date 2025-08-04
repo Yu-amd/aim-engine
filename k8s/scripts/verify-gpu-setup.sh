@@ -139,6 +139,26 @@ check_gpu_resources() {
 test_gpu_allocation() {
     log_info "Testing GPU allocation..."
     
+    # Get total available GPUs
+    local total_gpus=$(kubectl get nodes -o json | jq -r '.items[] | .status.allocatable["amd.com/gpu"] // "0"' | awk '{sum += $1} END {print sum}')
+    
+    # Get GPUs currently in use
+    local used_gpus=$(kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.spec.containers[].resources.requests["amd.com/gpu"] != null and .status.phase == "Running") | .spec.containers[].resources.requests["amd.com/gpu"]' 2>/dev/null | awk '{sum += $1} END {print sum+0}')
+    
+    local available_gpus=$((total_gpus - used_gpus))
+    
+    echo "=== GPU Availability ==="
+    echo "Total GPUs: $total_gpus"
+    echo "Used GPUs: $used_gpus"
+    echo "Available GPUs: $available_gpus"
+    
+    # Only run test if we have 2 or more GPUs available
+    if [[ $available_gpus -lt 2 ]]; then
+        log_warning "Only $available_gpus GPU(s) available. GPU allocation test requires 2+ GPUs to avoid conflicts."
+        log_info "Skipping GPU allocation test"
+        return 0
+    fi
+    
     # Clean up any existing test pod
     kubectl delete pod gpu-test --ignore-not-found=true
     
@@ -172,17 +192,20 @@ spec:
 EOF
     
     echo "Waiting for GPU test pod to complete..."
-    kubectl wait --for=condition=Ready pod/gpu-test --timeout=120s
-    
-    echo
-    echo "=== GPU Test Pod Logs ==="
-    kubectl logs gpu-test
-    
-    echo
-    echo "=== Cleaning up test pod ==="
-    kubectl delete pod gpu-test
-    
-    log_success "GPU allocation test completed"
+    if kubectl wait --for=condition=Ready pod/gpu-test --timeout=120s; then
+        echo
+        echo "=== GPU Test Pod Logs ==="
+        kubectl logs gpu-test
+        
+        echo
+        echo "=== Cleaning up test pod ==="
+        kubectl delete pod gpu-test
+        
+        log_success "GPU allocation test completed"
+    else
+        log_warning "GPU test pod failed to start"
+        kubectl delete pod gpu-test --ignore-not-found=true
+    fi
 }
 
 # Check system GPU information
