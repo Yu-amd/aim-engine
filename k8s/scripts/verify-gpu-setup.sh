@@ -139,6 +139,9 @@ check_gpu_resources() {
 test_gpu_allocation() {
     log_info "Testing GPU allocation..."
     
+    # Clean up any existing test pod
+    kubectl delete pod gpu-test --ignore-not-found=true
+    
     echo
     echo "=== Creating GPU test pod ==="
     
