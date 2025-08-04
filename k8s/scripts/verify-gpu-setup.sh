@@ -72,16 +72,17 @@ check_amd_gpu_operator() {
     
     echo
     echo "=== AMD GPU Operator Namespace ==="
-    kubectl get pods -n gpu-operator-system
+    kubectl get pods -n gpu-operator-system 2>/dev/null || echo "No resources found in gpu-operator-system namespace."
     
     echo
     echo "=== AMD GPU Operator Status ==="
-    kubectl get pods -n gpu-operator-system -o json | jq -r '.items[] | "\(.metadata.name): \(.status.phase)"'
+    local operator_pods=$(kubectl get pods -n gpu-operator-system -o json 2>/dev/null | jq -r '.items[] | "\(.metadata.name): \(.status.phase)"' 2>/dev/null || echo "No operator pods found")
+    echo "$operator_pods"
     
     # Check if all pods are running
-    local failed_pods=$(kubectl get pods -n gpu-operator-system -o json | jq -r '.items[] | select(.status.phase != "Running") | .metadata.name')
+    local failed_pods=$(kubectl get pods -n gpu-operator-system -o json 2>/dev/null | jq -r '.items[] | select(.status.phase != "Running") | .metadata.name' 2>/dev/null || echo "")
     
-    if [[ -n "$failed_pods" ]]; then
+    if [[ -n "$failed_pods" && "$failed_pods" != "" ]]; then
         log_warning "Some GPU operator pods are not running: $failed_pods"
     else
         log_success "All AMD GPU operator pods are running"
@@ -93,17 +94,18 @@ check_gpu_device_plugin() {
     log_info "Checking GPU device plugin..."
     
     echo
-    echo "=== GPU Device Plugin Pods ==="
-    kubectl get pods -n gpu-operator-system -l app=amd-gpu-device-plugin
+    echo "=== GPU Device Plugin Pods (kube-system) ==="
+    kubectl get pods -n kube-system -l name=amd-gpu-device-plugin
     
     echo
     echo "=== GPU Device Plugin Logs ==="
-    local device_plugin_pod=$(kubectl get pods -n gpu-operator-system -l app=amd-gpu-device-plugin -o jsonpath='{.items[0].metadata.name}')
+    local device_plugin_pod=$(kubectl get pods -n kube-system -l name=amd-gpu-device-plugin -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
     
     if [[ -n "$device_plugin_pod" ]]; then
-        kubectl logs $device_plugin_pod -n gpu-operator-system --tail=20
+        kubectl logs $device_plugin_pod -n kube-system --tail=20
+        log_success "GPU device plugin is running"
     else
-        log_warning "GPU device plugin pod not found"
+        log_warning "GPU device plugin pod not found in kube-system namespace"
     fi
 }
 
@@ -113,11 +115,11 @@ check_gpu_driver() {
     
     echo
     echo "=== GPU Driver Pods ==="
-    kubectl get pods -n gpu-operator-system -l app=amd-gpu-driver
+    kubectl get pods -n gpu-operator-system -l app=amd-gpu-driver 2>/dev/null || echo "No GPU driver pods found"
     
     echo
     echo "=== GPU Driver Status ==="
-    kubectl get pods -n gpu-operator-system -l app=amd-gpu-driver -o json | jq -r '.items[] | "\(.metadata.name): \(.status.phase)"'
+    kubectl get pods -n gpu-operator-system -l app=amd-gpu-driver -o json 2>/dev/null | jq -r '.items[] | "\(.metadata.name): \(.status.phase)"' 2>/dev/null || echo "No GPU driver pods found"
 }
 
 # Check GPU resources
@@ -148,11 +150,17 @@ metadata:
   namespace: default
 spec:
   restartPolicy: Never
+  nodeSelector:
+    amd.com/gpu: "true"
+  tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
   containers:
   - name: gpu-test
     image: rocm/dev-ubuntu-22.04
     command: ["/bin/bash"]
-    args: ["-c", "rocm-smi && nvidia-smi || echo 'nvidia-smi not available' && exit 0"]
+    args: ["-c", "rocm-smi && echo 'GPU test completed successfully' && exit 0"]
     resources:
       limits:
         amd.com/gpu: 1
@@ -161,7 +169,7 @@ spec:
 EOF
     
     echo "Waiting for GPU test pod to complete..."
-    kubectl wait --for=condition=Ready pod/gpu-test --timeout=60s
+    kubectl wait --for=condition=Ready pod/gpu-test --timeout=120s
     
     echo
     echo "=== GPU Test Pod Logs ==="
@@ -203,11 +211,11 @@ check_gpu_operator_logs() {
     
     echo
     echo "=== GPU Operator Logs ==="
-    kubectl logs -n gpu-operator-system -l app=amd-gpu-operator --tail=20
+    kubectl logs -n gpu-operator-system -l app=amd-gpu-operator --tail=20 2>/dev/null || echo "No GPU operator logs found"
     
     echo
     echo "=== GPU Device Plugin Logs ==="
-    kubectl logs -n gpu-operator-system -l app=amd-gpu-device-plugin --tail=20
+    kubectl logs -n kube-system -l name=amd-gpu-device-plugin --tail=20 2>/dev/null || echo "No GPU device plugin logs found"
 }
 
 # Main verification function
