@@ -251,6 +251,12 @@ log_info "Step 10: Installing local storage provisioner..."
     # Set as default storage class
     kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
     
+    # Add tolerations to local-path-provisioner to allow scheduling on control-plane
+    kubectl patch deployment local-path-provisioner -n local-path-storage -p '{"spec":{"template":{"spec":{"tolerations":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists","effect":"NoSchedule"}]}}}}'
+    
+    # Wait for local-path-provisioner to be ready
+    kubectl wait --for=condition=ready pod -l app=local-path-provisioner -n local-path-storage --timeout=300s
+    
     log_success "Local storage provisioner installed"
 } || {
     log_error "Local storage provisioner installation failed"
@@ -318,6 +324,9 @@ EOF
     # Wait for GPU device plugin to be ready
     kubectl wait --for=condition=ready pod -l name=amd-gpu-device-plugin -n kube-system --timeout=300s
     
+    # Add GPU label to the node
+    kubectl label node $(hostname) amd.com/gpu=true --overwrite
+    
     log_success "AMD GPU support configured"
 } || {
     log_error "AMD GPU setup failed"
@@ -327,6 +336,14 @@ EOF
 # Step 12: Create AIM Engine namespace
 log_info "Step 12: Creating AIM Engine namespace..."
 {
+    # Check if namespace exists and is stuck in terminating
+    if kubectl get namespace ${AIM_ENGINE_NAMESPACE} 2>/dev/null | grep -q "Terminating"; then
+        log_warning "Namespace ${AIM_ENGINE_NAMESPACE} is stuck in terminating state, forcing deletion..."
+        kubectl delete namespace ${AIM_ENGINE_NAMESPACE} --force --grace-period=0
+        kubectl patch namespace ${AIM_ENGINE_NAMESPACE} -p '{"metadata":{"finalizers":[]}}' --type=merge || true
+        sleep 10
+    fi
+    
     kubectl create namespace ${AIM_ENGINE_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
     
     log_success "AIM Engine namespace created"
@@ -360,6 +377,13 @@ log_info "Step 13: Deploying AIM Engine..."
         --set service.targetPort=8000
     
     log_success "AIM Engine deployed"
+    
+    # Verify deployment was created
+    if ! kubectl get deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} >/dev/null 2>&1; then
+        log_warning "Helm deployment may have failed, trying manual deployment..."
+        kubectl apply -f /root/aim-engine/k8s/aim-engine-deployment.yaml
+    fi
+    
 } || {
     log_error "AIM Engine deployment failed"
     exit 1
@@ -368,16 +392,20 @@ log_info "Step 13: Deploying AIM Engine..."
 # Step 14: Wait for deployment and verify
 log_info "Step 14: Waiting for deployment to be ready..."
 {
+    # Wait for PVC to be bound
+    kubectl wait --for=condition=bound pvc -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=300s
+    
     # Wait for pod to be ready
     kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=1800s
     
     # Get service details
     NODEPORT=$(kubectl get svc -n ${AIM_ENGINE_NAMESPACE} aim-engine-service -o jsonpath='{.spec.ports[0].nodePort}')
+    NODE_IP=$(hostname -I | awk '{print $1}')
     
     log_success "AIM Engine is ready!"
-    log_info "Access your AIM Engine at: http://localhost:${NODEPORT}"
-    log_info "Health check: curl http://localhost:${NODEPORT}/health"
-    log_info "Models: curl http://localhost:${NODEPORT}/v1/models"
+    log_info "Access your AIM Engine at: http://${NODE_IP}:${NODEPORT}"
+    log_info "Health check: curl http://${NODE_IP}:${NODEPORT}/health"
+    log_info "Models: curl http://${NODE_IP}:${NODEPORT}/v1/models"
     
 } || {
     log_error "Deployment verification failed"
@@ -399,5 +427,6 @@ log_info "Useful commands:"
 echo "  kubectl get pods -n ${AIM_ENGINE_NAMESPACE}"
 echo "  kubectl logs -f -n ${AIM_ENGINE_NAMESPACE} -l app.kubernetes.io/name=aim-engine"
 echo "  kubectl get svc -n ${AIM_ENGINE_NAMESPACE}"
-echo "  curl http://localhost:${NODEPORT}/health"
+echo "  curl http://${NODE_IP}:${NODEPORT}/health"
+echo "  curl http://${NODE_IP}:${NODEPORT}/v1/models"
 echo "" 
