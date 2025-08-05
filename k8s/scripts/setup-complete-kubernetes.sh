@@ -392,52 +392,46 @@ log_info "Step 12: Creating AIM Engine namespace..."
     exit 1
 }
 
+# Step 12: Install Helm
+log_info "Step 12: Installing Helm..."
+{
+    if command -v helm &> /dev/null; then
+        log_info "Helm is already installed"
+        helm version
+    else
+        # Install Helm
+        curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+        apt update
+        apt install -y helm
+        
+        log_success "Helm installed"
+    fi
+    
+    # Verify Helm can connect to the cluster
+    if ! helm list --all-namespaces > /dev/null 2>&1; then
+        log_warning "Helm cannot connect to cluster, this may cause issues"
+    fi
+} || {
+    log_error "Helm installation failed"
+    exit 1
+}
+
 # Step 13: Deploy AIM Engine
 log_info "Step 13: Deploying AIM Engine..."
 {
     # Change to helm directory
     cd /root/aim-engine/k8s/helm
     
-    # Create required resources manually first to ensure they exist
-    log_info "Creating required resources..."
+    # Clean up any existing resources that might conflict
+    log_info "Cleaning up any conflicting resources..."
+    kubectl delete serviceaccount aim-engine-sa -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
+    kubectl delete pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
+    kubectl delete service aim-engine-service -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
+    kubectl delete deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
     
-    # Create ServiceAccount
-    kubectl create serviceaccount aim-engine-sa -n ${AIM_ENGINE_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Create PVC
-    cat << EOF | kubectl apply -f -
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: aim-engine-pvc
-  namespace: ${AIM_ENGINE_NAMESPACE}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Gi
-  storageClassName: local-path
-EOF
-    
-    # Create Service
-    cat << EOF | kubectl apply -f -
-apiVersion: v1
-kind: Service
-metadata:
-  name: aim-engine-service
-  namespace: ${AIM_ENGINE_NAMESPACE}
-spec:
-  type: NodePort
-  ports:
-    - port: 8000
-      targetPort: 8000
-      protocol: TCP
-      name: http
-  selector:
-    app.kubernetes.io/name: aim-engine
-    app.kubernetes.io/instance: aim-engine
-EOF
+    # Wait a moment for cleanup
+    sleep 5
     
     # Try Helm deployment first
     log_info "Attempting Helm deployment..."
@@ -461,6 +455,47 @@ EOF
         log_success "AIM Engine deployed via Helm"
     else
         log_warning "Helm deployment failed, using manual deployment..."
+        
+        # Create resources manually for fallback
+        log_info "Creating resources manually..."
+        
+        # Create ServiceAccount
+        kubectl create serviceaccount aim-engine-sa -n ${AIM_ENGINE_NAMESPACE}
+        
+        # Create PVC
+        cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aim-engine-pvc
+  namespace: ${AIM_ENGINE_NAMESPACE}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: local-path
+EOF
+        
+        # Create Service
+        cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: aim-engine-service
+  namespace: ${AIM_ENGINE_NAMESPACE}
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: aim-engine
+    app.kubernetes.io/instance: aim-engine
+EOF
         
         # Use manual deployment as fallback
         kubectl apply -f /root/aim-engine/k8s/aim-engine-deployment.yaml
