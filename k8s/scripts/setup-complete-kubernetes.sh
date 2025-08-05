@@ -79,25 +79,65 @@ log_info "Step 2: Installing Docker as systemd service..."
         docker ps
         log_success "Docker is working"
     else
-        # Remove any existing Docker installations
-        apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
-        
-        # Install Docker using apt (creates proper systemd service)
-        apt update
-        apt install -y docker.io docker-compose
-        
-        # Start and enable Docker service
-        systemctl start docker
-        systemctl enable docker
-        
-        # Add current user to docker group
-        usermod -aG docker $USER || true
-        
-        # Verify Docker is working
-        docker --version
-        docker ps
-        
-        log_success "Docker installed and configured as systemd service"
+        # Check if Docker is installed but not running
+        if command -v docker &> /dev/null; then
+            log_info "Docker is installed but not running, attempting to start..."
+            
+            # Try to start Docker daemon manually if systemd service doesn't exist
+            if ! systemctl start docker 2>/dev/null; then
+                log_info "Systemd service not found, trying manual start..."
+                # Look for dockerd binary
+                DOCKERD_PATH=$(find /usr -name "dockerd" 2>/dev/null | head -1)
+                if [[ -n "$DOCKERD_PATH" ]]; then
+                    nohup $DOCKERD_PATH > /var/log/docker.log 2>&1 &
+                    sleep 5
+                else
+                    log_warning "Dockerd binary not found, reinstalling Docker..."
+                    # Remove existing Docker installation
+                    apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+                    apt autoremove -y
+                    
+                    # Install Docker properly
+                    apt update
+                    apt install -y docker.io docker-compose
+                    
+                    # Start and enable Docker service
+                    systemctl start docker
+                    systemctl enable docker
+                fi
+            fi
+            
+            # Add current user to docker group
+            usermod -aG docker $USER || true
+            
+            # Verify Docker is working
+            if docker ps > /dev/null 2>&1; then
+                docker --version
+                docker ps
+                log_success "Docker is now working"
+            else
+                log_error "Failed to start Docker daemon"
+                exit 1
+            fi
+        else
+            # Install Docker from scratch
+            log_info "Installing Docker from scratch..."
+            apt update
+            apt install -y docker.io docker-compose
+            
+            # Start and enable Docker service
+            systemctl start docker
+            systemctl enable docker
+            
+            # Add current user to docker group
+            usermod -aG docker $USER || true
+            
+            # Verify Docker is working
+            docker --version
+            docker ps
+            
+            log_success "Docker installed and configured as systemd service"
+        fi
     fi
 } || {
     log_error "Docker installation failed"
@@ -358,8 +398,50 @@ log_info "Step 13: Deploying AIM Engine..."
     # Change to helm directory
     cd /root/aim-engine/k8s/helm
     
-    # Deploy with proper configuration
-    helm install aim-engine . \
+    # Create required resources manually first to ensure they exist
+    log_info "Creating required resources..."
+    
+    # Create ServiceAccount
+    kubectl create serviceaccount aim-engine-sa -n ${AIM_ENGINE_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+    
+    # Create PVC
+    cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aim-engine-pvc
+  namespace: ${AIM_ENGINE_NAMESPACE}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: local-path
+EOF
+    
+    # Create Service
+    cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: aim-engine-service
+  namespace: ${AIM_ENGINE_NAMESPACE}
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: aim-engine
+    app.kubernetes.io/instance: aim-engine
+EOF
+    
+    # Try Helm deployment first
+    log_info "Attempting Helm deployment..."
+    if helm install aim-engine . \
         --namespace ${AIM_ENGINE_NAMESPACE} \
         --set image.repository=localhost:${REGISTRY_PORT}/aim-vllm \
         --set image.tag=latest \
@@ -374,14 +456,19 @@ log_info "Step 13: Deploying AIM Engine..."
         --set readinessProbe.enabled=false \
         --set service.type=NodePort \
         --set service.port=8000 \
-        --set service.targetPort=8000
-    
-    log_success "AIM Engine deployed"
-    
-    # Verify deployment was created
-    if ! kubectl get deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} >/dev/null 2>&1; then
-        log_warning "Helm deployment may have failed, trying manual deployment..."
+        --set service.targetPort=8000; then
+        
+        log_success "AIM Engine deployed via Helm"
+    else
+        log_warning "Helm deployment failed, using manual deployment..."
+        
+        # Use manual deployment as fallback
         kubectl apply -f /root/aim-engine/k8s/aim-engine-deployment.yaml
+        
+        # Ensure deployment is scaled to 1
+        kubectl scale deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} --replicas=1
+        
+        log_success "AIM Engine deployed manually"
     fi
     
 } || {
@@ -395,8 +482,42 @@ log_info "Step 14: Waiting for deployment to be ready..."
     # Wait for PVC to be bound
     kubectl wait --for=condition=bound pvc -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=300s
     
-    # Wait for pod to be ready
-    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=1800s
+    # Ensure deployment exists and is scaled to 1
+    if ! kubectl get deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} >/dev/null 2>&1; then
+        log_warning "Deployment not found, creating it..."
+        kubectl apply -f /root/aim-engine/k8s/aim-engine-deployment.yaml
+    fi
+    
+    # Scale deployment to 1 if needed
+    kubectl scale deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} --replicas=1
+    
+    # Wait for pod to be ready with retries
+    local max_retries=3
+    local retry_count=0
+    
+    while [[ $retry_count -lt $max_retries ]]; do
+        if kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=600s; then
+            break
+        else
+            retry_count=$((retry_count + 1))
+            log_warning "Pod not ready, retry $retry_count/$max_retries"
+            
+            # Check if there are any issues with the pod
+            local pod_name=$(kubectl get pods -n ${AIM_ENGINE_NAMESPACE} -l app.kubernetes.io/name=aim-engine -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+            if [[ -n "$pod_name" ]]; then
+                log_info "Pod status:"
+                kubectl describe pod $pod_name -n ${AIM_ENGINE_NAMESPACE} | tail -20
+            fi
+            
+            # Wait a bit before retrying
+            sleep 30
+        fi
+    done
+    
+    if [[ $retry_count -eq $max_retries ]]; then
+        log_error "Pod failed to become ready after $max_retries retries"
+        exit 1
+    fi
     
     # Get service details
     NODEPORT=$(kubectl get svc -n ${AIM_ENGINE_NAMESPACE} aim-engine-service -o jsonpath='{.spec.ports[0].nodePort}')
@@ -406,6 +527,16 @@ log_info "Step 14: Waiting for deployment to be ready..."
     log_info "Access your AIM Engine at: http://${NODE_IP}:${NODEPORT}"
     log_info "Health check: curl http://${NODE_IP}:${NODEPORT}/health"
     log_info "Models: curl http://${NODE_IP}:${NODEPORT}/v1/models"
+    
+    # Verify the service is actually working
+    log_info "Verifying service is working..."
+    sleep 10  # Give the service a moment to be ready
+    
+    if curl -s http://${NODE_IP}:${NODEPORT}/health > /dev/null; then
+        log_success "Health check passed!"
+    else
+        log_warning "Health check failed, but deployment may still be starting up"
+    fi
     
 } || {
     log_error "Deployment verification failed"
