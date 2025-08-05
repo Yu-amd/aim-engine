@@ -479,6 +479,11 @@ log_info "Step 13: Deploying AIM Engine..."
         # Create ServiceAccount
         kubectl create serviceaccount aim-engine-sa -n ${AIM_ENGINE_NAMESPACE}
         
+        # Wait for PVC to be fully deleted before recreating
+        log_info "Waiting for PVC to be fully deleted..."
+        kubectl wait --for=delete pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} --timeout=60s 2>/dev/null || true
+        sleep 5
+        
         # Create PVC
         cat << EOF | kubectl apply -f -
 apiVersion: v1
@@ -543,9 +548,12 @@ log_info "Step 14: Waiting for deployment to be ready..."
     # Scale deployment to 1 if needed
     kubectl scale deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} --replicas=1
     
+    # Wait a moment for the deployment to create pods
+    sleep 10
+    
     # Wait for pod to be ready with retries
-    local max_retries=3
-    local retry_count=0
+    max_retries=3
+    retry_count=0
     
     while [[ $retry_count -lt $max_retries ]]; do
         if kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=600s; then
@@ -555,7 +563,7 @@ log_info "Step 14: Waiting for deployment to be ready..."
             log_warning "Pod not ready, retry $retry_count/$max_retries"
             
             # Check if there are any issues with the pod
-            local pod_name=$(kubectl get pods -n ${AIM_ENGINE_NAMESPACE} -l app.kubernetes.io/name=aim-engine -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+            pod_name=$(kubectl get pods -n ${AIM_ENGINE_NAMESPACE} -l app.kubernetes.io/name=aim-engine -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
             if [[ -n "$pod_name" ]]; then
                 log_info "Pod status:"
                 kubectl describe pod $pod_name -n ${AIM_ENGINE_NAMESPACE} | tail -20
