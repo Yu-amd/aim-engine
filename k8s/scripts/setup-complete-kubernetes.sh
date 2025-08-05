@@ -425,17 +425,34 @@ log_info "Step 13: Deploying AIM Engine..."
     
     # Clean up any existing resources that might conflict
     log_info "Cleaning up any conflicting resources..."
-    kubectl delete serviceaccount aim-engine-sa -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
-    kubectl delete pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
-    kubectl delete service aim-engine-service -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
+    
+    # Delete deployment first (which will delete pods)
     kubectl delete deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
+    
+    # Wait for pods to be terminated
+    log_info "Waiting for pods to terminate..."
+    kubectl wait --for=delete pod -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=60s 2>/dev/null || true
+    
+    # Now delete other resources
+    kubectl delete serviceaccount aim-engine-sa -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
+    kubectl delete service aim-engine-service -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
+    
+    # Delete PVC with force if it's stuck
+    if kubectl get pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} >/dev/null 2>&1; then
+        log_info "Deleting PVC..."
+        kubectl delete pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} --timeout=30s || {
+            log_warning "PVC deletion timed out, forcing removal..."
+            kubectl patch pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} -p '{"metadata":{"finalizers":[]}}' --type=merge
+            kubectl delete pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
+        }
+    fi
     
     # Wait a moment for cleanup
     sleep 5
     
     # Try Helm deployment first
     log_info "Attempting Helm deployment..."
-    if helm install aim-engine . \
+    if timeout 300 helm install aim-engine . \
         --namespace ${AIM_ENGINE_NAMESPACE} \
         --set image.repository=localhost:${REGISTRY_PORT}/aim-vllm \
         --set image.tag=latest \
