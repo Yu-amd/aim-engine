@@ -83,28 +83,48 @@ log_info "Step 2: Installing Docker as systemd service..."
         if command -v docker &> /dev/null; then
             log_info "Docker is installed but not running, attempting to start..."
             
-            # Try to start Docker daemon manually if systemd service doesn't exist
-            if ! systemctl start docker 2>/dev/null; then
-                log_info "Systemd service not found, trying manual start..."
-                # Look for dockerd binary
-                DOCKERD_PATH=$(find /usr -name "dockerd" 2>/dev/null | head -1)
-                if [[ -n "$DOCKERD_PATH" ]]; then
-                    nohup $DOCKERD_PATH > /var/log/docker.log 2>&1 &
-                    sleep 5
-                else
-                    log_warning "Dockerd binary not found, reinstalling Docker..."
-                    # Remove existing Docker installation
-                    apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
-                    apt autoremove -y
-                    
-                    # Install Docker properly
-                    apt update
-                    apt install -y docker.io docker-compose
-                    
-                    # Start and enable Docker service
-                    systemctl start docker
+            # Check if systemd service exists
+            if systemctl list-unit-files | grep -q "docker.service"; then
+                log_info "Docker systemd service found, trying to start..."
+                if systemctl start docker 2>/dev/null; then
                     systemctl enable docker
+                    log_success "Docker started via systemd"
+                else
+                    log_warning "Failed to start Docker via systemd, checking for incomplete installation..."
+                    # Check if dockerd binary exists
+                    DOCKERD_PATH=$(find /usr -name "dockerd" 2>/dev/null | head -1)
+                    if [[ -z "$DOCKERD_PATH" ]]; then
+                        log_warning "Dockerd binary not found, Docker installation is incomplete. Reinstalling..."
+                        # Remove incomplete Docker installation
+                        apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+                        apt autoremove -y
+                        
+                        # Install Docker properly
+                        apt update
+                        apt install -y docker.io docker-compose
+                        
+                        # Start and enable Docker service
+                        systemctl start docker
+                        systemctl enable docker
+                    else
+                        log_warning "Dockerd found but systemd service failed, trying manual start..."
+                        nohup $DOCKERD_PATH > /var/log/docker.log 2>&1 &
+                        sleep 5
+                    fi
                 fi
+            else
+                log_warning "Docker systemd service not found, Docker installation is incomplete. Reinstalling..."
+                # Remove incomplete Docker installation
+                apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+                apt autoremove -y
+                
+                # Install Docker properly
+                apt update
+                apt install -y docker.io docker-compose
+                
+                # Start and enable Docker service
+                systemctl start docker
+                systemctl enable docker
             fi
             
             # Add current user to docker group
@@ -116,8 +136,23 @@ log_info "Step 2: Installing Docker as systemd service..."
                 docker ps
                 log_success "Docker is now working"
             else
-                log_error "Failed to start Docker daemon"
-                exit 1
+                log_error "Failed to start Docker daemon after all attempts"
+                log_info "Trying one more time with official Docker installation..."
+                
+                # Last resort: official Docker installation
+                curl -fsSL https://get.docker.com -o get-docker.sh
+                sh get-docker.sh
+                systemctl start docker
+                systemctl enable docker
+                
+                if docker ps > /dev/null 2>&1; then
+                    docker --version
+                    docker ps
+                    log_success "Docker is now working via official installation"
+                else
+                    log_error "All Docker installation attempts failed"
+                    exit 1
+                fi
             fi
         else
             # Install Docker from scratch
