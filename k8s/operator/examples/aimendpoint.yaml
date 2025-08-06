@@ -7,53 +7,41 @@ spec:
   model:
     id: "Qwen/Qwen2.5-7B-Instruct"
     version: "latest"
-  
   recipe:
     autoSelect: true
-  
+    gpuCount: 1
   resources:
     gpuCount: 1
-    memory: "16Gi"
     cpu: "4"
+    memory: "16Gi"
     memoryLimit: "32Gi"
     cpuLimit: "8"
-  
   scaling:
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilization: 70
     targetMemoryUtilization: 80
-  
   service:
-    type: NodePort
+    type: "NodePort"
     port: 8000
     targetPort: 8000
-  
+  cache:
+    enabled: true
+    storageClass: "local-path"
+    size: "50Gi"
   monitoring:
     enabled: true
     prometheus:
       enabled: true
       interval: "30s"
-    grafana:
-      enabled: true
-      dashboard: "aim-endpoint-dashboard"
-  
-  cache:
-    enabled: true
-    storageClass: "local-path"
-    size: "50Gi"
-    accessMode: ReadWriteOnce
-  
-  security:
-    serviceAccount:
-      create: true
-      name: "qwen-7b-demo-sa"
-    podSecurityContext:
-      runAsUser: 0
-      runAsGroup: 0
-      fsGroup: 0
-  
+      path: "/metrics"
+  deployment:
+    strategy:
+      type: "RollingUpdate"
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
   image:
     repository: "localhost:5000/aim-vllm"
     tag: "latest"
-    pullPolicy: IfNotPresent 
+    pullPolicy: "IfNotPresent" 

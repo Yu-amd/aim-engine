@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -36,7 +35,6 @@ import (
 	aimv1alpha1 "github.com/aim-engine/operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 )
 
@@ -154,7 +152,7 @@ func (r *AIMEndpointReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Create or update HPA if scaling is configured
-	if aimEndpoint.Spec.Scaling != nil && (aimEndpoint.Spec.Scaling.MaxReplicas != nil && *aimEndpoint.Spec.Scaling.MaxReplicas > 1) {
+	if aimEndpoint.Spec.Scaling.MaxReplicas != nil && *aimEndpoint.Spec.Scaling.MaxReplicas > 1 {
 		if err := r.reconcileHPA(ctx, aimEndpoint); err != nil {
 			logger.Error(err, "Failed to reconcile HPA")
 			return ctrl.Result{}, err
@@ -378,7 +376,7 @@ func (r *AIMEndpointReconciler) reconcileDeployment(ctx context.Context, endpoin
 		
 		// Set replicas
 		replicas := int32(1)
-		if endpoint.Spec.Scaling != nil && endpoint.Spec.Scaling.MinReplicas != nil {
+		if endpoint.Spec.Scaling.MinReplicas != nil {
 			replicas = *endpoint.Spec.Scaling.MinReplicas
 		}
 		deployment.Spec.Replicas = &replicas

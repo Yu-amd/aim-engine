@@ -1,9 +1,10 @@
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: aimendpoints.aim.engine.amd.com
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: aimendpoints.aim.engine.amd.com
 spec:
   group: aim.engine.amd.com
   names:
@@ -11,536 +12,443 @@ spec:
     listKind: AIMEndpointList
     plural: aimendpoints
     singular: aimendpoint
-    shortNames:
-      - aim
-      - aimep
   scope: Namespaced
   versions:
-    - name: v1alpha1
-      served: true
-      storage: true
-      subresources:
-        status: {}
-      schema:
-        openAPIV3Schema:
-          description: AIMEndpoint is the Schema for the aimendpoints API
-          type: object
-          properties:
-            apiVersion:
-              description: APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-              type: string
-            kind:
-              description: Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-              type: string
-            metadata:
-              type: object
-            spec:
-              description: AIMEndpointSpec defines the desired state of AIMEndpoint
-              type: object
-              required:
-                - model
-              properties:
-                model:
-                  description: Model configuration
-                  type: object
-                  required:
-                    - id
-                  properties:
-                    id:
-                      description: HuggingFace model ID
-                      type: string
-                      example: "Qwen/Qwen3-32B"
-                    version:
-                      description: Model version (optional)
-                      type: string
-                      example: "latest"
-                    revision:
-                      description: Specific model revision (optional)
-                      type: string
-                      example: "main"
-                recipe:
-                  description: Recipe selection configuration
-                  type: object
-                  properties:
-                    autoSelect:
-                      description: Enable automatic recipe selection
-                      type: boolean
-                      default: true
-                    gpuCount:
-                      description: Manual GPU count override
-                      type: integer
-                      minimum: 1
-                      maximum: 8
-                    precision:
-                      description: Manual precision override
-                      type: string
-                      enum:
-                        - bfloat16
-                        - float16
-                        - float8
-                        - int8
-                        - int4
-                    backend:
-                      description: Manual backend override
-                      type: string
-                      enum:
-                        - vllm
-                        - sglang
-                    customRecipe:
-                      description: Reference to custom AIMRecipe
-                      type: object
-                      properties:
-                        name:
-                          description: Name of the custom recipe
-                          type: string
-                        namespace:
-                          description: Namespace of the custom recipe
-                          type: string
-                          default: "aim-engine"
-                resources:
-                  description: Resource configuration
-                  type: object
-                  properties:
-                    gpuCount:
-                      description: Number of GPUs to allocate
-                      type: integer
-                      minimum: 1
-                      maximum: 8
-                    memory:
-                      description: Memory request
-                      type: string
-                      pattern: '^[0-9]+[KMGTPEZYkmgtpezy]i?$'
-                      example: "64Gi"
-                    cpu:
-                      description: CPU request
-                      type: string
-                      pattern: '^[0-9]+m?$'
-                      example: "16"
-                    memoryLimit:
-                      description: Memory limit
-                      type: string
-                      pattern: '^[0-9]+[KMGTPEZYkmgtpezy]i?$'
-                      example: "128Gi"
-                    cpuLimit:
-                      description: CPU limit
-                      type: string
-                      pattern: '^[0-9]+m?$'
-                      example: "32"
-                scaling:
-                  description: Scaling configuration
-                  type: object
-                  properties:
-                    minReplicas:
-                      description: Minimum number of replicas
-                      type: integer
-                      minimum: 1
-                      default: 1
-                    maxReplicas:
-                      description: Maximum number of replicas
-                      type: integer
-                      minimum: 1
-                      default: 5
-                    targetCPUUtilization:
-                      description: Target CPU utilization percentage
-                      type: integer
-                      minimum: 1
-                      maximum: 100
-                      default: 70
-                    targetMemoryUtilization:
-                      description: Target memory utilization percentage
-                      type: integer
-                      minimum: 1
-                      maximum: 100
-                      default: 80
-                    targetGPUUtilization:
-                      description: Target GPU utilization percentage
-                      type: integer
-                      minimum: 1
-                      maximum: 100
-                      default: 85
-                    scaleDownDelay:
-                      description: Scale down delay in seconds
-                      type: integer
-                      minimum: 0
-                      default: 300
-                    scaleUpDelay:
-                      description: Scale up delay in seconds
-                      type: integer
-                      minimum: 0
-                      default: 60
-                service:
-                  description: Service configuration
-                  type: object
-                  properties:
-                    type:
-                      description: Service type
-                      type: string
-                      enum:
-                        - ClusterIP
-                        - NodePort
-                        - LoadBalancer
-                      default: ClusterIP
-                    port:
-                      description: Service port
-                      type: integer
-                      minimum: 1
-                      maximum: 65535
-                      default: 8000
-                    targetPort:
-                      description: Target port
-                      type: integer
-                      minimum: 1
-                      maximum: 65535
-                      default: 8000
-                    annotations:
-                      description: Service annotations
-                      type: object
-                      additionalProperties:
-                        type: string
-                    loadBalancerIP:
-                      description: Load balancer IP (for LoadBalancer type)
-                      type: string
-                monitoring:
-                  description: Monitoring configuration
-                  type: object
-                  properties:
-                    enabled:
-                      description: Enable monitoring
-                      type: boolean
-                      default: true
-                    prometheus:
-                      description: Prometheus configuration
-                      type: object
-                      properties:
-                        enabled:
-                          description: Enable Prometheus monitoring
-                          type: boolean
-                          default: true
-                        interval:
-                          description: Scrape interval
-                          type: string
-                          default: "30s"
-                        path:
-                          description: Metrics path
-                          type: string
-                          default: "/metrics"
-                    grafana:
-                      description: Grafana configuration
-                      type: object
-                      properties:
-                        enabled:
-                          description: Enable Grafana dashboard
-                          type: boolean
-                          default: true
-                        dashboard:
-                          description: Dashboard name
-                          type: string
-                          default: "aim-endpoint-dashboard"
-                cache:
-                  description: Cache configuration
-                  type: object
-                  properties:
-                    enabled:
-                      description: Enable model caching
-                      type: boolean
-                      default: true
-                    storageClass:
-                      description: Storage class for cache
-                      type: string
-                      default: "local-path"
-                    size:
-                      description: Cache size
-                      type: string
-                      pattern: '^[0-9]+[KMGTPEZYkmgtpezy]i?$'
-                      example: "100Gi"
-                    accessMode:
-                      description: Access mode
-                      type: string
-                      enum:
-                        - ReadWriteOnce
-                        - ReadOnlyMany
-                        - ReadWriteMany
-                      default: ReadWriteOnce
-                security:
-                  description: Security configuration
-                  type: object
-                  properties:
-                    serviceAccount:
-                      description: Service account configuration
-                      type: object
-                      properties:
-                        create:
-                          description: Create service account
-                          type: boolean
-                          default: true
-                        name:
-                          description: Service account name
-                          type: string
-                    podSecurityContext:
-                      description: Pod security context
-                      type: object
-                      properties:
-                        runAsUser:
-                          description: Run as user ID
-                          type: integer
-                          default: 0
-                        runAsGroup:
-                          description: Run as group ID
-                          type: integer
-                          default: 0
-                        fsGroup:
-                          description: File system group ID
-                          type: integer
-                          default: 0
-                    securityContext:
-                      description: Container security context
-                      type: object
-                      properties:
-                        privileged:
-                          description: Run in privileged mode
-                          type: boolean
-                          default: true
-                        allowPrivilegeEscalation:
-                          description: Allow privilege escalation
-                          type: boolean
-                          default: true
-                deployment:
-                  description: Deployment configuration
-                  type: object
-                  properties:
-                    strategy:
-                      description: Deployment strategy
-                      type: object
-                      properties:
-                        type:
-                          description: Strategy type
-                          type: string
-                          enum:
-                            - RollingUpdate
-                            - Recreate
-                          default: RollingUpdate
-                        rollingUpdate:
-                          description: Rolling update configuration
-                          type: object
-                          properties:
-                            maxSurge:
-                              description: Maximum surge
-                              type: integer
-                              default: 1
-                            maxUnavailable:
-                              description: Maximum unavailable
-                              type: integer
-                              default: 0
-                    canary:
-                      description: Canary deployment configuration
-                      type: object
-                      properties:
-                        enabled:
-                          description: Enable canary deployment
-                          type: boolean
-                          default: false
-                        trafficSplit:
-                          description: Traffic split percentage
-                          type: integer
-                          minimum: 1
-                          maximum: 100
-                          default: 10
-                        duration:
-                          description: Canary duration in seconds
-                          type: integer
-                          minimum: 60
-                          default: 300
-                image:
-                  description: Image configuration
-                  type: object
-                  properties:
-                    repository:
-                      description: Image repository
-                      type: string
-                      default: "localhost:5000/aim-vllm"
-                    tag:
-                      description: Image tag
-                      type: string
-                      default: "latest"
-                    pullPolicy:
-                      description: Image pull policy
-                      type: string
-                      enum:
-                        - Always
-                        - Never
-                        - IfNotPresent
-                      default: IfNotPresent
-                    pullSecrets:
-                      description: Image pull secrets
-                      type: array
-                      items:
-                        type: string
-            status:
-              description: AIMEndpointStatus defines the observed state of AIMEndpoint
-              type: object
-              properties:
-                conditions:
-                  description: Conditions represent the latest available observations of an object's state
-                  type: array
-                  items:
-                    description: Condition contains details for one aspect of the current state of this API Resource
-                    type: object
-                    required:
-                      - lastTransitionTime
-                      - message
-                      - observedGeneration
-                      - reason
-                      - status
-                      - type
-                    properties:
-                      lastTransitionTime:
-                        description: lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable.
-                        type: string
-                        format: date-time
-                      message:
-                        description: message is a human readable message indicating details about the transition. This may be an empty string.
-                        type: string
-                        maxLength: 32768
-                      observedGeneration:
-                        description: observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.
-                        type: integer
-                        format: int64
-                        minimum: 0
-                      reason:
-                        description: reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty.
-                        type: string
-                        maxLength: 1024
-                        pattern: '^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$'
-                      status:
-                        description: status of the condition, one of True, False, Unknown.
-                        type: string
-                        enum:
-                          - "True"
-                          - "False"
-                          - Unknown
-                      type:
-                        description: type of condition in CamelCase or in foo.example.com/CamelCase.
-                        type: string
-                        maxLength: 316
-                        pattern: '^([a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$'
-                observedGeneration:
-                  description: ObservedGeneration is the last observed generation.
-                  type: integer
-                  format: int64
-                phase:
-                  description: Current phase of the endpoint
-                  type: string
-                  enum:
-                    - Pending
-                    - Creating
-                    - Running
-                    - Failed
-                    - Scaling
-                    - Updating
-                    - Terminating
-                selectedRecipe:
-                  description: Selected recipe information
-                  type: object
-                  properties:
-                    name:
-                      description: Recipe name
-                      type: string
-                    gpuCount:
-                      description: Selected GPU count
-                      type: integer
-                    precision:
-                      description: Selected precision
-                      type: string
-                    backend:
-                      description: Selected backend
-                      type: string
-                endpoints:
-                  description: Service endpoints
-                  type: object
-                  properties:
-                    internal:
-                      description: Internal endpoint
-                      type: string
-                    external:
-                      description: External endpoint
-                      type: string
-                    loadBalancer:
-                      description: Load balancer endpoint
-                      type: string
-                replicas:
-                  description: Current replica information
-                  type: object
-                  properties:
-                    current:
-                      description: Current number of replicas
-                      type: integer
-                    desired:
-                      description: Desired number of replicas
-                      type: integer
-                    ready:
-                      description: Number of ready replicas
-                      type: integer
-                    available:
-                      description: Number of available replicas
-                      type: integer
-                metrics:
-                  description: Performance metrics
-                  type: object
-                  properties:
-                    latency:
-                      description: Average latency in milliseconds
-                      type: number
-                    throughput:
-                      description: Requests per second
-                      type: number
-                    gpuUtilization:
-                      description: GPU utilization percentage
-                      type: number
-                    memoryUtilization:
-                      description: Memory utilization percentage
-                      type: number
-                    cpuUtilization:
-                      description: CPU utilization percentage
-                      type: number
-      additionalPrinterColumns:
-        - name: Model
-          type: string
-          jsonPath: .spec.model.id
-        - name: Recipe
-          type: string
-          jsonPath: .status.selectedRecipe.name
-        - name: Phase
-          type: string
-          jsonPath: .status.phase
-        - name: Replicas
-          type: string
-          jsonPath: .status.replicas.current
-        - name: Age
-          type: date
-          jsonPath: .metadata.creationTimestamp
-      - name: v1beta1
-        served: true
-        storage: false
-        subresources:
-          status: {}
-        schema:
-          openAPIV3Schema:
-            description: AIMEndpoint is the Schema for the aimendpoints API
+  - additionalPrinterColumns:
+    - jsonPath: .spec.model.id
+      name: Model
+      type: string
+    - jsonPath: .status.selectedRecipe.name
+      name: Recipe
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.replicas.current
+      name: Replicas
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AIMEndpoint is the Schema for the aimendpoints API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
             type: object
+          spec:
+            description: AIMEndpointSpec defines the desired state of AIMEndpoint
             properties:
-              apiVersion:
-                description: APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-                type: string
-              kind:
-                description: Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                type: string
-              metadata:
+              cache:
+                description: Cache configuration
+                properties:
+                  accessMode:
+                    description: Access mode
+                    type: string
+                  enabled:
+                    description: Enable model caching
+                    type: boolean
+                  size:
+                    description: Cache size
+                    type: string
+                  storageClass:
+                    description: Storage class for cache
+                    type: string
                 type: object
-              spec:
-                description: AIMEndpointSpec defines the desired state of AIMEndpoint
+              deployment:
+                description: Deployment configuration
+                properties:
+                  canary:
+                    description: Canary deployment configuration
+                    properties:
+                      duration:
+                        description: Canary duration in seconds
+                        format: int32
+                        type: integer
+                      enabled:
+                        description: Enable canary deployment
+                        type: boolean
+                      trafficSplit:
+                        description: Traffic split percentage
+                        format: int32
+                        type: integer
+                    type: object
+                  strategy:
+                    description: Deployment strategy
+                    properties:
+                      rollingUpdate:
+                        description: Rolling update configuration
+                        properties:
+                          maxSurge:
+                            description: Maximum surge
+                            format: int32
+                            type: integer
+                          maxUnavailable:
+                            description: Maximum unavailable
+                            format: int32
+                            type: integer
+                        type: object
+                      type:
+                        description: Strategy type
+                        type: string
+                    type: object
                 type: object
+              image:
+                description: Image configuration
+                properties:
+                  pullPolicy:
+                    description: Image pull policy
+                    type: string
+                  pullSecrets:
+                    description: Image pull secrets
+                    items:
+                      type: string
+                    type: array
+                  repository:
+                    description: Image repository
+                    type: string
+                  tag:
+                    description: Image tag
+                    type: string
+                type: object
+              model:
+                description: Model configuration
+                properties:
+                  id:
+                    description: HuggingFace model ID
+                    type: string
+                  revision:
+                    description: Specific model revision (optional)
+                    type: string
+                  version:
+                    description: Model version (optional)
+                    type: string
                 required:
-                  - model
-              status:
-                description: AIMEndpointStatus defines the observed state of AIMEndpoint
-                type: object 
+                - id
+                type: object
+              monitoring:
+                description: Monitoring configuration
+                properties:
+                  enabled:
+                    description: Enable monitoring
+                    type: boolean
+                  grafana:
+                    description: Grafana configuration
+                    properties:
+                      dashboard:
+                        description: Dashboard name
+                        type: string
+                      enabled:
+                        description: Enable Grafana dashboard
+                        type: boolean
+                    type: object
+                  prometheus:
+                    description: Prometheus configuration
+                    properties:
+                      enabled:
+                        description: Enable Prometheus monitoring
+                        type: boolean
+                      interval:
+                        description: Scrape interval
+                        type: string
+                      path:
+                        description: Metrics path
+                        type: string
+                    type: object
+                type: object
+              recipe:
+                description: Recipe selection configuration
+                properties:
+                  autoSelect:
+                    description: Enable automatic recipe selection
+                    type: boolean
+                  backend:
+                    description: Manual backend override
+                    type: string
+                  customRecipe:
+                    description: Reference to custom AIMRecipe
+                    properties:
+                      name:
+                        description: Name of the custom recipe
+                        type: string
+                      namespace:
+                        description: Namespace of the custom recipe
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  gpuCount:
+                    description: Manual GPU count override
+                    format: int32
+                    type: integer
+                  precision:
+                    description: Manual precision override
+                    type: string
+                type: object
+              resources:
+                description: Resource configuration
+                properties:
+                  cpu:
+                    description: CPU request
+                    type: string
+                  cpuLimit:
+                    description: CPU limit
+                    type: string
+                  gpuCount:
+                    description: Number of GPUs to allocate
+                    format: int32
+                    type: integer
+                  memory:
+                    description: Memory request
+                    type: string
+                  memoryLimit:
+                    description: Memory limit
+                    type: string
+                type: object
+              scaling:
+                description: Scaling configuration
+                properties:
+                  maxReplicas:
+                    description: Maximum number of replicas
+                    format: int32
+                    type: integer
+                  minReplicas:
+                    description: Minimum number of replicas
+                    format: int32
+                    type: integer
+                  scaleDownDelay:
+                    description: Scale down delay in seconds
+                    format: int32
+                    type: integer
+                  scaleUpDelay:
+                    description: Scale up delay in seconds
+                    format: int32
+                    type: integer
+                  targetCPUUtilization:
+                    description: Target CPU utilization percentage
+                    format: int32
+                    type: integer
+                  targetGPUUtilization:
+                    description: Target GPU utilization percentage
+                    format: int32
+                    type: integer
+                  targetMemoryUtilization:
+                    description: Target memory utilization percentage
+                    format: int32
+                    type: integer
+                type: object
+              security:
+                description: Security configuration
+                properties:
+                  podSecurityContext:
+                    description: Pod security context
+                    properties:
+                      fsGroup:
+                        description: File system group ID
+                        format: int64
+                        type: integer
+                      runAsGroup:
+                        description: Run as group ID
+                        format: int64
+                        type: integer
+                      runAsUser:
+                        description: Run as user ID
+                        format: int64
+                        type: integer
+                    type: object
+                  serviceAccount:
+                    description: Service account configuration
+                    properties:
+                      create:
+                        description: Create service account
+                        type: boolean
+                      name:
+                        description: Service account name
+                        type: string
+                    type: object
+                type: object
+              service:
+                description: Service configuration
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Service annotations
+                    type: object
+                  loadBalancerIP:
+                    description: Load balancer IP (for LoadBalancer type)
+                    type: string
+                  port:
+                    description: Service port
+                    format: int32
+                    type: integer
+                  targetPort:
+                    description: Target port
+                    format: int32
+                    type: integer
+                  type:
+                    description: Service type
+                    type: string
+                type: object
+            required:
+            - model
+            type: object
+          status:
+            description: AIMEndpointStatus defines the observed state of AIMEndpoint
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of an object's state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              endpoints:
+                description: Service endpoints
+                properties:
+                  external:
+                    description: External endpoint
+                    type: string
+                  internal:
+                    description: Internal endpoint
+                    type: string
+                  loadBalancer:
+                    description: Load balancer endpoint
+                    type: string
+                type: object
+              metrics:
+                description: Performance metrics
+                properties:
+                  cpuUtilization:
+                    description: CPU utilization percentage
+                    type: number
+                  gpuUtilization:
+                    description: GPU utilization percentage
+                    type: number
+                  latency:
+                    description: Average latency in milliseconds
+                    type: number
+                  memoryUtilization:
+                    description: Memory utilization percentage
+                    type: number
+                  throughput:
+                    description: Requests per second
+                    type: number
+                type: object
+              observedGeneration:
+                description: ObservedGeneration is the last observed generation
+                format: int64
+                type: integer
+              phase:
+                description: Current phase of the endpoint
+                type: string
+              replicas:
+                description: Current replica information
+                properties:
+                  available:
+                    description: Number of available replicas
+                    format: int32
+                    type: integer
+                  current:
+                    description: Current number of replicas
+                    format: int32
+                    type: integer
+                  desired:
+                    description: Desired number of replicas
+                    format: int32
+                    type: integer
+                  ready:
+                    description: Number of ready replicas
+                    format: int32
+                    type: integer
+                type: object
+              selectedRecipe:
+                description: Selected recipe information
+                properties:
+                  backend:
+                    description: Selected backend
+                    type: string
+                  gpuCount:
+                    description: Selected GPU count
+                    format: int32
+                    type: integer
+                  name:
+                    description: Recipe name
+                    type: string
+                  precision:
+                    description: Selected precision
+                    type: string
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

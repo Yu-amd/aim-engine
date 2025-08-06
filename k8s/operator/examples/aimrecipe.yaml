@@ -1,95 +1,49 @@
 apiVersion: aim.engine.amd.com/v1alpha1
 kind: AIMRecipe
 metadata:
-  name: qwen-7b-mi300x-bf16
+  name: qwen-7b-recipe
   namespace: aim-engine
 spec:
-  modelId: "Qwen/Qwen2.5-7B-Instruct"
-  hardware: "MI300X"
+  model:
+    id: "Qwen/Qwen2.5-7B-Instruct"
+    version: "latest"
   precision: "bfloat16"
   backend: "vllm"
-  description: "Qwen 7B model optimized for MI300X with bfloat16 precision"
-  readinessLevel: "Production-Ready"
-  
   configurations:
-    - gpuCount: 1
-      enabled: true
-      args:
-        - "--model"
-        - "Qwen/Qwen2.5-7B-Instruct"
-        - "--dtype"
-        - "bfloat16"
-        - "--max-model-len"
-        - "16384"
-        - "--gpu-memory-utilization"
-        - "0.9"
-        - "--trust-remote-code"
-        - "true"
-        - "--port"
-        - "8000"
-      env:
-        VLLM_USE_ROCM: "1"
-        HIP_VISIBLE_DEVICES: "0"
-      resources:
-        requests:
-          amd.com/gpu: "1"
-          memory: "16Gi"
-          cpu: "4"
-        limits:
-          amd.com/gpu: "1"
-          memory: "32Gi"
-          cpu: "8"
-      volumeMounts:
-        - name: model-cache
-          mountPath: "/workspace/model-cache"
-          readOnly: false
-    
-    - gpuCount: 2
-      enabled: true
-      args:
-        - "--model"
-        - "Qwen/Qwen2.5-7B-Instruct"
-        - "--dtype"
-        - "bfloat16"
-        - "--tensor-parallel-size"
-        - "2"
-        - "--max-model-len"
-        - "16384"
-        - "--gpu-memory-utilization"
-        - "0.9"
-        - "--trust-remote-code"
-        - "true"
-        - "--port"
-        - "8000"
-      env:
-        VLLM_USE_ROCM: "1"
-        HIP_VISIBLE_DEVICES: "0,1"
-      resources:
-        requests:
-          amd.com/gpu: "2"
-          memory: "32Gi"
-          cpu: "8"
-        limits:
-          amd.com/gpu: "2"
-          memory: "64Gi"
-          cpu: "16"
-      volumeMounts:
-        - name: model-cache
-          mountPath: "/workspace/model-cache"
-          readOnly: false
-  
+  - name: "single-gpu"
+    gpuCount: 1
+    enabled: true
+    resources:
+      cpu: "4"
+      memory: "16Gi"
+      gpu: "1"
+    settings:
+      tensorParallelSize: 1
+      maxModelLen: 32768
+      gpuMemoryUtilization: 0.9
+  - name: "multi-gpu"
+    gpuCount: 2
+    enabled: true
+    resources:
+      cpu: "8"
+      memory: "32Gi"
+      gpu: "2"
+    settings:
+      tensorParallelSize: 2
+      maxModelLen: 32768
+      gpuMemoryUtilization: 0.9
   performance:
-    expectedTokensPerSecond: 3000
-    expectedLatencyMs: 50
-    maxBatchSize: 16
-    maxInputLength: 4096
-    maxOutputLength: 2048
-    gpuMemoryUtilization: 0.9
-  
-  tags:
-    - "Chat"
-    - "Instruction-Tuned"
-    - "vLLM-Compatible"
-    - "Lightweight"
-  
-  license: "Qwen License" 
+    latency:
+      p50: 100
+      p95: 200
+      p99: 500
+    throughput:
+      requestsPerSecond: 10
+      tokensPerSecond: 1000
+  compatibility:
+    frameworks:
+    - "vllm"
+    - "transformers"
+    hardware:
+    - "amd-gpu"
+    - "rocm" 

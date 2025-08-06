@@ -1,50 +1,27 @@
 apiVersion: aim.engine.amd.com/v1alpha1
 kind: AIMCache
 metadata:
-  name: global-model-cache
+  name: model-cache
   namespace: aim-engine
 spec:
   storage:
+    size: "100Gi"
     storageClass: "local-path"
-    size: "500Gi"
-    accessMode: ReadWriteMany
-    mountPath: "/workspace/model-cache"
-  
-  models:
-    - id: "Qwen/Qwen3-32B"
-      priority: high
-      retention: "30d"
-      maxSize: "100Gi"
-      preload: false
-    
-    - id: "Qwen/Qwen2.5-7B-Instruct"
-      priority: medium
-      retention: "7d"
-      maxSize: "50Gi"
-      preload: true
-    
-    - id: "Qwen/Qwen1.5-7B-Chat"
-      priority: low
-      retention: "3d"
-      maxSize: "30Gi"
-      preload: false
-  
+    accessMode: "ReadWriteOnce"
   cleanup:
-    enabled: true
     schedule: "0 2 * * *"  # Daily at 2 AM
-    maxAge: "30d"
-    minFreeSpace: "100Gi"
-    policy: lru
-  
-  sharing:
+    maxAge: "7d"
+    minFreeSpace: "20Gi"
+  policies:
+    maxModels: 10
+    maxTotalSize: "80Gi"
+    priorityModels:
+    - "Qwen/Qwen2.5-7B-Instruct"
+    - "Qwen/Qwen2.5-14B-Instruct"
+  monitoring:
     enabled: true
-    accessMode: ReadOnly
-    endpoints:
-      - name: "qwen-7b-demo"
-        namespace: "aim-engine"
-      - name: "qwen-32b-production"
-        namespace: "aim-engine"
-  
-  security:
-    readOnly: false
-    encryption: false 
+    metrics:
+    - "cache_hit_rate"
+    - "cache_miss_rate"
+    - "storage_utilization"
+    - "model_access_count" 

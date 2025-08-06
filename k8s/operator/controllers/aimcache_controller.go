@@ -233,7 +233,7 @@ func (r *AIMCacheReconciler) updateCachedModelsStatus(ctx context.Context, cache
 			Size:      "10Gi", // This would be calculated from actual storage
 			CachedAt:  &metav1.Time{Time: time.Now().Add(-time.Hour * 24)}, // Simulated
 			Status:    "cached",
-			AccessCount: &int64(0), // This would be tracked from actual usage
+			AccessCount: func() *int64 { v := int64(0); return &v }(), // This would be tracked from actual usage
 		}
 
 		// Simulate last accessed time
