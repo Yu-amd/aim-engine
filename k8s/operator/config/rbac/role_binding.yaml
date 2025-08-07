@@ -5,8 +5,8 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: aim-engine-operator-role
+  name: aim-engine-operator
 subjects:
 - kind: ServiceAccount
   name: aim-engine-operator-controller-manager
-  namespace: aim-engine-operator 
+  namespace: aim-engine-system 
