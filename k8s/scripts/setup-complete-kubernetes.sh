@@ -221,20 +221,43 @@ EOF
     
     # Ensure Docker is accessible to the current user
     if ! docker ps > /dev/null 2>&1; then
-        log_warning "Docker not accessible to current user, trying to fix..."
-        usermod -aG docker $USER || true
-        newgrp docker || true
-        sleep 2
+        log_warning "Docker not accessible to current user, setting up wrapper..."
         
-        if ! docker ps > /dev/null 2>&1; then
-            log_warning "User group fix didn't work, trying sudo..."
-            # For immediate effect, use sudo for this session
-            if sudo docker ps > /dev/null 2>&1; then
-                log_success "Docker accessible via sudo"
-            else
-                log_error "Docker not accessible even with sudo"
-                exit 1
-            fi
+        # Add user to docker group for future sessions
+        usermod -aG docker $USER || true
+        
+        # Create and use Docker wrapper for this session
+        log_info "Creating Docker wrapper for immediate access..."
+        
+        # Create wrapper script
+        cat > /tmp/docker-wrapper.sh << 'EOF'
+#!/bin/bash
+# Docker wrapper to handle permission issues
+if docker ps > /dev/null 2>&1; then
+    docker "$@"
+elif sudo docker ps > /dev/null 2>&1; then
+    sudo docker "$@"
+elif groups | grep -q docker && newgrp docker -c "docker ps > /dev/null 2>&1" 2>/dev/null; then
+    newgrp docker -c "docker $*"
+else
+    sudo chmod 666 /var/run/docker.sock 2>/dev/null
+    docker "$@"
+    sudo chmod 660 /var/run/docker.sock 2>/dev/null || true
+fi
+EOF
+        
+        chmod +x /tmp/docker-wrapper.sh
+        
+        # Create alias for current session
+        alias docker='/tmp/docker-wrapper.sh'
+        
+        # Test the wrapper
+        if /tmp/docker-wrapper.sh ps > /dev/null 2>&1; then
+            log_success "Docker wrapper created and working"
+        else
+            log_error "Docker wrapper failed"
+            log_info "You may need to restart your shell session or use: newgrp docker"
+            exit 1
         fi
     fi
     
