@@ -99,13 +99,15 @@ sleep 10
 if kubectl get deployment qwen-7b-demo -n ${TEST_NAMESPACE} >/dev/null 2>&1; then
     log_success "Cached AIMEndpoint deployment created"
     
-    # Check for volume duplication
+    # Check for volume duplication (should be 2: 1 volume + 1 volumeMount)
     VOLUME_COUNT=$(kubectl get deployment qwen-7b-demo -n ${TEST_NAMESPACE} -o yaml | grep -c "name: model-cache" || true)
-    if [ "$VOLUME_COUNT" -le 1 ]; then
-        log_success "No volume duplication detected"
-    else
-        log_error "Volume duplication detected ($VOLUME_COUNT volumes)"
+    if [ "$VOLUME_COUNT" -eq 2 ]; then
+        log_success "Volume configuration correct (1 volume + 1 volumeMount)"
+    elif [ "$VOLUME_COUNT" -gt 2 ]; then
+        log_error "Volume duplication detected ($VOLUME_COUNT instances)"
         exit 1
+    else
+        log_warning "Unexpected volume count: $VOLUME_COUNT"
     fi
 else
     log_error "Cached AIMEndpoint deployment not created"

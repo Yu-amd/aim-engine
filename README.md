@@ -135,6 +135,191 @@ sudo ./k8s/scripts/deploy-aim-engine.sh --model Qwen/Qwen3-32B --memory-limit 80
 sudo ./k8s/scripts/deploy-aim-engine.sh --gpu-count 2 --memory-limit 64Gi
 ```
 
+## **Kubernetes Operator**
+
+The AIM Engine Kubernetes Operator provides declarative management of AIM Engine deployments using custom resources.
+
+### **Operator Features**
+- **Declarative Management**: Define AIM Engine endpoints using YAML
+- **Auto Recipe Selection**: Automatically select optimal configurations
+- **Built-in Caching**: Persistent volume management for model caching
+- **Scaling**: Horizontal Pod Autoscaler support
+- **Monitoring**: Integrated metrics and health checks
+- **Multi-Model Support**: Manage multiple models simultaneously
+
+### **Custom Resources**
+- **AIMRecipe**: Define model configurations and hardware requirements
+- **AIMEndpoint**: Deploy and manage AIM Engine instances
+- **AIMCache**: Configure persistent caching for models
+
+### **Deploy the Operator**
+
+#### **Option 1: Complete Setup (Recommended)**
+```bash
+# Deploy operator with comprehensive testing
+cd k8s/operator
+chmod +x scripts/setup-and-test-operator.sh
+./scripts/setup-and-test-operator.sh
+```
+
+#### **Option 2: Manual Deployment**
+```bash
+# Build and deploy operator manually
+cd k8s/operator
+
+# Build operator binary
+go build -o manager cmd/operator/main.go
+
+# Build Docker image
+docker build -t localhost:5000/aim-engine-operator:latest .
+
+# Push to local registry
+docker push localhost:5000/aim-engine-operator:latest
+
+# Deploy to Kubernetes
+kubectl create namespace aim-engine-system
+kubectl apply -f config/crd/bases/
+kubectl apply -f config/rbac/
+kubectl apply -f config/manager/
+
+# Wait for operator to be ready
+kubectl wait --for=condition=ready pod -l control-plane=controller-manager -n aim-engine-system --timeout=300s
+```
+
+### **Validate Operator Deployment**
+```bash
+# Check operator status
+kubectl get pods -n aim-engine-system
+
+# Verify CRDs are installed
+kubectl get crd | grep aim.engine.amd.com
+
+# Check operator logs
+kubectl logs -n aim-engine-system -l control-plane=controller-manager --tail=20
+```
+
+### **Test the Operator**
+
+#### **Quick Test**
+```bash
+# Run comprehensive test suite
+cd k8s/operator
+./scripts/test-operator.sh
+```
+
+#### **Manual Testing**
+```bash
+# Create a test recipe
+kubectl apply -f examples/aimrecipe.yaml
+
+# Create a test endpoint
+kubectl apply -f examples/aimendpoint.yaml
+
+# Check status
+kubectl get aimrecipe -n aim-engine
+kubectl get aimendpoint -n aim-engine
+
+# Monitor reconciliation
+kubectl logs -n aim-engine-system -l control-plane=controller-manager --tail=10 -f
+```
+
+### **Using the Operator**
+
+#### **Create an AIMRecipe**
+```yaml
+apiVersion: aim.engine.amd.com/v1alpha1
+kind: AIMRecipe
+metadata:
+  name: qwen-7b-recipe
+  namespace: aim-engine
+spec:
+  modelId: "Qwen/Qwen2.5-7B-Instruct"
+  backend: "vllm"
+  hardware: "MI300X"
+  precision: "bfloat16"
+  description: "Qwen2.5-7B-Instruct model recipe"
+  configurations:
+    - gpuCount: 1
+      enabled: true
+      resources:
+        requests:
+          cpu: "4"
+          memory: "16Gi"
+          amd.com/gpu: "1"
+        limits:
+          cpu: "8"
+          memory: "32Gi"
+          amd.com/gpu: "1"
+      env:
+        - name: VLLM_USE_ROCM
+          value: "1"
+        - name: PYTORCH_ROCM_ARCH
+          value: "gfx90a"
+```
+
+#### **Create an AIMEndpoint**
+```yaml
+apiVersion: aim.engine.amd.com/v1alpha1
+kind: AIMEndpoint
+metadata:
+  name: my-model-endpoint
+  namespace: aim-engine
+spec:
+  model:
+    id: "Qwen/Qwen2.5-7B-Instruct"
+    version: "latest"
+  recipe:
+    autoSelect: true
+    gpuCount: 1
+  resources:
+    cpu: "4"
+    memory: "16Gi"
+    gpuCount: 1
+    cpuLimit: "8"
+    memoryLimit: "32Gi"
+  scaling:
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilization: 70
+  cache:
+    enabled: true
+  service:
+    type: "NodePort"
+    port: 8000
+    targetPort: 8000
+```
+
+#### **Monitor and Manage**
+```bash
+# List all endpoints
+kubectl get aimendpoint -n aim-engine
+
+# Get detailed status
+kubectl describe aimendpoint my-model-endpoint -n aim-engine
+
+# Check pod status
+kubectl get pods -n aim-engine -l app.kubernetes.io/name=aim-endpoint
+
+# Access the service
+kubectl get svc my-model-endpoint -n aim-engine
+
+# Test the endpoint
+curl http://localhost:8000/health
+```
+
+### **Operator Cleanup**
+```bash
+# Remove custom resources
+kubectl delete aimendpoint --all -n aim-engine
+kubectl delete aimrecipe --all -n aim-engine
+
+# Uninstall operator
+kubectl delete -f config/manager/
+kubectl delete -f config/rbac/
+kubectl delete -f config/crd/bases/
+kubectl delete namespace aim-engine-system
+```
+
 ## **Examples**
 
 ### **Running Examples**
@@ -289,6 +474,95 @@ kubectl describe node
 kubectl get nodes -o json | jq '.items[].status.allocatable."amd.com/gpu"'
 ```
 
+#### **Operator Pod Stuck in Pending**
+**Problem**: Operator pod cannot be scheduled
+
+**Solution**:
+```bash
+# Check operator pod events
+kubectl describe pod -n aim-engine-system -l control-plane=controller-manager
+
+# Check if tolerations are applied
+kubectl get deployment aim-engine-operator-controller-manager -n aim-engine-system -o yaml | grep -A 10 tolerations
+
+# Check RBAC permissions
+kubectl auth can-i create deployments --as=system:serviceaccount:aim-engine-system:aim-engine-operator-controller-manager
+```
+
+#### **Custom Resources Not Reconciling**
+**Problem**: AIMEndpoint or AIMRecipe not being processed
+
+**Solution**:
+```bash
+# Check operator logs
+kubectl logs -n aim-engine-system -l control-plane=controller-manager --tail=50
+
+# Check CRD status
+kubectl get crd aimendpoints.aim.engine.amd.com -o yaml
+
+# Check custom resource status
+kubectl describe aimendpoint <name> -n aim-engine
+kubectl describe aimrecipe <name> -n aim-engine
+```
+
+#### **Volume Duplication Error**
+**Problem**: `Duplicate value: "model-cache"` error in operator logs
+
+**Solution**:
+```bash
+# Delete the problematic deployment
+kubectl delete deployment <name> -n aim-engine
+
+# Restart the operator
+kubectl rollout restart deployment aim-engine-operator-controller-manager -n aim-engine-system
+
+# Recreate the custom resource
+kubectl apply -f examples/aimendpoint.yaml
+```
+
+## **Quick Reference**
+
+### **Operator Commands**
+```bash
+# Check operator status
+kubectl get pods -n aim-engine-system
+
+# View operator logs
+kubectl logs -n aim-engine-system -l control-plane=controller-manager -f
+
+# List custom resources
+kubectl get aimendpoint -n aim-engine
+kubectl get aimrecipe -n aim-engine
+kubectl get aimcache -n aim-engine
+
+# Get detailed resource info
+kubectl describe aimendpoint <name> -n aim-engine
+kubectl describe aimrecipe <name> -n aim-engine
+
+# Check CRDs
+kubectl get crd | grep aim.engine.amd.com
+
+# Restart operator
+kubectl rollout restart deployment aim-engine-operator-controller-manager -n aim-engine-system
+```
+
+### **Common Workflows**
+```bash
+# Deploy a new model
+kubectl apply -f examples/aimrecipe.yaml
+kubectl apply -f examples/aimendpoint.yaml
+
+# Scale an endpoint
+kubectl patch aimendpoint <name> -n aim-engine -p '{"spec":{"scaling":{"minReplicas":2}}}'
+
+# Enable caching
+kubectl patch aimendpoint <name> -n aim-engine -p '{"spec":{"cache":{"enabled":true}}}'
+
+# Check endpoint health
+kubectl get svc <name> -n aim-engine
+curl http://localhost:8000/health
+```
+
 ## **Documentation**
 
 - **Architecture**: See `docs/ARCHITECTURE.md`
@@ -297,3 +571,4 @@ kubectl get nodes -o json | jq '.items[].status.allocatable."amd.com/gpu"'
 - **Troubleshooting**: See `docs/TROUBLESHOOTING.md`
 - **Docker Deployment**: See `docker/docs/`
 - **Kubernetes Deployment**: See `k8s/docs/`
+- **Operator Development**: See `k8s/operator/README.md`
