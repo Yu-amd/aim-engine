@@ -417,6 +417,9 @@ func (r *AIMEndpointReconciler) reconcileDeployment(ctx context.Context, endpoin
 		
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{container}
 		
+		// Initialize volumes slice
+		deployment.Spec.Template.Spec.Volumes = []corev1.Volume{}
+		
 		// Add volumes if caching is enabled
 		if endpoint.Spec.Cache.Enabled != nil && *endpoint.Spec.Cache.Enabled {
 			deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, corev1.Volume{
