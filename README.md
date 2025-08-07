@@ -108,6 +108,21 @@ docker run --rm -it \
 sudo ./k8s/scripts/setup-complete-kubernetes.sh
 ```
 
+> **⚠️ Known Issue**: On fresh remote nodes, the setup script may fail at Step 4 with a Docker permission error. This is a known issue with Docker group membership not being inherited by the current shell session. **Solution**: Simply run the script a second time - it will work on the second run because the new shell session will have the proper Docker group membership.
+>
+> **Error Message**: `Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?`
+>
+> **Workaround**: 
+> ```bash
+> # First run (may fail)
+> sudo ./k8s/scripts/setup-complete-kubernetes.sh
+> 
+> # Second run (will work)
+> sudo ./k8s/scripts/setup-complete-kubernetes.sh
+> ```
+>
+> This issue is being addressed in future versions. For now, running the script twice is the recommended workaround.
+
 ### **Deploy to Existing Cluster**
 ```bash
 # Deploy with default settings
@@ -223,6 +238,55 @@ kubectl delete namespace aim-engine
 
 # Nuclear option: Stop and remove ALL containers (use with caution)
 docker ps -q | xargs -r docker stop && docker ps -aq | xargs -r docker rm -f
+```
+
+## **Troubleshooting**
+
+### **Common Issues**
+
+#### **Docker Permission Error on Fresh Remote Nodes**
+**Problem**: Setup script fails with `Cannot connect to the Docker daemon at unix:///var/run/docker.sock`
+
+**Cause**: Docker group membership not inherited by current shell session
+
+**Solution**: Run the setup script twice:
+```bash
+# First run (may fail)
+sudo ./k8s/scripts/setup-complete-kubernetes.sh
+
+# Second run (will work)
+sudo ./k8s/scripts/setup-complete-kubernetes.sh
+```
+
+#### **GPU Not Detected**
+**Problem**: AMD GPU not recognized by Kubernetes
+
+**Solution**: 
+```bash
+# Check GPU status
+kubectl get nodes -o json | jq '.items[].status.allocatable'
+
+# Verify AMD GPU device plugin
+kubectl get pods -n kube-system | grep amd
+
+# Reinstall GPU device plugin if needed
+kubectl delete daemonset amd-gpu-device-plugin -n kube-system
+kubectl apply -f k8s/amd-gpu-device-plugin.yaml
+```
+
+#### **AIM Engine Pod Stuck in Pending**
+**Problem**: Pod cannot be scheduled
+
+**Solution**:
+```bash
+# Check pod events
+kubectl describe pod -n aim-engine
+
+# Check node resources
+kubectl describe node
+
+# Check if GPU resources are available
+kubectl get nodes -o json | jq '.items[].status.allocatable."amd.com/gpu"'
 ```
 
 ## **Documentation**
