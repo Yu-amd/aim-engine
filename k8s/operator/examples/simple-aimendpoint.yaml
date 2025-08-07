@@ -11,10 +11,10 @@ spec:
     autoSelect: true
     gpuCount: 1
   resources:
-    cpu: 4
+    cpu: "4"
     memory: "16Gi"
     gpuCount: 1
-    cpuLimit: 8
+    cpuLimit: "8"
     memoryLimit: "32Gi"
   scaling:
     minReplicas: 1
