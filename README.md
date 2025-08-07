@@ -1,28 +1,29 @@
 # AIM Engine
 
-**AMD Inference Microservice - AI Model Deployment Made Simple**
+**Kubernetes Operator for AMD Inference Microservices**
 
-AIM (AMD Inference Microservice) Engine automatically deploys AI models with optimal configurations and built-in caching for faster subsequent deployments on AMD hardware.
+AIM Engine is a Kubernetes operator that manages the lifecycle of AIMs (AMD Inference Microservices) - AI model deployments with optimal configurations and built-in caching for AMD hardware.
 
 ## **What AIM Engine Does**
 
-- **Auto-Detection**: Automatically detects AMD GPUs and selects optimal configurations
-- **Built-in Caching**: Caches models for faster subsequent deployments
-- **Smart Loading**: Only loads recipes for the target model
-- **Single Container**: Everything in one container with vLLM ROCm for AMD
+- **Declarative Management**: Define AIM deployments using Kubernetes custom resources
+- **Auto Recipe Selection**: Automatically selects optimal configurations for AMD GPUs
+- **Built-in Caching**: Manages persistent volumes for model caching
+- **Lifecycle Management**: Handles deployment, scaling, and cleanup of AIMs
 - **Production Ready**: Health checks, monitoring, and error handling
-- **Smart Validation**: Validates vLLM arguments and GPU availability automatically
+- **Multi-Model Support**: Manage multiple AIM instances simultaneously
 
 ## **Recent Improvements**
 
-- **Optimized Recipe Loading**: Only loads recipes for the specific model (10-50ms vs 100-500ms)
-- **Memory Efficiency**: Reduced memory footprint by loading only relevant recipes
-- **Faster Startup**: Consistent performance regardless of total recipe count
-- **Better Scalability**: Performance doesn't degrade with more models
+- **Optimized Operator Performance**: Efficient reconciliation and resource management
+- **Enhanced Caching**: Improved persistent volume management for model caching
+- **Better Scalability**: Operator performance doesn't degrade with more AIM instances
+- **Robust Error Handling**: Comprehensive error recovery and status reporting
 
 ## **Quick Start**
 
 ### **Prerequisites**
+- Kubernetes cluster (1.28+)
 - AMD GPU with ROCm support (MI300X, MI325X, etc.)
 - Docker installed and running
 - At least 16GB RAM (32GB+ recommended for large models)
@@ -33,49 +34,44 @@ AIM (AMD Inference Microservice) Engine automatically deploys AI models with opt
 git clone <repository-url>
 cd aim-engine
 
-# Build the Docker image
-./scripts/build-aim-vllm.sh
+# Deploy the AIM Engine operator
+cd k8s/operator
+./scripts/setup-and-test-operator.sh
 ```
 
 ### **Basic Usage**
 ```bash
-# Launch model with auto-detection
-docker run --rm -it \
-  --device=/dev/kfd \
-  --device=/dev/dri \
-  --group-add=video \
-  --group-add=render \
-  -v /workspace/model-cache:/workspace/model-cache \
-  aim-vllm:latest \
-  aim-generate Qwen/Qwen3-32B
+# Create an AIM recipe
+kubectl apply -f k8s/operator/examples/aimrecipe.yaml
 
-# Start interactive shell
-docker run --rm -it \
-  --device=/dev/kfd \
-  --device=/dev/dri \
-  --group-add=video \
-  --group-add=render \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -p 8000:8000 \
-  aim-vllm:latest \
-  aim-shell
+# Deploy an AIM instance
+kubectl apply -f k8s/operator/examples/aimendpoint.yaml
+
+# Check AIM status
+kubectl get aimendpoint -n aim-engine
+
+# Access the AIM service
+kubectl get svc -n aim-engine
 ```
 
-### **Testing Your Endpoint**
-Once your AIM Engine is running, verify it's ready for inference:
+### **Testing Your AIM**
+Once your AIM is running, verify it's ready for inference:
 
 ```bash
-# Test if the endpoint is responding
-curl -f http://localhost:8000/health
+# Get the service port
+kubectl get svc <aim-name> -n aim-engine
+
+# Test if the AIM is responding
+curl -f http://localhost:<port>/health
 
 # Test if models are loaded and ready
-curl -f http://localhost:8000/v1/models
+curl -f http://localhost:<port>/v1/models
 
 # Test a simple inference request
-curl -X POST http://localhost:8000/v1/chat/completions \
+curl -X POST http://localhost:<port>/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "Qwen/Qwen3-32B",
+    "model": "Qwen/Qwen2.5-7B-Instruct",
     "messages": [{"role": "user", "content": "Hello"}],
     "max_tokens": 10
   }'
@@ -86,21 +82,25 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 - **Models endpoint**: Returns JSON with available models
 - **Chat endpoint**: Returns JSON with generated text
 
-If all tests pass, your AIM Engine is ready for use with agent examples and other applications!
+If all tests pass, your AIM is ready for use with agent examples and other applications!
 
 ### **Production Deployment**
 ```bash
-# Generate deployment command
-docker run --rm -it \
-  --device=/dev/kfd \
-  --device=/dev/dri \
-  --group-add=video \
-  --group-add=render \
-  aim-vllm:latest \
-  aim-generate Qwen/Qwen3-32B
+# Deploy AIM Engine operator to production cluster
+cd k8s/operator
+./scripts/setup-and-test-operator.sh
+
+# Create production AIM recipes
+kubectl apply -f production-recipes/
+
+# Deploy production AIM instances
+kubectl apply -f production-endpoints/
+
+# Monitor AIM health
+kubectl get aimendpoint -n aim-engine -w
 ```
 
-## **Kubernetes Deployment**
+## **Kubernetes Cluster Setup**
 
 ### **Quick Setup (Complete Cluster)**
 ```bash
@@ -123,33 +123,35 @@ sudo ./k8s/scripts/setup-complete-kubernetes.sh
 >
 > This issue is being addressed in future versions. For now, running the script twice is the recommended workaround.
 
-### **Deploy to Existing Cluster**
+### **Deploy AIM to Existing Cluster**
 ```bash
-# Deploy with default settings
-sudo ./k8s/scripts/deploy-aim-engine.sh
+# Deploy AIM Engine operator
+cd k8s/operator
+./scripts/setup-and-test-operator.sh
 
-# Deploy with custom model
-sudo ./k8s/scripts/deploy-aim-engine.sh --model Qwen/Qwen3-32B --memory-limit 80Gi
+# Deploy AIM instances
+kubectl apply -f examples/aimrecipe.yaml
+kubectl apply -f examples/aimendpoint.yaml
 
-# Deploy with multiple GPUs
-sudo ./k8s/scripts/deploy-aim-engine.sh --gpu-count 2 --memory-limit 64Gi
+# Deploy with custom configuration
+kubectl apply -f custom-aim-config.yaml
 ```
 
-## **Kubernetes Operator**
+## **AIM Engine Operator**
 
-The AIM Engine Kubernetes Operator provides declarative management of AIM Engine deployments using custom resources.
+The AIM Engine Kubernetes Operator provides declarative management of AIM (AMD Inference Microservice) deployments using custom resources.
 
 ### **Operator Features**
-- **Declarative Management**: Define AIM Engine endpoints using YAML
+- **Declarative Management**: Define AIM deployments using YAML
 - **Auto Recipe Selection**: Automatically select optimal configurations
 - **Built-in Caching**: Persistent volume management for model caching
 - **Scaling**: Horizontal Pod Autoscaler support
 - **Monitoring**: Integrated metrics and health checks
-- **Multi-Model Support**: Manage multiple models simultaneously
+- **Multi-Model Support**: Manage multiple AIM instances simultaneously
 
 ### **Custom Resources**
 - **AIMRecipe**: Define model configurations and hardware requirements
-- **AIMEndpoint**: Deploy and manage AIM Engine instances
+- **AIMEndpoint**: Deploy and manage AIM instances
 - **AIMCache**: Configure persistent caching for models
 
 ### **Deploy the Operator**
@@ -262,7 +264,7 @@ spec:
 apiVersion: aim.engine.amd.com/v1alpha1
 kind: AIMEndpoint
 metadata:
-  name: my-model-endpoint
+  name: my-aim-instance
   namespace: aim-engine
 spec:
   model:
@@ -291,19 +293,19 @@ spec:
 
 #### **Monitor and Manage**
 ```bash
-# List all endpoints
+# List all AIM instances
 kubectl get aimendpoint -n aim-engine
 
 # Get detailed status
-kubectl describe aimendpoint my-model-endpoint -n aim-engine
+kubectl describe aimendpoint my-aim-instance -n aim-engine
 
 # Check pod status
 kubectl get pods -n aim-engine -l app.kubernetes.io/name=aim-endpoint
 
 # Access the service
-kubectl get svc my-model-endpoint -n aim-engine
+kubectl get svc my-aim-instance -n aim-engine
 
-# Test the endpoint
+# Test the AIM
 curl http://localhost:8000/health
 ```
 
@@ -361,13 +363,13 @@ See `examples/README.md` for detailed information about each example.
 
 #### **Manual Cleanup Commands**
 ```bash
-# Stop all running AIM Engine containers
+# Stop all running AIM containers
 docker ps -q --filter "ancestor=aim-vllm:latest" | xargs -r docker stop
 
-# Remove all AIM Engine containers (any state)
+# Remove all AIM containers (any state)
 docker ps -aq --filter "ancestor=aim-vllm:latest" | xargs -r docker rm -f
 
-# Remove AIM Engine images
+# Remove AIM images
 docker rmi aim-vllm:latest --force
 
 # Clean up dangling resources
@@ -396,8 +398,13 @@ sudo ./k8s/scripts/cleanup-kubernetes.sh --all
 
 #### **Manual Kubernetes Cleanup**
 ```bash
-# Remove AIM Engine deployment
-helm uninstall aim-engine -n aim-engine
+# Remove AIM instances
+kubectl delete aimendpoint --all -n aim-engine
+
+# Remove AIM Engine operator
+kubectl delete -f k8s/operator/config/manager/
+kubectl delete -f k8s/operator/config/rbac/
+kubectl delete -f k8s/operator/config/crd/bases/
 
 # Remove namespace
 kubectl delete namespace aim-engine
@@ -413,11 +420,11 @@ docker rmi aim-vllm:latest
 
 ### **Quick Cleanup Commands**
 ```bash
-# Docker: Stop and remove all AIM Engine containers
+# Docker: Stop and remove all AIM containers
 docker ps -q --filter "ancestor=aim-vllm:latest" | xargs -r docker stop && \
 docker ps -aq --filter "ancestor=aim-vllm:latest" | xargs -r docker rm -f
 
-# Kubernetes: Remove AIM Engine resources
+# Kubernetes: Remove AIM resources
 kubectl delete all -n aim-engine --all
 kubectl delete namespace aim-engine
 
@@ -459,8 +466,8 @@ kubectl delete daemonset amd-gpu-device-plugin -n kube-system
 kubectl apply -f k8s/amd-gpu-device-plugin.yaml
 ```
 
-#### **AIM Engine Pod Stuck in Pending**
-**Problem**: Pod cannot be scheduled
+#### **AIM Pod Stuck in Pending**
+**Problem**: AIM pod cannot be scheduled
 
 **Solution**:
 ```bash
@@ -548,17 +555,17 @@ kubectl rollout restart deployment aim-engine-operator-controller-manager -n aim
 
 ### **Common Workflows**
 ```bash
-# Deploy a new model
+# Deploy a new AIM
 kubectl apply -f examples/aimrecipe.yaml
 kubectl apply -f examples/aimendpoint.yaml
 
-# Scale an endpoint
+# Scale an AIM
 kubectl patch aimendpoint <name> -n aim-engine -p '{"spec":{"scaling":{"minReplicas":2}}}'
 
 # Enable caching
 kubectl patch aimendpoint <name> -n aim-engine -p '{"spec":{"cache":{"enabled":true}}}'
 
-# Check endpoint health
+# Check AIM health
 kubectl get svc <name> -n aim-engine
 curl http://localhost:8000/health
 ```
