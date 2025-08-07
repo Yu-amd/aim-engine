@@ -432,6 +432,15 @@ func (r *AIMEndpointReconciler) reconcileDeployment(ctx context.Context, endpoin
 			})
 		}
 		
+		// Add tolerations for control-plane taint
+		deployment.Spec.Template.Spec.Tolerations = []corev1.Toleration{
+			{
+				Key:    "node-role.kubernetes.io/control-plane",
+				Operator: corev1.TolerationOpExists,
+				Effect:   corev1.TaintEffectNoSchedule,
+			},
+		}
+		
 		return nil
 	})
 	
