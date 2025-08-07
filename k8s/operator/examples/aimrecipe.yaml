@@ -4,46 +4,40 @@ metadata:
   name: qwen-7b-recipe
   namespace: aim-engine
 spec:
-  model:
-    id: "Qwen/Qwen2.5-7B-Instruct"
-    version: "latest"
+  modelId: "Qwen/Qwen2.5-7B-Instruct"
+  description: "Qwen2.5-7B-Instruct model recipe for vLLM backend"
+  backend: "vLLM"
+  hardware: "AMD MI300X"
   precision: "bfloat16"
-  backend: "vllm"
   configurations:
-  - name: "single-gpu"
+  - enabled: true
     gpuCount: 1
-    enabled: true
     resources:
-      cpu: "4"
-      memory: "16Gi"
-      gpu: "1"
-    settings:
-      tensorParallelSize: 1
-      maxModelLen: 32768
-      gpuMemoryUtilization: 0.9
-  - name: "multi-gpu"
-    gpuCount: 2
-    enabled: true
-    resources:
-      cpu: "8"
-      memory: "32Gi"
-      gpu: "2"
-    settings:
-      tensorParallelSize: 2
-      maxModelLen: 32768
-      gpuMemoryUtilization: 0.9
+      requests:
+        cpu: "4"
+        memory: "16Gi"
+        amd.com/gpu: "1"
+      limits:
+        cpu: "8"
+        memory: "32Gi"
+        amd.com/gpu: "1"
+    env:
+    - name: "VLLM_USE_ROCM"
+      value: "1"
+    - name: "PYTORCH_ROCM_ARCH"
+      value: "gfx90a"
+    - name: "HIP_VISIBLE_DEVICES"
+      value: "0"
+    args:
+    - "--model"
+    - "Qwen/Qwen2.5-7B-Instruct"
+    - "--dtype"
+    - "bfloat16"
+    - "--tensor-parallel-size"
+    - "1"
+    - "--max-model-len"
+    - "8192"
   performance:
-    latency:
-      p50: 100
-      p95: 200
-      p99: 500
-    throughput:
-      requestsPerSecond: 10
-      tokensPerSecond: 1000
-  compatibility:
-    frameworks:
-    - "vllm"
-    - "transformers"
-    hardware:
-    - "amd-gpu"
-    - "rocm" 
+    expectedLatencyMs: 100
+    expectedTokensPerSecond: 1000
+    maxBatchSize: 32 
