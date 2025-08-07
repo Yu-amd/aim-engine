@@ -59,4 +59,8 @@ spec:
             cpu: 10m
             memory: 64Mi
       serviceAccountName: aim-engine-operator-controller-manager
-      terminationGracePeriodSeconds: 10 
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule 
