@@ -69,113 +69,177 @@ EOF
     exit 1
 }
 
-# Step 2: Install Docker as systemd service
-log_info "Step 2: Installing Docker as systemd service..."
-{
-    # Check if Docker is already running
+# Step 2: Install and configure Docker robustly
+log_info "Step 2: Installing and configuring Docker robustly..."
+
+# Function to check if Docker is working
+check_docker() {
     if docker ps > /dev/null 2>&1; then
-        log_info "Docker is already running, skipping installation"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Function to install Docker completely
+install_docker_complete() {
+    log_info "Performing complete Docker installation..."
+    
+    # Stop any existing Docker processes
+    pkill -f dockerd || true
+    pkill -f docker || true
+    
+    # Remove all Docker packages
+    apt remove -y docker docker-engine docker.io containerd runc docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 2>/dev/null || true
+    apt autoremove -y
+    
+    # Clean up Docker directories
+    rm -rf /var/lib/docker /etc/docker /var/run/docker.sock /etc/systemd/system/docker.service.d 2>/dev/null || true
+    
+    # Update and install Docker
+    apt update
+    apt install -y docker.io docker-compose
+    
+    # Create Docker daemon configuration
+    mkdir -p /etc/docker
+    cat > /etc/docker/daemon.json << EOF
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF
+    
+    # Start and enable Docker service
+    systemctl daemon-reload
+    systemctl start docker
+    systemctl enable docker
+    
+    # Add current user to docker group
+    usermod -aG docker $USER || true
+    
+    # Wait for Docker to be ready
+    sleep 10
+    
+    # Verify Docker is working
+    if check_docker; then
+        log_success "Docker installed and working"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Main Docker setup logic
+{
+    # First, check if Docker is already working
+    if check_docker; then
+        log_info "Docker is already working"
         docker --version
         docker ps
-        log_success "Docker is working"
+        log_success "Docker is ready"
     else
-        # Check if Docker is installed but not running
+        log_info "Docker is not working, attempting to fix..."
+        
+        # Check if Docker is installed
         if command -v docker &> /dev/null; then
-            log_info "Docker is installed but not running, attempting to start..."
+            log_info "Docker binary found, checking service status..."
             
-            # Check if systemd service exists
+            # Check if systemd service exists and try to start it
             if systemctl list-unit-files | grep -q "docker.service"; then
-                log_info "Docker systemd service found, trying to start..."
-                if systemctl start docker 2>/dev/null; then
-                    systemctl enable docker
+                log_info "Docker systemd service found, attempting to start..."
+                systemctl daemon-reload
+                systemctl start docker
+                systemctl enable docker
+                sleep 5
+                
+                if check_docker; then
                     log_success "Docker started via systemd"
                 else
-                    log_warning "Failed to start Docker via systemd, checking for incomplete installation..."
+                    log_warning "Systemd start failed, checking for dockerd binary..."
+                    
                     # Check if dockerd binary exists
-                    DOCKERD_PATH=$(find /usr -name "dockerd" 2>/dev/null | head -1)
-                    if [[ -z "$DOCKERD_PATH" ]]; then
-                        log_warning "Dockerd binary not found, Docker installation is incomplete. Reinstalling..."
-                        # Remove incomplete Docker installation
-                        apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
-                        apt autoremove -y
-                        
-                        # Install Docker properly
-                        apt update
-                        apt install -y docker.io docker-compose
-                        
-                        # Start and enable Docker service
-                        systemctl start docker
-                        systemctl enable docker
-                    else
-                        log_warning "Dockerd found but systemd service failed, trying manual start..."
+                    DOCKERD_PATH=$(which dockerd 2>/dev/null || find /usr -name "dockerd" 2>/dev/null | head -1)
+                    if [[ -n "$DOCKERD_PATH" ]]; then
+                        log_info "Found dockerd at $DOCKERD_PATH, trying manual start..."
+                        pkill -f dockerd || true
                         nohup $DOCKERD_PATH > /var/log/docker.log 2>&1 &
-                        sleep 5
+                        sleep 10
+                        
+                        if check_docker; then
+                            log_success "Docker started manually"
+                        else
+                            log_warning "Manual start failed, performing complete reinstall..."
+                            install_docker_complete
+                        fi
+                    else
+                        log_warning "Dockerd binary not found, performing complete reinstall..."
+                        install_docker_complete
                     fi
                 fi
             else
-                log_warning "Docker systemd service not found, Docker installation is incomplete. Reinstalling..."
-                # Remove incomplete Docker installation
-                apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
-                apt autoremove -y
-                
-                # Install Docker properly
-                apt update
-                apt install -y docker.io docker-compose
-                
-                # Start and enable Docker service
-                systemctl start docker
-                systemctl enable docker
-            fi
-            
-            # Add current user to docker group
-            usermod -aG docker $USER || true
-            
-            # Verify Docker is working
-            if docker ps > /dev/null 2>&1; then
-                docker --version
-                docker ps
-                log_success "Docker is now working"
-            else
-                log_error "Failed to start Docker daemon after all attempts"
-                log_info "Trying one more time with official Docker installation..."
-                
-                # Last resort: official Docker installation
-                curl -fsSL https://get.docker.com -o get-docker.sh
-                sh get-docker.sh
-                systemctl start docker
-                systemctl enable docker
-                
-                if docker ps > /dev/null 2>&1; then
-                    docker --version
-                    docker ps
-                    log_success "Docker is now working via official installation"
-                else
-                    log_error "All Docker installation attempts failed"
-                    exit 1
-                fi
+                log_warning "Docker systemd service not found, performing complete reinstall..."
+                install_docker_complete
             fi
         else
-            # Install Docker from scratch
-            log_info "Installing Docker from scratch..."
-            apt update
-            apt install -y docker.io docker-compose
-            
-            # Start and enable Docker service
-            systemctl start docker
-            systemctl enable docker
-            
-            # Add current user to docker group
-            usermod -aG docker $USER || true
-            
-            # Verify Docker is working
+            log_info "Docker not installed, performing fresh installation..."
+            install_docker_complete
+        fi
+        
+        # Final verification
+        if check_docker; then
+            log_success "Docker is now working"
             docker --version
             docker ps
+        else
+            log_error "All Docker installation attempts failed"
+            log_info "Trying one final attempt with official Docker script..."
             
-            log_success "Docker installed and configured as systemd service"
+            # Last resort: official Docker installation
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sh get-docker.sh
+            systemctl start docker
+            systemctl enable docker
+            usermod -aG docker $USER || true
+            sleep 10
+            
+            if check_docker; then
+                log_success "Docker working via official installation"
+            else
+                log_error "All Docker installation methods failed"
+                log_info "Docker logs:"
+                journalctl -u docker --no-pager -n 20 || true
+                log_info "System logs:"
+                journalctl --no-pager -n 20 || true
+                exit 1
+            fi
         fi
     fi
+    
+    # Ensure Docker is accessible to the current user
+    if ! docker ps > /dev/null 2>&1; then
+        log_warning "Docker not accessible to current user, trying to fix..."
+        usermod -aG docker $USER || true
+        newgrp docker || true
+        sleep 2
+        
+        if ! docker ps > /dev/null 2>&1; then
+            log_warning "User group fix didn't work, trying sudo..."
+            # For immediate effect, use sudo for this session
+            if sudo docker ps > /dev/null 2>&1; then
+                log_success "Docker accessible via sudo"
+            else
+                log_error "Docker not accessible even with sudo"
+                exit 1
+            fi
+        fi
+    fi
+    
 } || {
-    log_error "Docker installation failed"
+    log_error "Docker setup failed"
     exit 1
 }
 
@@ -201,22 +265,73 @@ log_info "Step 3: Installing containerd..."
 # Step 4: Setup local container registry
 log_info "Step 4: Setting up local container registry..."
 {
-    # Check if registry is already running
-    if docker ps | grep -q "local-registry"; then
-        log_info "Local registry is already running"
-    else
-        # Start local registry
-        docker run -d -p ${REGISTRY_PORT}:${REGISTRY_PORT} --name local-registry registry:2
+    # Function to check if registry is working
+    check_registry() {
+        if curl -s http://localhost:${REGISTRY_PORT}/v2/_catalog > /dev/null 2>&1; then
+            return 0
+        else
+            return 1
+        fi
+    }
+    
+    # Function to start registry
+    start_registry() {
+        log_info "Starting local registry..."
+        
+        # Remove any existing registry container
+        docker rm -f local-registry 2>/dev/null || true
+        
+        # Start new registry
+        docker run -d -p ${REGISTRY_PORT}:${REGISTRY_PORT} --name local-registry --restart=always registry:2
         
         # Wait for registry to be ready
-        sleep 10
+        log_info "Waiting for registry to be ready..."
+        for i in {1..30}; do
+            if check_registry; then
+                log_success "Registry is responding"
+                return 0
+            fi
+            sleep 2
+        done
+        
+        return 1
+    }
+    
+    # Check if registry is already working
+    if check_registry; then
+        log_info "Local registry is already running and responding"
+    else
+        # Check if registry container exists but not responding
+        if docker ps -a | grep -q "local-registry"; then
+            log_info "Registry container exists but not responding, restarting..."
+            docker start local-registry
+            sleep 5
+            
+            if ! check_registry; then
+                log_warning "Registry restart failed, recreating..."
+                start_registry
+            fi
+        else
+            log_info "No registry container found, creating new one..."
+            start_registry
+        fi
+        
+        # Final verification
+        if check_registry; then
+            log_success "Local registry is working"
+        else
+            log_error "Failed to start local registry"
+            log_info "Docker status:"
+            docker ps -a
+            log_info "Registry logs:"
+            docker logs local-registry 2>/dev/null || true
+            exit 1
+        fi
     fi
     
-    # Test registry
-    curl -s http://localhost:${REGISTRY_PORT}/v2/_catalog || {
-        log_error "Registry not responding"
-        exit 1
-    }
+    # Test registry functionality
+    log_info "Testing registry functionality..."
+    curl -s http://localhost:${REGISTRY_PORT}/v2/_catalog
     
     log_success "Local container registry setup completed"
 } || {
