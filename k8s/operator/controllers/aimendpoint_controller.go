@@ -364,12 +364,14 @@ func (r *AIMEndpointReconciler) reconcileDeployment(ctx context.Context, endpoin
 	}
 	
 	_, err := ctrl.CreateOrUpdate(ctx, r.Client, deployment, func() error {
+		// Always set labels to ensure they're correct
 		deployment.Labels = map[string]string{
 			"app.kubernetes.io/name":      "aim-endpoint",
 			"app.kubernetes.io/instance":  endpoint.Name,
 			"app.kubernetes.io/component": "server",
 		}
 		
+		// Always set owner references
 		deployment.OwnerReferences = []metav1.OwnerReference{
 			*metav1.NewControllerRef(endpoint, aimv1alpha1.GroupVersion.WithKind("AIMEndpoint")),
 		}
@@ -389,10 +391,10 @@ func (r *AIMEndpointReconciler) reconcileDeployment(ctx context.Context, endpoin
 			},
 		}
 		
-		// Set template
+		// Set template labels
 		deployment.Spec.Template.ObjectMeta.Labels = deployment.Spec.Selector.MatchLabels
 		
-		// Set containers
+		// Build container spec
 		container := corev1.Container{
 			Name:  "aim-server",
 			Image: r.getImage(endpoint),
@@ -407,6 +409,9 @@ func (r *AIMEndpointReconciler) reconcileDeployment(ctx context.Context, endpoin
 			Env:       r.getEnvironmentVariables(endpoint),
 		}
 		
+		// Initialize volume mounts slice
+		container.VolumeMounts = []corev1.VolumeMount{}
+		
 		// Add volume mounts if caching is enabled
 		if endpoint.Spec.Cache.Enabled != nil && *endpoint.Spec.Cache.Enabled {
 			container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
@@ -415,9 +420,10 @@ func (r *AIMEndpointReconciler) reconcileDeployment(ctx context.Context, endpoin
 			})
 		}
 		
+		// Set containers
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{container}
 		
-		// Initialize volumes slice
+		// Initialize volumes slice to prevent duplicates
 		deployment.Spec.Template.Spec.Volumes = []corev1.Volume{}
 		
 		// Add volumes if caching is enabled
@@ -432,13 +438,18 @@ func (r *AIMEndpointReconciler) reconcileDeployment(ctx context.Context, endpoin
 			})
 		}
 		
-		// Add tolerations for control-plane taint
+		// Always set tolerations to ensure they're applied
 		deployment.Spec.Template.Spec.Tolerations = []corev1.Toleration{
 			{
-				Key:    "node-role.kubernetes.io/control-plane",
+				Key:      "node-role.kubernetes.io/control-plane",
 				Operator: corev1.TolerationOpExists,
 				Effect:   corev1.TaintEffectNoSchedule,
 			},
+		}
+		
+		// Set node selector for GPU nodes
+		deployment.Spec.Template.Spec.NodeSelector = map[string]string{
+			"amd.com/gpu": "true",
 		}
 		
 		return nil
