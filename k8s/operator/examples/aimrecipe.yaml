@@ -6,8 +6,8 @@ metadata:
 spec:
   modelId: "Qwen/Qwen2.5-7B-Instruct"
   description: "Qwen2.5-7B-Instruct model recipe for vLLM backend"
-  backend: "vLLM"
-  hardware: "AMD MI300X"
+  backend: "vllm"
+  hardware: "MI300X"
   precision: "bfloat16"
   configurations:
   - enabled: true
