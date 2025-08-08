@@ -145,14 +145,14 @@ show_menu() {
 run_simple_agent() {
     print_status "Starting Simple Agent..."
     source venv/bin/activate
-    python3 simple_agent.py
+    python3 docker/simple_agent.py
 }
 
 # Function to run advanced agent
 run_advanced_agent() {
     print_status "Starting Advanced Agent..."
     source venv/bin/activate
-    python3 advanced_agent.py
+    python3 docker/advanced_agent.py
 }
 
 # Function to run web agent
@@ -161,8 +161,10 @@ run_web_agent() {
     print_success "Web interface will be available at http://localhost:5000"
     print_status "Press Ctrl+C to stop the web server"
     source venv/bin/activate
-    python3 web_agent.py
+    python3 docker/web_agent.py
 }
+
+
 
 # Function to check status
 check_status() {
