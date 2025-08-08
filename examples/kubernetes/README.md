@@ -7,8 +7,82 @@ This directory contains examples for deploying and using AIMs (AMD Inference Mic
 ### 1. Kubernetes Cluster
 Ensure you have a Kubernetes cluster with:
 - AMD GPU support (MI300X, MI325X, etc.)
-- AIM Engine operator deployed
 - At least 16GB RAM per node
+
+#### **Option A: Automated Cluster Setup (Recommended)**
+Use the provided script to set up a complete Kubernetes cluster with AMD GPU support:
+
+```bash
+# Navigate to the project root
+cd /path/to/aim-engine
+
+# Run the complete setup script
+sudo ./k8s/scripts/setup-complete-kubernetes.sh
+```
+
+This script will:
+- Install Docker and configure it properly
+- Set up a single-node Kubernetes cluster with kubeadm
+- Install Calico CNI for networking
+- Deploy AMD GPU device plugin
+- Set up local storage provisioner
+- Install metrics server
+- Deploy an initial AIM instance for testing
+
+#### **Option B: Manual Cluster Setup**
+If you prefer to set up the cluster manually:
+
+```bash
+# 1. Install Docker
+sudo apt update
+sudo apt install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
+
+# 2. Install Kubernetes components
+sudo apt install -y apt-transport-https ca-certificates curl gpg
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+
+# 3. Initialize the cluster
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+
+# 4. Set up kubectl
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# 5. Install Calico CNI
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+
+# 6. Install AMD GPU device plugin
+kubectl apply -f https://raw.githubusercontent.com/ROCm/k8s-device-plugin/main/deploy/k8s-device-plugin.yaml
+
+# 7. Label the node for GPU scheduling
+kubectl label node $(hostname) amd.com/gpu=true --overwrite
+
+# 8. Install local storage provisioner
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+```
+
+#### **Verify Cluster Setup**
+After setup, verify your cluster is working:
+
+```bash
+# Check cluster status
+kubectl get nodes
+
+# Check if AMD GPU is detected
+kubectl get nodes -o json | jq '.items[].status.allocatable."amd.com/gpu"'
+
+# Check if pods are running
+kubectl get pods --all-namespaces
+```
 
 ### 2. AIM Engine Operator
 Deploy the AIM Engine operator:
