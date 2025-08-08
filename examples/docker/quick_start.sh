@@ -133,8 +133,8 @@ show_menu() {
     echo "1. Simple Agent (Command Line)"
     echo "2. Advanced Agent (Command Line with Tools)"
     echo "3. Web Agent (Browser Interface)"
-    echo "4. Check AIM Engine Status"
-    echo "5. Stop AIM Engine"
+    echo "4. Check AIM Status"
+    echo "5. Stop AIM"
     echo "6. Cleanup Virtual Environment"
     echo "7. Exit"
     echo ""
@@ -168,25 +168,25 @@ run_web_agent() {
 
 # Function to check status
 check_status() {
-    print_status "Checking AIM Engine status..."
+    print_status "Checking AIM status..."
     if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
-        print_success "AIM Engine is running and responding"
+        print_success "AIM is running and responding"
         print_status "Available models:"
         curl -s http://localhost:8000/v1/models | python3 -m json.tool
     else
-        print_error "AIM Engine is not responding"
+        print_error "AIM is not responding"
     fi
 }
 
-# Function to stop AIM Engine
+# Function to stop AIM
 stop_aim_engine() {
-    print_status "Stopping AIM Engine..."
+    print_status "Stopping AIM..."
     CONTAINER_ID=$(docker ps -q --filter "ancestor=aim-vllm:latest")
     if [ -n "$CONTAINER_ID" ]; then
         docker stop $CONTAINER_ID
-        print_success "AIM Engine stopped"
+        print_success "AIM stopped"
     else
-        print_warning "No AIM Engine container found"
+        print_warning "No AIM container found"
     fi
 }
 
