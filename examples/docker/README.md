@@ -17,10 +17,28 @@ netstat -tlnp | grep 8000
 ```
 
 ### 1. Python Dependencies
-Install required packages:
+Install required packages using a virtual environment (recommended for PEP 668 compliance):
 
 ```bash
+# Create a virtual environment
+python3 -m venv aim-examples-env
+
+# Activate the virtual environment
+source aim-examples-env/bin/activate
+
+# Install required packages
 pip install requests flask
+
+# Verify installation
+pip list
+```
+
+**Note**: Modern Python installations (PEP 668) prevent system-wide package installation. Using a virtual environment is the recommended approach.
+
+**Alternative**: Use the quick start script which handles this automatically:
+```bash
+cd examples/docker
+./quick_start.sh
 ```
 
 ## Setup AIM Endpoint
@@ -184,22 +202,67 @@ python3 docker/check_web_access.py
 ```
 
 ### 6. Quick Start Script (`quick_start.sh`)
-Automated setup and testing script.
+Automated setup and testing script that handles PEP 668 compliance.
 
 **Features:**
-- Automated AIM setup
-- Health checks
+- Automated virtual environment creation
+- Python dependency installation
+- AIM setup and health checks
 - Model loading verification
-- Example interactions
+- Interactive menu for examples
+- PEP 668 compliance handling
 
 **Usage:**
 ```bash
-./docker/quick_start.sh
+cd examples/docker
+chmod +x quick_start.sh
+./quick_start.sh
 ```
+
+**What it does:**
+- Creates a virtual environment to avoid PEP 668 issues
+- Installs `requests` and `flask` in the virtual environment
+- Checks if AIM endpoint is running
+- Provides an interactive menu to run different examples
+- Handles cleanup on exit
 
 ## Quick Start Workflow
 
-1. **Start AIM Endpoint**:
+### **Option 1: Automated Setup (Recommended)**
+Use the quick start script which handles everything automatically:
+
+```bash
+# Navigate to docker examples
+cd examples/docker
+
+# Make script executable (if needed)
+chmod +x quick_start.sh
+
+# Run the quick start script
+./quick_start.sh
+```
+
+The script will:
+- Create a virtual environment
+- Install Python dependencies
+- Check if AIM endpoint is running
+- Provide an interactive menu to run examples
+
+### **Option 2: Manual Setup**
+
+1. **Set up Python Environment**:
+   ```bash
+   # Create virtual environment
+   python3 -m venv aim-examples-env
+   
+   # Activate virtual environment
+   source aim-examples-env/bin/activate
+   
+   # Install dependencies
+   pip install requests flask
+   ```
+
+2. **Start AIM Endpoint**:
    ```bash
    docker run --rm -it \
      --device=/dev/kfd \
@@ -212,12 +275,12 @@ Automated setup and testing script.
      aim-shell
    ```
 
-2. **Verify AIM is Running**:
+3. **Verify AIM is Running**:
    ```bash
    curl -f http://localhost:8000/health
    ```
 
-3. **Run an Example**:
+4. **Run an Example** (with virtual environment activated):
    ```bash
    python3 docker/simple_agent.py
    ```
@@ -243,7 +306,19 @@ Automated setup and testing script.
    # Restart shell or logout/login
    ```
 
-3. **GPU not detected**
+3. **Python PEP 668 "externally-managed-environment" error**
+   ```bash
+   # This error occurs on modern Python installations
+   # Solution: Use virtual environment
+   python3 -m venv aim-examples-env
+   source aim-examples-env/bin/activate
+   pip install requests flask
+   
+   # Or use the quick start script which handles this automatically
+   ./quick_start.sh
+   ```
+
+4. **GPU not detected**
    ```bash
    # Check GPU status
    rocm-smi
@@ -252,7 +327,7 @@ Automated setup and testing script.
    docker run --rm --device=/dev/kfd --device=/dev/dri rocm/dev-ubuntu-20.04 rocm-smi
    ```
 
-4. **Model loading issues**
+5. **Model loading issues**
    ```bash
    # Check model cache
    ls -la /workspace/model-cache/
@@ -261,7 +336,7 @@ Automated setup and testing script.
    rm -rf /workspace/model-cache/*
    ```
 
-5. **AIM not responding**
+6. **AIM not responding**
    ```bash
    # Check if AIM container is running
    docker ps | grep aim-vllm
@@ -339,6 +414,50 @@ end_time = time.time()
 
 print(f"Response time: {end_time - start_time:.2f} seconds")
 ```
+
+## Virtual Environment Management
+
+### **Creating and Using Virtual Environment**
+```bash
+# Create virtual environment
+python3 -m venv aim-examples-env
+
+# Activate virtual environment
+source aim-examples-env/bin/activate
+
+# Install dependencies
+pip install requests flask
+
+# Run examples (with venv activated)
+python3 simple_agent.py
+
+# Deactivate when done
+deactivate
+```
+
+### **Managing Virtual Environment**
+```bash
+# List installed packages
+pip list
+
+# Update packages
+pip install --upgrade requests flask
+
+# Remove virtual environment
+rm -rf aim-examples-env
+
+# Recreate virtual environment
+python3 -m venv aim-examples-env
+source aim-examples-env/bin/activate
+pip install requests flask
+```
+
+### **PEP 668 Compliance**
+Modern Python installations (3.11+) prevent system-wide package installation. The virtual environment approach ensures:
+- ✅ No conflicts with system packages
+- ✅ Isolated dependencies
+- ✅ Easy cleanup and recreation
+- ✅ Compliance with Python packaging standards
 
 ## 🤝 Contributing
 
