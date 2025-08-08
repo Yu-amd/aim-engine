@@ -94,7 +94,28 @@ cd k8s/operator
 ```
 
 ### 3. Python Dependencies
-Install required packages in a virtual environment:
+
+#### **Option A: Automated Setup (Recommended)**
+Use the provided setup script for easy environment setup and example execution:
+
+```bash
+# Navigate to kubernetes examples directory
+cd examples/kubernetes
+
+# Make script executable and run it
+chmod +x setup.sh
+./setup.sh
+```
+
+The setup script will:
+- Create and configure a Python virtual environment
+- Install all required dependencies
+- Provide an interactive menu for running examples
+- Check AIM Engine operator and CRD status
+- Handle cleanup operations
+
+#### **Option B: Manual Setup**
+If you prefer to set up manually:
 
 ```bash
 # Create and activate virtual environment
@@ -110,6 +131,14 @@ pip install kubernetes requests flask
 
 ## Available Examples
 
+**Quick Start with Setup Script:**
+```bash
+cd examples/kubernetes
+chmod +x setup.sh
+./setup.sh
+```
+Then select options 3-6 from the menu to run examples.
+
 ### 1. Basic AIM Deployment (`basic-aim/`)
 Deploy a simple AIM instance with basic configuration.
 
@@ -121,13 +150,14 @@ Deploy a simple AIM instance with basic configuration.
 
 **Usage:**
 ```bash
-# Deploy the AIM
+# Option A: Using setup script (recommended)
+cd examples/kubernetes
+./setup.sh
+# Select option 3 from the menu
+
+# Option B: Manual deployment
 kubectl apply -f examples/kubernetes/basic-aim/
-
-# Check status
 kubectl get aimendpoint -n aim-engine
-
-# Run the client (make sure virtual environment is activated)
 source kubernetes-venv/bin/activate
 python3 examples/kubernetes/basic-aim/client.py
 ```
@@ -309,6 +339,14 @@ kubectl delete -f examples/kubernetes/<example-name>/
 ### Python Dependencies Issues
 If you encounter `externally-managed-environment` errors:
 
+**Recommended Solution:**
+Use the automated setup script which handles this automatically:
+```bash
+cd examples/kubernetes
+./setup.sh
+```
+
+**Manual Solution:**
 ```bash
 # Ensure python3-venv is installed
 sudo apt update
