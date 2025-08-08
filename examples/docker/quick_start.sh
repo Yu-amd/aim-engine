@@ -93,7 +93,7 @@ source venv/bin/activate
 # Check if dependencies are installed in virtual environment
 if ! python3 -c "import requests, flask" 2>/dev/null; then
     print_warning "Installing Python dependencies in virtual environment..."
-    pip install -r requirements.txt
+    pip install requests flask
     print_success "Dependencies installed"
 else
     print_success "Python dependencies are installed"
