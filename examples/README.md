@@ -1,6 +1,18 @@
-#  AIM Engine Agent Examples
+#  AIM Engine Examples
 
-This directory contains various agent-based applications that use the AIM Engine vLLM endpoint for intelligent interactions.
+This directory contains various examples for using AIM Engine:
+
+## **Docker Examples** (Single Node)
+Traditional Docker-based examples for local development and testing.
+
+## **Kubernetes Examples** (Multi-Node)
+Modern Kubernetes-based examples using the AIM Engine operator for production deployments.
+
+---
+
+## **Docker Examples**
+
+These examples use the traditional Docker deployment approach for single-node setups.
 
 ##  Prerequisites
 
@@ -34,7 +46,7 @@ Install required packages:
 pip install requests flask
 ```
 
-##  Available Examples
+##  Available Docker Examples
 
 ### 1. Simple Agent (`simple_agent.py`)
 A basic conversational agent with conversation history and **real-time streaming responses**.
@@ -428,6 +440,75 @@ To add new agent examples:
 - [vLLM Documentation](https://docs.vllm.ai/)
 - [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
 - [Flask Documentation](https://flask.palletsprojects.com/)
+
+---
+
+## **🚀 Kubernetes Examples**
+
+For production deployments and multi-node setups, check out our Kubernetes examples:
+
+### **Available Kubernetes Examples**
+
+1. **Basic AIM Deployment** (`kubernetes/basic-aim/`)
+   - Simple single AIM deployment
+   - Basic resource configuration
+   - Health monitoring and client interaction
+
+2. **Multi-Model AIMs** (`kubernetes/multi-model/`)
+   - Multiple AIM instances with different models
+   - Load balancing and model comparison
+   - Concurrent testing capabilities
+
+3. **AIM with Caching** (`kubernetes/cached-aim/`)
+   - Persistent volume caching
+   - Model caching across restarts
+   - Performance comparison
+
+4. **Scalable AIM** (`kubernetes/scalable-aim/`)
+   - Horizontal Pod Autoscaler
+   - Load-based scaling
+   - Load testing and performance monitoring
+
+5. **AIM with Monitoring** (`kubernetes/monitored-aim/`)
+   - Prometheus metrics
+   - Grafana dashboards
+   - Health checks and alerts
+
+6. **Production AIM** (`kubernetes/production-aim/`)
+   - High availability setup
+   - Security policies
+   - Backup and recovery
+
+### **Quick Start with Kubernetes**
+
+```bash
+# Deploy AIM Engine operator
+cd k8s/operator
+./scripts/setup-and-test-operator.sh
+
+# Deploy a basic AIM
+cd examples/kubernetes/basic-aim
+./deploy.sh
+
+# Set up port forwarding
+kubectl port-forward svc/basic-aim 8000:8000 -n aim-engine
+
+# Run the client
+python3 client.py
+```
+
+### **Kubernetes vs Docker Examples**
+
+| Feature | Docker Examples | Kubernetes Examples |
+|---------|----------------|-------------------|
+| **Deployment** | Single node | Multi-node cluster |
+| **Scaling** | Manual | Automatic (HPA) |
+| **High Availability** | No | Yes |
+| **Resource Management** | Basic | Advanced |
+| **Monitoring** | Limited | Comprehensive |
+| **Use Case** | Development/Testing | Production |
+
+For detailed Kubernetes examples documentation, see [kubernetes/README.md](kubernetes/README.md).
 
 ---
 

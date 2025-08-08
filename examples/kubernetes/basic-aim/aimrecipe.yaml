@@ -1,0 +1,43 @@
+apiVersion: aim.engine.amd.com/v1alpha1
+kind: AIMRecipe
+metadata:
+  name: qwen-7b-basic
+  namespace: aim-engine
+spec:
+  modelId: "Qwen/Qwen2.5-7B-Instruct"
+  backend: "vllm"
+  hardware: "MI300X"
+  precision: "bfloat16"
+  description: "Basic Qwen2.5-7B-Instruct model recipe for simple deployments"
+  configurations:
+    - gpuCount: 1
+      enabled: true
+      resources:
+        requests:
+          cpu: "4"
+          memory: "16Gi"
+          amd.com/gpu: "1"
+        limits:
+          cpu: "8"
+          memory: "32Gi"
+          amd.com/gpu: "1"
+      env:
+        - name: VLLM_USE_ROCM
+          value: "1"
+        - name: PYTORCH_ROCM_ARCH
+          value: "gfx90a"
+        - name: HIP_VISIBLE_DEVICES
+          value: "0"
+      args:
+        - "--model"
+        - "Qwen/Qwen2.5-7B-Instruct"
+        - "--dtype"
+        - "bfloat16"
+        - "--tensor-parallel-size"
+        - "1"
+        - "--max-model-len"
+        - "8192"
+  performance:
+    expectedLatencyMs: 100
+    expectedTokensPerSecond: 1000
+    maxBatchSize: 32 

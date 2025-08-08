@@ -1,0 +1,37 @@
+apiVersion: aim.engine.amd.com/v1alpha1
+kind: AIMEndpoint
+metadata:
+  name: basic-aim
+  namespace: aim-engine
+spec:
+  model:
+    id: "Qwen/Qwen2.5-7B-Instruct"
+    version: "latest"
+  recipe:
+    autoSelect: true
+    gpuCount: 1
+  resources:
+    cpu: "4"
+    memory: "16Gi"
+    gpuCount: 1
+    cpuLimit: "8"
+    memoryLimit: "32Gi"
+  scaling:
+    minReplicas: 1
+    maxReplicas: 1
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  cache:
+    enabled: false
+  service:
+    type: "NodePort"
+    port: 8000
+    targetPort: 8000
+  deployment:
+    strategy:
+      type: "RollingUpdate"
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+  monitoring:
+    enabled: false 
