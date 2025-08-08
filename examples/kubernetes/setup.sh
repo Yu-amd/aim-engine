@@ -3,8 +3,6 @@
 # AIM Engine Kubernetes Examples Setup Script
 # This script sets up the Python environment and provides a menu for running examples
 
-set -e
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -135,11 +133,15 @@ check_crds() {
     
     if [[ $crds_found -eq 3 ]]; then
         print_success "All CRDs are available"
-        return 0
+    elif [[ $crds_found -gt 0 ]]; then
+        print_warning "Some CRDs are available ($crds_found/3). This may be sufficient for basic examples."
     else
-        print_warning "Some CRDs are missing. The operator may not be deployed."
-        return 1
+        print_error "No CRDs found. The operator may not be deployed."
+        print_status "You may need to deploy the operator first:"
+        echo "  cd k8s/operator && ./scripts/setup-and-test-operator.sh"
     fi
+    
+    return 0
 }
 
 # Function to run basic AIM example
