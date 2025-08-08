@@ -16,7 +16,42 @@ netstat -tlnp | grep 8000
 # 2. Use a different port for AIM (update examples accordingly)
 ```
 
-### 1. AIM Endpoint
+### 1. Python Dependencies
+Install required packages:
+
+```bash
+pip install requests flask
+```
+
+## Setup AIM Endpoint
+
+### Start AIM
+Before running any examples, you need to start an AIM endpoint:
+
+```bash
+# Launch model with auto-detection
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  aim-vllm:latest \
+  aim-generate Qwen/Qwen3-32B
+
+# Start interactive shell
+docker run --rm -it \
+  --device=/dev/kfd \
+  --device=/dev/dri \
+  --group-add=video \
+  --group-add=render \
+  -v /workspace/model-cache:/workspace/model-cache \
+  -p 8000:8000 \
+  aim-vllm:latest \
+  aim-shell
+```
+
+### Verify AIM is Running
 Ensure your AIM (AMD Inference Microservice) endpoint is running and ready on port 8000:
 
 ```bash
@@ -25,13 +60,15 @@ curl -f http://localhost:8000/health
 
 # Test if models are loaded and ready
 curl -f http://localhost:8000/v1/models
-```
 
-### 2. Python Dependencies
-Install required packages:
-
-```bash
-pip install requests flask
+# Test a simple inference request
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen/Qwen3-32B",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "max_tokens": 10
+  }'
 ```
 
 ## Available Examples
@@ -160,49 +197,30 @@ Automated setup and testing script.
 ./docker/quick_start.sh
 ```
 
-## Common Commands
+## Quick Start Workflow
 
-### Start AIM
-```bash
-# Launch model with auto-detection
-docker run --rm -it \
-  --device=/dev/kfd \
-  --device=/dev/dri \
-  --group-add=video \
-  --group-add=render \
-  -v /workspace/model-cache:/workspace/model-cache \
-  aim-vllm:latest \
-  aim-generate Qwen/Qwen3-32B
+1. **Start AIM Endpoint**:
+   ```bash
+   docker run --rm -it \
+     --device=/dev/kfd \
+     --device=/dev/dri \
+     --group-add=video \
+     --group-add=render \
+     -v /workspace/model-cache:/workspace/model-cache \
+     -p 8000:8000 \
+     aim-vllm:latest \
+     aim-shell
+   ```
 
-# Start interactive shell
-docker run --rm -it \
-  --device=/dev/kfd \
-  --device=/dev/dri \
-  --group-add=video \
-  --group-add=render \
-  -v /workspace/model-cache:/workspace/model-cache \
-  -p 8000:8000 \
-  aim-vllm:latest \
-  aim-shell
-```
+2. **Verify AIM is Running**:
+   ```bash
+   curl -f http://localhost:8000/health
+   ```
 
-### Test AIM
-```bash
-# Test if the endpoint is responding
-curl -f http://localhost:8000/health
-
-# Test if models are loaded and ready
-curl -f http://localhost:8000/v1/models
-
-# Test a simple inference request
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "Qwen/Qwen3-32B",
-    "messages": [{"role": "user", "content": "Hello"}],
-    "max_tokens": 10
-  }'
-```
+3. **Run an Example**:
+   ```bash
+   python3 docker/simple_agent.py
+   ```
 
 ## Troubleshooting
 
@@ -241,6 +259,19 @@ curl -X POST http://localhost:8000/v1/chat/completions \
    
    # Clear cache if needed
    rm -rf /workspace/model-cache/*
+   ```
+
+5. **AIM not responding**
+   ```bash
+   # Check if AIM container is running
+   docker ps | grep aim-vllm
+   
+   # Check AIM logs
+   docker logs <container-name>
+   
+   # Restart AIM if needed
+   docker stop <container-name>
+   docker run ... # (restart command)
    ```
 
 ### Performance Optimization
