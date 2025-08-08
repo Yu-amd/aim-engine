@@ -16,29 +16,16 @@ netstat -tlnp | grep 8000
 # 2. Use a different port for AIM (update examples accordingly)
 ```
 
-### 1. Python Dependencies
-Install required packages using a virtual environment (recommended for PEP 668 compliance):
+### 1. Port Requirements
+**Important**: All examples require port 8000 to be available for the AIM endpoint.
 
 ```bash
-# Create a virtual environment
-python3 -m venv aim-examples-env
+# Check if port 8000 is available
+netstat -tlnp | grep 8000
 
-# Activate the virtual environment
-source aim-examples-env/bin/activate
-
-# Install required packages
-pip install requests flask
-
-# Verify installation
-pip list
-```
-
-**Note**: Modern Python installations (PEP 668) prevent system-wide package installation. Using a virtual environment is the recommended approach.
-
-**Alternative**: Use the quick start script which handles this automatically:
-```bash
-cd examples/docker
-./quick_start.sh
+# If port 8000 is in use, either:
+# 1. Stop the service using port 8000, or
+# 2. Use a different port for AIM (update examples accordingly)
 ```
 
 ## Setup AIM Endpoint
@@ -87,6 +74,33 @@ curl -X POST http://localhost:8000/v1/chat/completions \
     "messages": [{"role": "user", "content": "Hello"}],
     "max_tokens": 10
   }'
+```
+
+## Setup Python Environment
+
+### Python Dependencies
+Install required packages using a virtual environment (recommended for PEP 668 compliance):
+
+```bash
+# Create a virtual environment
+python3 -m venv aim-examples-env
+
+# Activate the virtual environment
+source aim-examples-env/bin/activate
+
+# Install required packages
+pip install requests flask
+
+# Verify installation
+pip list
+```
+
+**Note**: Modern Python installations (PEP 668) prevent system-wide package installation. Using a virtual environment is the recommended approach.
+
+**Alternative**: Use the quick start script which handles this automatically:
+```bash
+cd examples/docker
+./quick_start.sh
 ```
 
 ## Available Examples
@@ -250,19 +264,7 @@ The script will:
 
 ### **Option 2: Manual Setup**
 
-1. **Set up Python Environment**:
-   ```bash
-   # Create virtual environment
-   python3 -m venv aim-examples-env
-   
-   # Activate virtual environment
-   source aim-examples-env/bin/activate
-   
-   # Install dependencies
-   pip install requests flask
-   ```
-
-2. **Start AIM Endpoint**:
+1. **Start AIM Endpoint**:
    ```bash
    docker run --rm -it \
      --device=/dev/kfd \
@@ -275,9 +277,21 @@ The script will:
      aim-shell
    ```
 
-3. **Verify AIM is Running**:
+2. **Verify AIM is Running**:
    ```bash
    curl -f http://localhost:8000/health
+   ```
+
+3. **Set up Python Environment**:
+   ```bash
+   # Create virtual environment
+   python3 -m venv aim-examples-env
+   
+   # Activate virtual environment
+   source aim-examples-env/bin/activate
+   
+   # Install dependencies
+   pip install requests flask
    ```
 
 4. **Run an Example** (with virtual environment activated):
