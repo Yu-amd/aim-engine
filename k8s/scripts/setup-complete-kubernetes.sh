@@ -2,7 +2,7 @@
 
 # AIM Engine Kubernetes Setup Script
 # This script sets up a complete Kubernetes cluster with AMD GPU support
-# and deploys AIM Engine with all necessary configurations
+# and prepares it for AIM Engine operator and example deployments
 
 set -e
 
@@ -567,189 +567,37 @@ log_info "Step 12: Installing Helm..."
     exit 1
 }
 
-# Step 13: Deploy AIM Engine
-log_info "Step 13: Deploying AIM Engine..."
+# Step 13: Setup AIM Engine Namespace (without deploying AIM instance)
+log_info "Step 13: Setting up AIM Engine namespace..."
 {
-    # Change to helm directory
-    cd /root/aim-engine/k8s/helm
+    # Create namespace for AIM Engine examples
+    kubectl create namespace ${AIM_ENGINE_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
     
-    # Clean up any existing resources that might conflict
-    log_info "Cleaning up any conflicting resources..."
-    
-    # Delete deployment first (which will delete pods)
-    kubectl delete deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
-    
-    # Wait for pods to be terminated
-    log_info "Waiting for pods to terminate..."
-    kubectl wait --for=delete pod -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=60s 2>/dev/null || true
-    
-    # Now delete other resources
-    kubectl delete serviceaccount aim-engine-sa -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
-    kubectl delete service aim-engine-service -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
-    
-    # Delete PVC with force if it's stuck
-    if kubectl get pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} >/dev/null 2>&1; then
-        log_info "Deleting PVC..."
-        kubectl delete pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} --timeout=30s || {
-            log_warning "PVC deletion timed out, forcing removal..."
-            kubectl patch pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} -p '{"metadata":{"finalizers":[]}}' --type=merge
-            kubectl delete pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} --ignore-not-found=true
-        }
-    fi
-    
-    # Wait a moment for cleanup
-    sleep 5
-    
-    # Try Helm deployment first
-    log_info "Attempting Helm deployment..."
-    if timeout 300 helm install aim-engine . \
-        --namespace ${AIM_ENGINE_NAMESPACE} \
-        --set image.repository=localhost:${REGISTRY_PORT}/aim-vllm \
-        --set image.tag=latest \
-        --set image.pullPolicy=IfNotPresent \
-        --set aim_engine.recipe.auto_select=false \
-        --set aim_engine.recipe.gpu_count=1 \
-        --set aim_engine.recipe.model_id="Qwen/Qwen2.5-7B-Instruct" \
-        --set aim_engine.recipe.precision=bfloat16 \
-        --set resources.limits.memory=32Gi \
-        --set resources.requests.memory=16Gi \
-        --set livenessProbe.enabled=false \
-        --set readinessProbe.enabled=false \
-        --set service.type=NodePort \
-        --set service.port=8000 \
-        --set service.targetPort=8000; then
-        
-        log_success "AIM Engine deployed via Helm"
-    else
-        log_warning "Helm deployment failed, using manual deployment..."
-        
-        # Create resources manually for fallback
-        log_info "Creating resources manually..."
-        
-        # Create ServiceAccount
-        kubectl create serviceaccount aim-engine-sa -n ${AIM_ENGINE_NAMESPACE}
-        
-        # Wait for PVC to be fully deleted before recreating
-        log_info "Waiting for PVC to be fully deleted..."
-        kubectl wait --for=delete pvc aim-engine-pvc -n ${AIM_ENGINE_NAMESPACE} --timeout=60s 2>/dev/null || true
-        sleep 5
-        
-        # Create PVC
-        cat << EOF | kubectl apply -f -
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: aim-engine-pvc
-  namespace: ${AIM_ENGINE_NAMESPACE}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Gi
-  storageClassName: local-path
-EOF
-        
-        # Create Service
-        cat << EOF | kubectl apply -f -
-apiVersion: v1
-kind: Service
-metadata:
-  name: aim-engine-service
-  namespace: ${AIM_ENGINE_NAMESPACE}
-spec:
-  type: NodePort
-  ports:
-    - port: 8000
-      targetPort: 8000
-      protocol: TCP
-      name: http
-  selector:
-    app.kubernetes.io/name: aim-engine
-    app.kubernetes.io/instance: aim-engine
-EOF
-        
-        # Use manual deployment as fallback
-        kubectl apply -f /root/aim-engine/k8s/aim-engine-deployment.yaml
-        
-        # Ensure deployment is scaled to 1
-        kubectl scale deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} --replicas=1
-        
-        log_success "AIM Engine deployed manually"
-    fi
-    
+    log_success "AIM Engine namespace ready for examples"
 } || {
-    log_error "AIM Engine deployment failed"
+    log_error "AIM Engine namespace setup failed"
     exit 1
 }
 
-# Step 14: Wait for deployment and verify
-log_info "Step 14: Waiting for deployment to be ready..."
+# Step 14: Setup complete
+log_info "Step 14: Kubernetes cluster setup complete!"
 {
-    # Wait for PVC to be bound
-    kubectl wait --for=condition=bound pvc -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=300s
-    
-    # Ensure deployment exists and is scaled to 1
-    if ! kubectl get deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} >/dev/null 2>&1; then
-        log_warning "Deployment not found, creating it..."
-        kubectl apply -f /root/aim-engine/k8s/aim-engine-deployment.yaml
-    fi
-    
-    # Scale deployment to 1 if needed
-    kubectl scale deployment aim-engine -n ${AIM_ENGINE_NAMESPACE} --replicas=1
-    
-    # Wait a moment for the deployment to create pods
-    sleep 10
-    
-    # Wait for pod to be ready with retries
-    max_retries=3
-    retry_count=0
-    
-    while [[ $retry_count -lt $max_retries ]]; do
-        if kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=aim-engine -n ${AIM_ENGINE_NAMESPACE} --timeout=600s; then
-            break
-        else
-            retry_count=$((retry_count + 1))
-            log_warning "Pod not ready, retry $retry_count/$max_retries"
-            
-            # Check if there are any issues with the pod
-            pod_name=$(kubectl get pods -n ${AIM_ENGINE_NAMESPACE} -l app.kubernetes.io/name=aim-engine -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-            if [[ -n "$pod_name" ]]; then
-                log_info "Pod status:"
-                kubectl describe pod $pod_name -n ${AIM_ENGINE_NAMESPACE} | tail -20
-            fi
-            
-            # Wait a bit before retrying
-            sleep 30
-        fi
-    done
-    
-    if [[ $retry_count -eq $max_retries ]]; then
-        log_error "Pod failed to become ready after $max_retries retries"
-        exit 1
-    fi
-    
-    # Get service details
-    NODEPORT=$(kubectl get svc -n ${AIM_ENGINE_NAMESPACE} aim-engine-service -o jsonpath='{.spec.ports[0].nodePort}')
     NODE_IP=$(hostname -I | awk '{print $1}')
     
-    log_success "AIM Engine is ready!"
-    log_info "Access your AIM Engine at: http://${NODE_IP}:${NODEPORT}"
-    log_info "Health check: curl http://${NODE_IP}:${NODEPORT}/health"
-    log_info "Models: curl http://${NODE_IP}:${NODEPORT}/v1/models"
-    
-    # Verify the service is actually working
-    log_info "Verifying service is working..."
-    sleep 10  # Give the service a moment to be ready
-    
-    if curl -s http://${NODE_IP}:${NODEPORT}/health > /dev/null; then
-        log_success "Health check passed!"
-    else
-        log_warning "Health check failed, but deployment may still be starting up"
-    fi
+    log_success "Kubernetes cluster is ready!"
+    log_info "Cluster Status:"
+    kubectl get nodes
+    echo
+    log_info "GPU Availability:"
+    kubectl get nodes -o json | jq '.items[0].status.allocatable."amd.com/gpu"' 2>/dev/null || echo "GPU information not available"
+    echo
+    log_info "Next Steps:"
+    log_info "1. Deploy the AIM Engine operator: cd k8s/operator && ./scripts/setup-and-test-operator.sh"
+    log_info "2. Run Kubernetes examples: cd examples/kubernetes && ./setup.sh"
+    log_info "3. Or use Docker examples: cd examples/docker && ./quick_start.sh"
     
 } || {
-    log_error "Deployment verification failed"
+    log_error "Final setup verification failed"
     exit 1
 }
 

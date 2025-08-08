@@ -153,21 +153,181 @@ run_basic_aim() {
         source "$VENV_ACTIVATE"
     fi
     
+    # Check available GPU resources first
+    print_status "Checking available GPU resources..."
+    local available_gpus=$(kubectl get nodes -o json | jq -r '.items[0].status.allocatable."amd.com/gpu"' 2>/dev/null || echo "0")
+    local used_gpus=$(kubectl get pods -n aim-engine -o json | jq -r '.items[] | select(.status.phase == "Running") | .spec.containers[0].resources.requests."amd.com/gpu" // 0' 2>/dev/null | awk '{sum += $1} END {print sum}')
+    
+    print_status "Available GPUs: $available_gpus, Currently used: $used_gpus"
+    
+    if [[ "$available_gpus" -le "$used_gpus" ]]; then
+        print_warning "No GPU resources available. The basic-aim example requires 1 GPU."
+        print_status "Options:"
+        echo "  1. Stop the existing aim-engine deployment: kubectl scale deployment aim-engine --replicas=0 -n aim-engine"
+        echo "  2. Use a different example that doesn't require GPU"
+        echo "  3. Wait for GPU resources to become available"
+        read -p "Would you like to stop the aim-engine deployment to free up GPU? (y/n): " choice
+        if [[ "$choice" =~ ^[Yy]$ ]]; then
+            print_status "Stopping aim-engine deployment..."
+            kubectl scale deployment aim-engine --replicas=0 -n aim-engine
+            print_status "Waiting for aim-engine pod to stop..."
+            kubectl wait --for=delete pod -l app.kubernetes.io/name=aim-endpoint -n aim-engine --timeout=60s 2>/dev/null || true
+            print_status "GPU should now be available. Continuing with basic-aim deployment..."
+        else
+            print_status "Skipping basic-aim deployment due to insufficient GPU resources."
+            return 1
+        fi
+    fi
+    
     # Deploy the example
     print_status "Deploying Basic AIM..."
     kubectl apply -f "$SCRIPT_DIR/basic-aim/"
     
-    # Wait for deployment
+    # Wait for deployment with better error handling
     print_status "Waiting for AIM to be ready..."
-    kubectl wait --for=condition=available deployment/basic-aim -n aim-engine --timeout=300s
+    if kubectl wait --for=condition=available deployment/basic-aim -n aim-engine --timeout=300s 2>/dev/null; then
+        print_success "Basic AIM deployment is ready!"
+    else
+        print_warning "Basic AIM deployment is not ready yet. Checking pod status..."
+        kubectl get pods -n aim-engine | grep basic-aim
+        print_status "You can check pod details with: kubectl describe pod -n aim-engine -l app.kubernetes.io/instance=basic-aim"
+        print_status "The pod might be waiting for GPU resources or downloading the model."
+    fi
     
     # Check status
     print_status "Checking AIM status..."
     kubectl get aimendpoint -n aim-engine
     
+    # Check if we should set up port forwarding
+    print_status "Setting up port forwarding for basic-aim..."
+    print_status "Port forwarding will be available at http://localhost:8000"
+    print_status "Press Ctrl+C to stop port forwarding when done testing"
+    
+    # Start port forwarding in background
+    kubectl port-forward svc/basic-aim 8000:8000 -n aim-engine &
+    local port_forward_pid=$!
+    
+    # Wait a moment for port forwarding to start
+    sleep 3
+    
     # Run the client
     print_status "Running Basic AIM client..."
-    python3 "$SCRIPT_DIR/basic-aim/client.py"
+    if python3 "$SCRIPT_DIR/basic-aim/client.py"; then
+        print_success "Basic AIM client completed successfully!"
+    else
+        print_warning "Basic AIM client encountered issues. The AIM might still be starting up."
+        print_status "You can check the AIM logs with: kubectl logs -n aim-engine -l app.kubernetes.io/instance=basic-aim"
+    fi
+    
+    # Stop port forwarding
+    print_status "Stopping port forwarding..."
+    kill $port_forward_pid 2>/dev/null || true
+}
+
+# Function to run basic AIM example (CPU-only)
+run_basic_aim_cpu() {
+    print_status "Running Basic AIM example (CPU-only)..."
+    
+    # Ensure virtual environment is active
+    if ! is_venv_active; then
+        source "$VENV_ACTIVATE"
+    fi
+    
+    # Deploy the CPU-only example
+    print_status "Deploying Basic AIM (CPU-only)..."
+    kubectl apply -f "$SCRIPT_DIR/basic-aim/aimendpoint-cpu.yaml"
+    
+    # Wait for deployment with better error handling
+    print_status "Waiting for AIM to be ready..."
+    if kubectl wait --for=condition=available deployment/basic-aim-cpu -n aim-engine --timeout=300s 2>/dev/null; then
+        print_success "Basic AIM (CPU-only) deployment is ready!"
+    else
+        print_warning "Basic AIM (CPU-only) deployment is not ready yet. Checking pod status..."
+        kubectl get pods -n aim-engine | grep basic-aim-cpu
+        print_status "You can check pod details with: kubectl describe pod -n aim-engine -l app.kubernetes.io/instance=basic-aim-cpu"
+        print_status "The pod might be downloading the model (this can take several minutes)."
+    fi
+    
+    # Check status
+    print_status "Checking AIM status..."
+    kubectl get aimendpoint -n aim-engine
+    
+    # Check if we should set up port forwarding
+    print_status "Setting up port forwarding for basic-aim-cpu..."
+    print_status "Port forwarding will be available at http://localhost:8001"
+    print_status "Press Ctrl+C to stop port forwarding when done testing"
+    
+    # Start port forwarding in background
+    kubectl port-forward svc/basic-aim-cpu 8001:8000 -n aim-engine &
+    local port_forward_pid=$!
+    
+    # Wait a moment for port forwarding to start
+    sleep 3
+    
+    # Run the client (modify to use port 8001)
+    print_status "Running Basic AIM client (CPU-only)..."
+    print_status "Note: CPU-only inference will be slower than GPU inference"
+    
+    # Create a temporary client script for CPU version
+    local temp_client="$SCRIPT_DIR/basic-aim/client_cpu.py"
+    cat > "$temp_client" << 'EOF'
+#!/usr/bin/env python3
+import requests
+import time
+import sys
+
+def main():
+    print("🚀 Basic AIM Client for Kubernetes (CPU-only)")
+    print("=" * 50)
+    
+    base_url = "http://localhost:8001"
+    
+    # Check health
+    print("Checking AIM health...")
+    try:
+        response = requests.get(f"{base_url}/health", timeout=10)
+        if response.status_code == 200:
+            print("✅ AIM is healthy!")
+        else:
+            print(f"❌ AIM health check failed: {response.status_code}")
+            return
+    except requests.exceptions.RequestException as e:
+        print(f"❌ AIM is not healthy: {e}")
+        print("The AIM might still be starting up. Please wait a few minutes and try again.")
+        return
+    
+    # Test models endpoint
+    print("\nTesting models endpoint...")
+    try:
+        response = requests.get(f"{base_url}/v1/models", timeout=10)
+        if response.status_code == 200:
+            models = response.json()
+            print(f"✅ Models available: {models}")
+        else:
+            print(f"❌ Models endpoint failed: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Models endpoint error: {e}")
+    
+    print("\n✅ Basic AIM (CPU-only) test completed!")
+    print("Note: CPU inference is slower than GPU inference")
+
+if __name__ == "__main__":
+    main()
+EOF
+    
+    if python3 "$temp_client"; then
+        print_success "Basic AIM (CPU-only) client completed successfully!"
+    else
+        print_warning "Basic AIM (CPU-only) client encountered issues. The AIM might still be starting up."
+        print_status "You can check the AIM logs with: kubectl logs -n aim-engine -l app.kubernetes.io/instance=basic-aim-cpu"
+    fi
+    
+    # Clean up temporary file
+    rm -f "$temp_client"
+    
+    # Stop port forwarding
+    print_status "Stopping port forwarding..."
+    kill $port_forward_pid 2>/dev/null || true
 }
 
 # Function to run multi-model example
@@ -331,12 +491,13 @@ show_menu() {
     echo
     echo "1. Setup Python Environment"
     echo "2. Check Status"
-    echo "3. Run Basic AIM Example"
-    echo "4. Run Multi-Model Example"
-    echo "5. Run Cached AIM Example"
-    echo "6. Run Scalable AIM Example"
-    echo "7. Cleanup All Examples"
-    echo "8. Exit"
+    echo "3. Run Basic AIM Example (GPU)"
+    echo "4. Run Basic AIM Example (CPU-only)"
+    echo "5. Run Multi-Model Example"
+    echo "6. Run Cached AIM Example"
+    echo "7. Run Scalable AIM Example"
+    echo "8. Cleanup All Examples"
+    echo "9. Exit"
     echo
     echo "Note: Make sure the AIM Engine operator is deployed first!"
     echo "      Run: cd k8s/operator && ./scripts/setup-and-test-operator.sh"
@@ -360,23 +521,26 @@ handle_menu() {
                 run_basic_aim
                 ;;
             4)
-                run_multi_model
+                run_basic_aim_cpu
                 ;;
             5)
-                run_cached_aim
+                run_multi_model
                 ;;
             6)
-                run_scalable_aim
+                run_cached_aim
                 ;;
             7)
-                cleanup_examples
+                run_scalable_aim
                 ;;
             8)
+                cleanup_examples
+                ;;
+            9)
                 print_status "Exiting..."
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please select 1-8."
+                print_error "Invalid option. Please select 1-9."
                 ;;
         esac
         

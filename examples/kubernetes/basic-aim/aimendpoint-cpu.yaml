@@ -1,7 +1,7 @@
 apiVersion: aim.engine.amd.com/v1alpha1
 kind: AIMEndpoint
 metadata:
-  name: cached-aim
+  name: basic-aim-cpu
   namespace: aim-engine
 spec:
   model:
@@ -12,24 +12,20 @@ spec:
     tag: "latest"
   recipe:
     autoSelect: true
-    gpuCount: 1
+    gpuCount: 0
   resources:
-    cpu: "4"
-    memory: "16Gi"
-    gpuCount: 1
-    cpuLimit: "8"
-    memoryLimit: "32Gi"
+    cpu: "8"
+    memory: "32Gi"
+    gpuCount: 0
+    cpuLimit: "16"
+    memoryLimit: "64Gi"
   scaling:
     minReplicas: 1
     maxReplicas: 1
     targetCPUUtilization: 70
     targetMemoryUtilization: 80
   cache:
-    enabled: true
-    storage:
-      size: "50Gi"
-      accessMode: "ReadWriteOnce"
-      storageClass: "local-path"
+    enabled: false
   service:
     type: "NodePort"
     port: 8000

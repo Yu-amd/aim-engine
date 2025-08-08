@@ -7,6 +7,9 @@ spec:
   model:
     id: "Qwen/Qwen2.5-7B-Instruct"
     version: "latest"
+  image:
+    repository: "localhost:5000/aim-vllm"
+    tag: "latest"
   recipe:
     autoSelect: true
     gpuCount: 1
