@@ -1,11 +1,11 @@
-# AIM Engine Docker Examples
+# AIM Docker Examples
 
-This directory contains various agent-based applications that use the AIM Engine vLLM endpoint for intelligent interactions in a Docker environment.
+This directory contains various agent-based applications that use AIM (AMD Inference Microservice) endpoints for intelligent interactions in a Docker environment.
 
 ## Prerequisites
 
 ### 0. Port Requirements
-**Important**: All examples require port 8000 to be available for the AIM Engine endpoint.
+**Important**: All examples require port 8000 to be available for the AIM endpoint.
 
 ```bash
 # Check if port 8000 is available
@@ -13,11 +13,11 @@ netstat -tlnp | grep 8000
 
 # If port 8000 is in use, either:
 # 1. Stop the service using port 8000, or
-# 2. Use a different port for AIM Engine (update examples accordingly)
+# 2. Use a different port for AIM (update examples accordingly)
 ```
 
-### 1. AIM Engine Endpoint
-Ensure your AIM Engine endpoint is running and ready on port 8000:
+### 1. AIM Endpoint
+Ensure your AIM (AMD Inference Microservice) endpoint is running and ready on port 8000:
 
 ```bash
 # Test if the endpoint is responding
@@ -119,7 +119,7 @@ python3 docker/web_agent.py
 - API endpoint: http://localhost:5000/api/chat
 
 ### 4. Test Streaming (`test_streaming.py`)
-Test script for streaming responses from AIM Engine.
+Test script for streaming responses from AIM.
 
 **Features:**
 - Streaming response testing
@@ -150,7 +150,7 @@ python3 docker/check_web_access.py
 Automated setup and testing script.
 
 **Features:**
-- Automated AIM Engine setup
+- Automated AIM setup
 - Health checks
 - Model loading verification
 - Example interactions
@@ -162,7 +162,7 @@ Automated setup and testing script.
 
 ## Common Commands
 
-### Start AIM Engine
+### Start AIM
 ```bash
 # Launch model with auto-detection
 docker run --rm -it \
@@ -186,7 +186,7 @@ docker run --rm -it \
   aim-shell
 ```
 
-### Test AIM Engine
+### Test AIM
 ```bash
 # Test if the endpoint is responding
 curl -f http://localhost:8000/health
@@ -292,7 +292,7 @@ Adapt your teaching style to the student's level."""
 ## 📈 Scaling Considerations
 
 ### For Production Use:
-1. **Load Balancing**: Use multiple AIM Engine instances
+1. **Load Balancing**: Use multiple AIM instances
 2. **Caching**: Implement response caching
 3. **Monitoring**: Add logging and metrics
 4. **Database**: Store conversations in a database
