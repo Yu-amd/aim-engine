@@ -94,10 +94,18 @@ cd k8s/operator
 ```
 
 ### 3. Python Dependencies
-Install required packages:
+Install required packages in a virtual environment:
 
 ```bash
+# Create and activate virtual environment
+python3 -m venv kubernetes-venv
+source kubernetes-venv/bin/activate
+
+# Install dependencies
 pip install kubernetes requests flask
+
+# Note: Always activate the virtual environment before running examples
+# source kubernetes-venv/bin/activate
 ```
 
 ## Available Examples
@@ -119,7 +127,8 @@ kubectl apply -f examples/kubernetes/basic-aim/
 # Check status
 kubectl get aimendpoint -n aim-engine
 
-# Run the client
+# Run the client (make sure virtual environment is activated)
+source kubernetes-venv/bin/activate
 python3 examples/kubernetes/basic-aim/client.py
 ```
 
@@ -140,7 +149,8 @@ kubectl apply -f examples/kubernetes/multi-model/
 # Check all AIMs
 kubectl get aimendpoint -n aim-engine
 
-# Run the multi-model client
+# Run the multi-model client (make sure virtual environment is activated)
+source kubernetes-venv/bin/activate
 python3 examples/kubernetes/multi-model/client.py
 ```
 
@@ -161,7 +171,8 @@ kubectl apply -f examples/kubernetes/cached-aim/
 # Monitor cache usage
 kubectl get pvc -n aim-engine
 
-# Run the cached client
+# Run the cached client (make sure virtual environment is activated)
+source kubernetes-venv/bin/activate
 python3 examples/kubernetes/cached-aim/client.py
 ```
 
@@ -182,7 +193,8 @@ kubectl apply -f examples/kubernetes/scalable-aim/
 # Check HPA status
 kubectl get hpa -n aim-engine
 
-# Run load test
+# Run load test (make sure virtual environment is activated)
+source kubernetes-venv/bin/activate
 python3 examples/kubernetes/scalable-aim/load_test.py
 ```
 
@@ -203,7 +215,8 @@ kubectl apply -f examples/kubernetes/monitored-aim/
 # Access Grafana dashboard
 kubectl port-forward svc/grafana 3000:3000 -n monitoring
 
-# Run the monitored client
+# Run the monitored client (make sure virtual environment is activated)
+source kubernetes-venv/bin/activate
 python3 examples/kubernetes/monitored-aim/client.py
 ```
 
@@ -225,7 +238,8 @@ kubectl apply -f examples/kubernetes/production-aim/
 # Check all resources
 kubectl get all -n aim-engine
 
-# Run production tests
+# Run production tests (make sure virtual environment is activated)
+source kubernetes-venv/bin/activate
 python3 examples/kubernetes/production-aim/test_suite.py
 ```
 
@@ -291,6 +305,27 @@ kubectl delete -f examples/kubernetes/<example-name>/
 ```
 
 ## Troubleshooting
+
+### Python Dependencies Issues
+If you encounter `externally-managed-environment` errors:
+
+```bash
+# Ensure python3-venv is installed
+sudo apt update
+sudo apt install -y python3-venv
+
+# Create virtual environment
+python3 -m venv kubernetes-venv
+source kubernetes-venv/bin/activate
+
+# Install dependencies
+pip install kubernetes requests flask
+```
+
+**Note**: Always activate the virtual environment before running Python examples:
+```bash
+source kubernetes-venv/bin/activate
+```
 
 ### AIM Not Starting
 ```bash
