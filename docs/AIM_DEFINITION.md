@@ -520,14 +520,6 @@ python3 validate_aim_recipe_yaml.py --all
 - [Recipe Template](src/aim/templates/model_template.yaml)
 - [Blueprint Template](src/aim/templates/blueprint_catalog_template.yaml)
 
-## Support
-
-For questions, issues, or contributions:
-- **Documentation**: Check this overview and README files
-- **Validation**: Run validation scripts to identify issues
-- **Examples**: Review existing recipe configurations
-- **Community**: Contribute improvements and new recipes
-
 ---
 
-*Last updated: January 2025* 
+*Last updated: July 2025* 
