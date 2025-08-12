@@ -104,7 +104,7 @@ AIM Engine leverages AIM framework validation:
 
 ```python
 # AIM Framework validation (from AIM_DEFINITION.md)
-python3 validate_aim_recipe_yaml.py recipes/qwen3-32b-mi250-bf16.yaml
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipe config/recipes/qwen3-32b-mi250-bf16.yaml
 
 # AIM Engine validation integration
 kubectl apply -f aimendpoint.yaml
@@ -309,7 +309,7 @@ kubectl describe aimrecipe <recipe-name>
 kubectl logs -n aim-engine deployment/aim-engine-operator
 
 # Verify recipe syntax
-python3 validate_aim_recipe_yaml.py <recipe-file>
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipe <recipe-file>
 ```
 
 #### Performance Issues
@@ -351,8 +351,8 @@ nvidia-smi  # or rocm-smi for AMD GPUs
 - [Multi-Model Setup](../examples/kubernetes/multi-model/) - Multiple model deployment
 
 ### Tools
-- [Recipe Validator](../src/aim_engine/validation/) - AIM framework recipe validation
-- [Performance Monitor](../src/aim_engine/monitoring/) - AIM Engine monitoring tools
+- [Recipe Validator](../src/aim_engine/aim_recipe_selector.py) - AIM framework recipe validation
+- [Performance Monitor](../src/aim_engine/) - AIM Engine monitoring tools
 - [Deployment Scripts](../scripts/) - Automated deployment scripts
 
 ---

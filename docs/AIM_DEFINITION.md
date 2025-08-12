@@ -26,14 +26,17 @@ The AIM framework consists of several key components:
 
 ### Directory Structure
 ```
-src/aim/
+config/
 ├── models/                    # Model catalog YAML files
 ├── recipes/                   # AIM recipe YAML files
-├── blueprints/                # Blueprint YAML files
 ├── templates/                 # Template files
-├── *.json                     # Schema files
-├── *.py                       # Validation scripts
-└── requirements.txt           # Python dependencies
+└── aim_recipe_schema.json     # Schema files
+
+src/aim_engine/
+├── aim_recipe_selector.py     # Recipe selection and validation
+├── aim_config_generator.py    # Configuration generation
+├── aim_cache_manager.py       # Cache management
+└── aim_generate_command.py    # Command generation
 ```
 
 ## AIM Recipes
@@ -284,14 +287,14 @@ sglang_serve:
 
 #### Python Validation Script
 ```bash
-# Validate a single recipe
-python3 validate_aim_recipe_yaml.py recipes/qwen3-32b-mi250-bf16.yaml
+# Validate a single recipe using AIM Engine
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipe config/recipes/qwen3-32b-mi250-bf16.yaml
 
-# Validate all recipes
-python3 validate_aim_recipe_yaml.py --all
+# Validate all recipes in config directory
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipes-dir config/recipes
 
 # Validate recipes in custom directory
-python3 validate_aim_recipe_yaml.py --recipes-dir /path/to/recipes
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipes-dir /path/to/recipes
 ```
 
 #### Validation Checks
@@ -305,21 +308,21 @@ python3 validate_aim_recipe_yaml.py --recipes-dir /path/to/recipes
 
 #### Model Validation
 ```bash
-# Validate a single model
-python3 validate_model_yaml.py models/qwen3-32b.yaml
+# Validate a single model using AIM Engine
+python3 src/aim_engine/aim_recipe_selector.py --validate-model --model config/models/qwen3-32b.yaml
 
-# Validate all models
-python3 validate_model_yaml.py --all
+# Validate all models in config directory
+python3 src/aim_engine/aim_recipe_selector.py --validate-models --models-dir config/models
 ```
 
 #### Model Card Fetching
 ```bash
-# Fetch model cards from Hugging Face
-python3 fetch_model_cards.py --models-dir models
+# Fetch model cards from Hugging Face (using AIM Engine tools)
+python3 src/aim_engine/aim_recipe_selector.py --fetch-model-cards --models-dir config/models
 
 # With API token for better rate limits
 export HF_TOKEN=your_token
-python3 fetch_model_cards.py --models-dir models
+python3 src/aim_engine/aim_recipe_selector.py --fetch-model-cards --models-dir config/models
 ```
 
 ## Best Practices
@@ -472,7 +475,7 @@ vllm_serve:
 #### Validation Errors
 ```bash
 # Check schema compliance
-python3 validate_aim_recipe_yaml.py recipe.yaml
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipe recipe.yaml
 
 # Verify file naming
 recipe_id: should-match-filename
@@ -486,7 +489,7 @@ model_id: should-match-huggingface_id
 Enable debug logging for detailed information:
 ```bash
 export AIM_DEBUG=true
-python3 validate_aim_recipe_yaml.py --all
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipes-dir config/recipes
 ```
 
 ## Future Enhancements
@@ -507,18 +510,18 @@ python3 validate_aim_recipe_yaml.py --all
 ## Resources
 
 ### Documentation
-- [AIM Recipe Schema](src/aim/aim_recipe_schema.json)
-- [Model Catalog Schema](src/aim/model_catalog_schema.json)
-- [Validation Scripts](src/aim/validate_aim_recipe_yaml.py)
+- [AIM Recipe Schema](../config/aim_recipe_schema.json)
+- [Model Catalog Schema](../config/models/) - Model catalog directory
+- [Validation Scripts](../src/aim_engine/) - AIM Engine validation tools
 
 ### Tools
-- [Recipe Validator](src/aim/validate_aim_recipe_yaml.py)
-- [Model Validator](src/aim/validate_model_yaml.py)
-- [Model Card Fetcher](src/aim/fetch_model_cards.py)
+- [Recipe Validator](../src/aim_engine/aim_recipe_selector.py) - Recipe selection and validation
+- [Model Validator](../config/models/) - Model validation tools
+- [Model Card Fetcher](../config/models/) - Model catalog management
 
 ### Templates
-- [Recipe Template](src/aim/templates/model_template.yaml)
-- [Blueprint Template](src/aim/templates/blueprint_catalog_template.yaml)
+- [Recipe Template](../config/templates/) - Recipe templates directory
+- [Blueprint Template](../config/templates/) - Blueprint templates directory
 
 ---
 

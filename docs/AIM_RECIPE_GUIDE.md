@@ -380,13 +380,13 @@ Validate recipes before using with AIM Engine:
 
 ```bash
 # Validate single recipe
-python3 validate_aim_recipe_yaml.py recipes/qwen3-32b-mi250-bf16.yaml
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipe config/recipes/qwen3-32b-mi250-bf16.yaml
 
 # Validate all recipes
-python3 validate_aim_recipe_yaml.py --all
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipes-dir config/recipes
 
 # Validate with custom directory
-python3 validate_aim_recipe_yaml.py --recipes-dir /path/to/recipes
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipes-dir /path/to/recipes
 ```
 
 ### 2. AIM Engine Validation
@@ -501,7 +501,7 @@ kubectl get aimrecipe -n aim-engine
 kubectl describe aimrecipe <recipe-name>
 
 # Check recipe validation
-python3 validate_aim_recipe_yaml.py <recipe-file>
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipe <recipe-file>
 ```
 
 #### Performance Issues
@@ -528,7 +528,7 @@ customArgs:
 #### Validation Errors
 ```bash
 # Check recipe syntax
-python3 validate_aim_recipe_yaml.py recipe.yaml
+python3 src/aim_engine/aim_recipe_selector.py --validate --recipe recipe.yaml
 
 # Verify file naming
 recipe_id: should-match-filename
@@ -620,9 +620,9 @@ vllm_serve:
 - [Custom Recipes](../examples/kubernetes/multi-model/) - Custom recipe examples
 
 ### Tools
-- [Recipe Validator](../src/aim_engine/validation/) - Validation tools
+- [Recipe Validator](../src/aim_engine/aim_recipe_selector.py) - Validation tools
 - [Recipe Templates](../config/recipes/) - Recipe templates
-- [Performance Monitor](../src/aim_engine/monitoring/) - Monitoring tools
+- [Performance Monitor](../src/aim_engine/) - Monitoring tools
 
 ---
 
