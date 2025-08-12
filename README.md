@@ -4,6 +4,12 @@
 
 AIM Engine is a Kubernetes operator that manages the lifecycle of AIMs (AMD Inference Microservices) - AI model deployments with optimal configurations and built-in caching for AMD hardware.
 
+## What is AIM?
+
+**AIM (AMD Inference Microservice)** is a comprehensive framework for deploying and serving AI models on AMD hardware, specifically designed for AMD Instinct™ GPUs (MI250, MI300X, MI325X, MI355X, etc.). AIM provides standardized recipes and configurations for efficient model inference across different hardware configurations and precision formats.
+
+For detailed information about AIM, see [AIM Definition](docs/AIM_DEFINITION.md).
+
 ## **What AIM Engine Does**
 
 - **Declarative Management**: Define AIM deployments using Kubernetes custom resources

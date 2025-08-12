@@ -6,6 +6,10 @@ This directory contains the main documentation for the AIM Engine project.
 
 ### **Core Documentation**
 - **`README.md`** - Main documentation overview
+- **`AIM_DEFINITION.md`** - Comprehensive AIM (AMD Inference Microservice) definition and framework overview
+- **`AIM_ENGINE_INTEGRATION.md`** - How AIM Engine integrates with the AIM framework
+- **`AIM_RECIPE_GUIDE.md`** - Practical guide for using AIM recipes with AIM Engine
+- **`AIM_FRAMEWORK_SUMMARY.md`** - Summary of AIM framework integration from GenAI_Playground
 - **`ARCHITECTURE.md`** - System architecture and design
 - **`API.md`** - API reference and usage
 - **`RECIPE_GUIDE.md`** - Recipe system documentation

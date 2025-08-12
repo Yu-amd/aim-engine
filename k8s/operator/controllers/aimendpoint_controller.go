@@ -409,6 +409,39 @@ func (r *AIMEndpointReconciler) reconcileDeployment(ctx context.Context, endpoin
 			Env:       r.getEnvironmentVariables(endpoint),
 		}
 		
+		// Set command and args from selected recipe
+		if endpoint.Status.SelectedRecipe != nil {
+			// Set command based on backend
+			switch endpoint.Status.SelectedRecipe.Backend {
+			case "vllm":
+				container.Command = []string{"python", "-m", "vllm.entrypoints.openai.api_server"}
+			case "tensorrt":
+				container.Command = []string{"python", "-m", "tensorrt_llm.entrypoints.openai.api_server"}
+			default:
+				container.Command = []string{"python", "-m", "vllm.entrypoints.openai.api_server"}
+			}
+			
+			// Get args from the selected recipe configuration
+			if endpoint.Status.SelectedRecipe.Name != "" {
+				recipe := &aimv1alpha1.AIMRecipe{}
+				err := r.Get(ctx, types.NamespacedName{Name: endpoint.Status.SelectedRecipe.Name, Namespace: endpoint.Namespace}, recipe)
+				if err == nil {
+					// Find the matching configuration
+					requestedGPUCount := int32(1)
+					if endpoint.Spec.Resources.GPUCount != nil {
+						requestedGPUCount = *endpoint.Spec.Resources.GPUCount
+					}
+					
+					for _, config := range recipe.Spec.Configurations {
+						if config.Enabled && config.GPUCount == requestedGPUCount {
+							container.Args = config.Args
+							break
+						}
+					}
+				}
+			}
+		}
+		
 		// Initialize volume mounts slice
 		container.VolumeMounts = []corev1.VolumeMount{}
 		
